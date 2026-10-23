@@ -309,7 +309,7 @@ function samenOpScherm(C, x, y, z) {
 }
 // naamkaartjes en tekstballonnen boven de hoofden
 function samenNamen(C) {
-  if (!samen) return;
+  if (!samen || !C) return; // (direct na een sprong is er nog geen camera van een beeldje)
   const laag = $('rb-namen'), nu = performance.now(), zicht = spelBezig && wereldKlaar && huidigScherm() !== 'kaart';
   for (const o of samen.spelers.values()) {
     if (!o.el) { o.el = document.createElement('div'); o.el.className = 'rb-naamkaart'; o.el.innerHTML = '<b></b><span class="ballon" hidden></span>'; laag.appendChild(o.el); }
