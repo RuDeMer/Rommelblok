@@ -1,0 +1,422 @@
+/* ============================================================================
+   Rommelblok: één stijl voor alle schermen ('Glas'): doorzichtige, wazige panelen over de wereld,
+   lichte vakken, lichtblauw voor wat gekozen is, wit voor het tabblad dat aan staat,
+   en een witte kaart met uitleg bij elk voorwerp.
+   (De naam --goud is van vroeger: in deze stijl is dat de lichtblauwe kleur voor wat gekozen is.)
+   ============================================================================ */
+:root {
+  --paneel: rgba(14,17,28,.66); --paneel2: rgba(255,255,255,.08); --vlak: rgba(255,255,255,.05); --veld: rgba(255,255,255,.07); --vak: rgba(255,255,255,.08); --vakrand: rgba(255,255,255,.14); --rand: rgba(255,255,255,.16); --lijn: rgba(255,255,255,.12);
+  --tekst: #FFFFFF; --zacht: rgba(255,255,255,.8); --stil: rgba(255,255,255,.64); --goud: #8FD3FF; --goud-l: #BDE6FF; --kaart: rgba(255,255,255,.95); --kaartlijn: #DDE3EA; --inkt: #141822; --inkt2: #454C59;
+  --keuze: rgba(143,211,255,.2); --gloed: rgba(143,211,255,.28); --hover: rgba(255,255,255,.13); --hoverrand: rgba(255,255,255,.3);
+  --glas: blur(16px) saturate(1.15); --blauw-d: #2B6FA8;
+  --rood: #C8323C; --groen: #3BA55C; --blauw: #4A8FE0; --hout: #7A4E2D;
+  /* oude namen, voor wat ze nog gebruikt */
+  --papier: #FBF6E9; --manila: #F2DDA0; --tape: #23252B; --munt: #E9B949; --gat: #1E3263;
+  --veilig-o: env(safe-area-inset-bottom, 0px); --veilig-l: env(safe-area-inset-left, 0px); --veilig-r: env(safe-area-inset-right, 0px); --veilig-b: env(safe-area-inset-top, 0px);
+  --vm: 48px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0B0E18; color: var(--tekst); font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+body { overscroll-behavior: none; }
+button, input { font: inherit; color: inherit; }
+#rb-veld { position: fixed; inset: 0; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#rb-doek { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+#rb-rood, #rb-water, #rb-slaap { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+#rb-rood { background: radial-gradient(ellipse at center, rgba(200,30,40,0) 35%, rgba(200,30,40,.55)); }
+#rb-water { background: radial-gradient(ellipse at center, rgba(20,60,120,.1), rgba(10,30,70,.45)); }
+#rb-slaap { background: #05060c; transition: opacity 1.2s; }
+.rb-kruis { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); pointer-events: none; }
+.rb-kruis::before, .rb-kruis::after { content: ""; position: absolute; background: rgba(255,255,255,.92); border-radius: 1px; box-shadow: 0 0 0 1px rgba(20,20,30,.55); }
+.rb-kruis::before { left: 9px; top: 0; width: 2px; height: 20px; } .rb-kruis::after { top: 9px; left: 0; height: 2px; width: 20px; }
+body.rb-aanraak.rb-tikmodus .rb-kruis { display: none; }
+body:not(.rb-speelt) .rb-kruis, body:not(.rb-speelt) .rb-onder, body:not(.rb-speelt) .rb-touch, body:not(.rb-speelt) #rb-wijzer, body:not(.rb-speelt) #rb-joy, body:not(.rb-speelt) #rb-minikaart { display: none !important; }
+#rb-fps { position: absolute; left: calc(8px + var(--veilig-l)); top: calc(8px + var(--veilig-b)); font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(10,12,20,.6); padding: 4px 7px; border-radius: 6px; white-space: pre; pointer-events: none; z-index: 4; }
+/* ---------------- meldingen en kleine wijzers in beeld */
+#rb-melding { position: absolute; left: 50%; top: calc(14px + var(--veilig-b)); transform: translateX(-50%); background: rgba(18,22,34,.82); -webkit-backdrop-filter: var(--glas); backdrop-filter: var(--glas); color: var(--tekst); font-weight: 700; padding: .55rem 1rem; border-radius: 999px; border: 1px solid var(--rand); box-shadow: 0 10px 28px rgba(0,0,0,.45); z-index: 26; max-width: min(92vw, 34rem); text-align: center; pointer-events: none; }
+#rb-melding::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--goud); margin-right: .55rem; vertical-align: 1px; }
+#rb-melding.klein { top: auto; bottom: calc(118px + var(--veilig-o)); font-size: .88rem; padding: .35rem .8rem; }
+#rb-wijzer { position: absolute; left: 50%; top: calc(12px + var(--veilig-b)); transform: translateX(-50%); display: flex; gap: .4rem; align-items: center; background: rgba(14,17,28,.6); border: 1px solid rgba(255,255,255,.14); color: var(--tekst); padding: .28rem .8rem .28rem .55rem; border-radius: 999px; font-weight: 700; font-size: .85rem; pointer-events: none; z-index: 3; }
+#rb-wijzer .pijl { display: inline-block; color: var(--goud); font-size: 1rem; }
+#rb-klok { position: absolute; right: calc(10px + var(--veilig-r)); top: calc(10px + var(--veilig-b)); background: rgba(14,17,28,.6); border: 1px solid rgba(255,255,255,.14); padding: .22rem .65rem; border-radius: 999px; font-weight: 800; font-size: .85rem; pointer-events: none; }
+/* ---------------- onderbalk: levens, honger en snelbalk */
+.rb-onder { position: absolute; left: 50%; bottom: calc(10px + var(--veilig-o)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 3; pointer-events: none; }
+.rb-status { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; padding: 0 4px; gap: 1rem; }
+.rb-rij { display: flex; flex-direction: column; gap: 3px; }
+.rb-harten, .rb-vlaaien, .rb-adem { display: flex; gap: 1px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+.rb-harten i, .rb-vlaaien i, .rb-adem i { width: 17px; height: 16px; display: block; background-size: 100% 100%; image-rendering: pixelated; }
+.rb-vlaaien { flex-direction: row-reverse; }
+#rb-naam { font-weight: 800; font-size: .95rem; text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.5); min-height: 1.3em; transition: opacity .4s; }
+.rb-balk { display: flex; gap: 4px; padding: 5px; border-radius: 18px; background: rgba(14,17,28,.6); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 22px rgba(0,0,0,.4); pointer-events: auto; }
+/* ---------------- een vak */
+.rb-vak { position: relative; width: var(--vm); height: var(--vm); border-radius: 12px; background: var(--vak); border: 1px solid var(--vakrand); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); padding: 0; margin: 0; color: var(--tekst); cursor: pointer; display: grid; place-items: center; touch-action: none; transition: border-color .12s, background-color .12s; }
+.rb-vak:hover { border-color: var(--hoverrand); background: var(--hover); }
+.rb-vak img { width: 70%; height: 70%; image-rendering: pixelated; pointer-events: none; display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.rb-vak b { position: absolute; right: 4px; bottom: 2px; font-size: .78rem; font-weight: 800; line-height: 1; color: var(--tekst); text-shadow: 0 1px 2px #000, 0 0 2px #000; pointer-events: none; }
+.rb-vak u { position: absolute; left: 6px; right: 6px; bottom: 4px; height: 3px; border-radius: 2px; background: rgba(0,0,0,.6); pointer-events: none; text-decoration: none; }
+.rb-vak u i { display: block; height: 100%; border-radius: 2px; background: var(--groen); }
+.rb-vak small { position: absolute; left: 5px; top: 3px; font-size: .62rem; font-weight: 800; color: var(--stil); pointer-events: none; }
+.rb-vak.gekozen, .rb-vak.keuze { border: 2px solid var(--goud); background: var(--keuze); box-shadow: 0 0 0 3px var(--gloed); }
+.rb-vak.keuze { background: var(--keuze); }
+.rb-vak.dof img { opacity: .22; } .rb-vak.dof b { opacity: .3; }
+.rb-vak.doel { border-color: var(--goud); background: var(--keuze); }
+.rb-vak.verdeel { border: 2px dashed var(--goud); }
+.rb-balk .rb-vak.gekozen { transform: translateY(-3px); }
+@media (prefers-reduced-motion: reduce) { .rb-balk .rb-vak.gekozen { transform: none; } .rb-vak { transition: none; } }
+/* ---------------- schermen en panelen */
+.rb-scherm { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: calc(12px + var(--veilig-b)) calc(12px + var(--veilig-r)) calc(12px + var(--veilig-o)) calc(12px + var(--veilig-l)); background: rgba(5,8,20,.24); overflow: auto; }
+.rb-scherm[hidden] { display: none; }
+#rb-begin { background: radial-gradient(ellipse at 50% 0%, rgba(143,211,255,.14), rgba(8,10,20,.12) 55%), rgba(5,8,20,.22); align-content: start; }
+.rb-paneel { position: relative; background: var(--paneel); -webkit-backdrop-filter: var(--glas); backdrop-filter: var(--glas); color: var(--tekst); border: 1px solid var(--rand); border-radius: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.4); padding: 1rem 1.2rem 1.15rem; }
+.rb-dialoog { width: min(100%, 30rem); max-height: 100%; overflow: auto; }
+.rb-dialoog.rb-breed { width: min(100%, 44rem); }
+.rb-midden { text-align: center; }
+/* de titel van een scherm (heette vroeger labeltape) */
+.rb-tape { display: block; margin: 0 0 .7rem; font-size: 1.35rem; font-weight: 800; line-height: 1.15; letter-spacing: 0; color: var(--tekst); }
+.rb-tape.rood { color: #FF8F8F; }
+.rb-paneel-kop { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin-bottom: .55rem; }
+.rb-paneel-kop .rb-tape { margin: 0; }
+.rb-kop-knoppen { display: flex; gap: .4rem; flex-wrap: wrap; }
+.rb-sectie { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--stil); margin: 0 0 .5rem; }
+/* knoppen: rond en licht doorzichtig; de belangrijkste lichtblauw; iets dat je niet ongedaan maakt in rood */
+.rb-knop { cursor: pointer; border: 1px solid var(--rand); border-radius: 999px; padding: .55rem 1rem; background: var(--paneel2); color: var(--tekst); font-weight: 700; transition: background-color .12s, border-color .12s, transform .08s; touch-action: manipulation; line-height: 1.2; }
+.rb-knop:hover { background: var(--hover); border-color: var(--hoverrand); }
+.rb-knop:active { transform: translateY(1px); }
+.rb-knop.rood, .rb-knop.goud { background: var(--goud); border-color: var(--goud); color: var(--inkt); font-weight: 800; }
+.rb-knop.rood:hover, .rb-knop.goud:hover { background: var(--goud-l); }
+.rb-knop.gevaar { background: rgba(200,50,60,.22); border-color: rgba(255,120,130,.45); color: #FFC2C2; }
+.rb-knop.gevaar:hover { background: rgba(200,50,60,.34); }
+.rb-knop.munt { background: var(--goud); color: var(--inkt); } .rb-knop.groen { background: var(--groen); border-color: var(--groen); color: #fff; }
+.rb-knop.klein { padding: .35rem .75rem; font-size: .85rem; border-radius: 999px; } .rb-knop.groot { font-size: 1.08rem; padding: .75rem 1.2rem; }
+.rb-knop[disabled] { opacity: .45; cursor: not-allowed; }
+.rb-sluit { width: 38px; height: 38px; padding: 0; display: grid; place-items: center; font-size: 1rem; font-weight: 800; flex: none; }
+.rb-knop:focus-visible, .rb-vak:focus-visible, .rb-stand:focus-visible, .rb-recept:focus-visible, .rb-wereld button:focus-visible, .rb-segment button:focus-visible, .rb-chip:focus-visible, .rb-bm-ding:focus-visible, .rb-bm-groep:focus-visible { outline: 3px solid var(--goud); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .rb-knop { transition: none; } .rb-knop:active { transform: none; } }
+.rb-knoppen { display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 1rem; }
+.rb-midden .rb-knoppen { justify-content: center; }
+.rb-klein { font-size: .86rem; color: var(--zacht); margin: .3rem 0 .5rem; line-height: 1.4; }
+.rb-link { color: var(--goud); font-weight: 800; }
+/* gesegmenteerde tabbladen en chips */
+.rb-segment { display: flex; gap: 3px; background: var(--veld); border-radius: 999px; padding: 3px; }
+.rb-segment button { cursor: pointer; border: 0; border-radius: 999px; background: transparent; color: var(--zacht); font-weight: 600; font-size: .86rem; padding: .42rem .8rem; white-space: nowrap; }
+.rb-segment button:hover { color: var(--tekst); }
+.rb-segment button[aria-selected="true"], .rb-segment button[aria-pressed="true"] { background: #FFFFFF; color: var(--inkt); font-weight: 800; }
+.rb-chips { display: flex; gap: .3rem; flex-wrap: wrap; }
+.rb-chip { cursor: pointer; border: 1px solid var(--vakrand); border-radius: 999px; background: var(--vlak); color: var(--zacht); font-weight: 700; font-size: .8rem; padding: .28rem .7rem; white-space: nowrap; }
+.rb-chip:hover { color: var(--tekst); border-color: var(--hoverrand); }
+.rb-chip[aria-pressed="true"] { background: #FFFFFF; border-color: #FFFFFF; color: var(--inkt); }
+/* invoervelden */
+.rb-veldje { display: flex; flex-direction: column; gap: .3rem; margin: .65rem 0; font-weight: 700; color: var(--zacht); font-size: .9rem; }
+.rb-veldje input, #rb-vraag-invoer, .rb-zoek { border: 1px solid var(--vakrand); border-radius: 12px; padding: .58rem .7rem; background: var(--veld); color: var(--tekst); width: 100%; min-width: 0; font-weight: 600; }
+.rb-veldje input:focus, #rb-vraag-invoer:focus, .rb-zoek:focus { outline: 2px solid var(--goud); outline-offset: 1px; }
+.rb-zoekveld { display: flex; align-items: center; gap: .45rem; background: var(--vak); border: 1px solid var(--vakrand); border-radius: 999px; padding: 0 .65rem; height: 38px; min-width: 0; }
+.rb-zoekveld svg { flex: none; }
+.rb-zoekveld input { border: 0; background: transparent; color: var(--tekst); outline: 0; width: 100%; min-width: 0; font-weight: 600; font-size: .88rem; }
+.rb-zoekveld:focus-within { border-color: var(--goud); }
+.rb-zoekveld input::placeholder, .rb-zoek::placeholder, .rb-veldje input::placeholder { color: rgba(255,255,255,.5); }
+.rb-rij-in { display: flex; gap: .4rem; }
+.rb-standen { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: .7rem 0; }
+.rb-stand { cursor: pointer; text-align: left; border: 1px solid var(--vakrand); border-radius: 16px; padding: .75rem .85rem; background: var(--vlak); color: var(--tekst); }
+.rb-stand b { display: block; font-size: 1.05rem; } .rb-stand small { display: block; font-size: .8rem; margin-top: .25rem; line-height: 1.35; color: var(--zacht); }
+.rb-stand[aria-checked="true"] { border: 2px solid var(--goud); background: var(--keuze); }
+.rb-voortgang { height: 10px; border-radius: 999px; background: var(--veld); border: 1px solid var(--vakrand); overflow: hidden; margin-top: .6rem; }
+.rb-voortgang i, .rb-voortgang div { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--goud), var(--goud-l)); transition: width .3s; }
+@media (prefers-reduced-motion: reduce) { .rb-voortgang i, .rb-voortgang div { transition: none; } }
+/* ---------------- beginscherm */
+.rb-begin { width: min(100%, 52rem); display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1rem; }
+.rb-bord { text-align: center; margin-top: .4rem; }
+.rb-logo { margin: 0; display: inline-flex; gap: clamp(2px, .6vw, 4px); flex-wrap: nowrap; justify-content: center; font-size: clamp(1.35rem, 7.2vw, 4rem); font-weight: 800; line-height: 1; }
+.rb-logo span { display: inline-grid; place-items: center; width: 1.08em; height: 1.08em; border-width: clamp(2px, .5vw, 3px) !important; background: linear-gradient(145deg, #7CC452 0 28%, #5FA83E 28% 33%, #A97A4A 33%, #8A5A36); color: var(--papier); border: 3px solid var(--tape); border-radius: 8px; box-shadow: 0 5px 0 var(--tape); text-shadow: 0 3px 0 var(--tape); }
+.rb-logo span:nth-child(odd) { transform: rotate(-3deg); } .rb-logo span:nth-child(3n) { transform: rotate(2.5deg) translateY(3px); }
+.rb-sub { margin: .9rem auto 0; max-width: 32rem; font-weight: 600; color: var(--zacht); text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.rb-briefje { position: relative; background: var(--kaart); color: var(--inkt); border-radius: 14px; padding: .9rem 1rem .8rem; box-shadow: 0 12px 30px rgba(0,0,0,.4); font-weight: 600; }
+.rb-briefje p { margin: .2rem 0; }
+.rb-briefje .rb-knop { background: var(--inkt); color: var(--tekst); border-color: var(--inkt); }
+.rb-werelden { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .55rem; }
+.rb-wereld { display: grid; grid-template-columns: auto 1fr auto; gap: .85rem; align-items: center; background: var(--vlak); border: 1px solid var(--vakrand); border-radius: 16px; padding: .6rem .75rem; }
+.rb-wereld:hover { border-color: var(--hoverrand); }
+.rb-wereld .plaatje { width: 56px; height: 56px; border-radius: 10px; border: 1px solid var(--vakrand); background: #6FB34A; image-rendering: pixelated; object-fit: cover; }
+.rb-wereld h3 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.rb-wereld p { margin: .15rem 0 0; font-size: .82rem; color: var(--stil); }
+.rb-wereld .badge { display: inline-block; font-size: .7rem; font-weight: 800; padding: .08rem .5rem; border-radius: 999px; background: var(--paneel2); color: var(--tekst); margin-right: .35rem; vertical-align: 1px; }
+.rb-wereld .badge.bouwen { background: #2C4A7E; } .rb-wereld .badge.overleven { background: #2D5A3A; }
+.rb-wereld-knoppen { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+.rb-leeg { text-align: center; padding: 1rem; font-weight: 700; color: var(--zacht); }
+.rb-begin-voet { display: flex; gap: .6rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+@media (max-width: 560px) { .rb-wereld { grid-template-columns: auto 1fr; } .rb-wereld-knoppen { grid-column: 1 / -1; justify-content: stretch; } .rb-wereld-knoppen .rb-knop { flex: 1; } .rb-standen { grid-template-columns: 1fr; } }
+/* ---------------- pauze, instellingen en besturing */
+.rb-menu { width: min(100%, 22rem); text-align: center; }
+.rb-menu-knoppen { display: flex; flex-direction: column; gap: .5rem; }
+.rb-menu-knoppen .rb-knop { padding: .7rem 1rem; }
+.rb-inst { display: grid; gap: .5rem; }
+.rb-inst-rij { display: grid; grid-template-columns: 1fr minmax(0, 17rem); gap: .7rem; align-items: center; background: var(--vlak); border: 1px solid var(--vakrand); border-radius: 16px; padding: .55rem .75rem; }
+.rb-inst-rij label { font-weight: 700; } .rb-inst-rij small { display: block; font-weight: 500; font-size: .78rem; color: var(--stil); margin-top: .1rem; }
+.rb-inst-rij input[type=range] { width: 100%; accent-color: var(--goud); }
+.rb-keuzes { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; background: var(--veld); border-radius: 18px; padding: 3px; justify-self: end; }
+.rb-keuzes button { cursor: pointer; border: 0; border-radius: 999px; padding: .3rem .6rem; background: transparent; color: var(--zacht); font-weight: 700; font-size: .82rem; }
+.rb-keuzes button[aria-pressed="true"] { background: #FFFFFF; color: var(--inkt); }
+@media (max-width: 520px) { .rb-inst-rij { grid-template-columns: 1fr; } .rb-keuzes { justify-content: flex-start; justify-self: start; } }
+.rb-kleuren { gap: .35rem; background: transparent; padding: 0; }
+.rb-keuzes.rb-kleuren .rb-kleur { width: 2.1rem; height: 2.1rem; min-width: 0; padding: 0; border-radius: 50%; background: var(--kl); border: 2px solid #15171B; box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); }
+.rb-keuzes.rb-kleuren .rb-kleur[aria-pressed="true"] { background: var(--kl); outline: 3px solid var(--goud); outline-offset: 2px; }
+#rb-hulp-inhoud { columns: 2 16rem; column-gap: 1.4rem; color: var(--zacht); }
+#rb-hulp-inhoud h3 { margin: .3rem 0 .3rem; font-size: 1rem; color: var(--tekst); break-after: avoid; }
+#rb-hulp-inhoud ul { margin: 0 0 .8rem; padding-left: 1.1rem; break-inside: avoid; } #rb-hulp-inhoud li { margin: .2rem 0; }
+kbd { display: inline-block; background: var(--paneel2); color: var(--tekst); border: 1px solid var(--rand); border-bottom-width: 3px; border-radius: 6px; padding: 0 .35rem; font: inherit; font-weight: 800; font-size: .85em; }
+/* ---------------- de rugzak (ook werkbank, oven, kist en smidse) */
+#rb-rugzak { place-items: center; }
+.rb-rugzak { width: min(100%, 64rem); max-height: 100%; display: flex; flex-direction: column; gap: .7rem; padding: 1rem 1.2rem .9rem; overflow: hidden; }
+.rb-greep { display: none; }
+.rb-rz-kop { margin: 0; flex-wrap: nowrap; }
+.rb-rz-kop .rb-zoekveld { margin-left: auto; width: min(15rem, 40%); }
+.rb-rugzak-inhoud { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: minmax(14rem, 21rem) minmax(max-content, 1fr); gap: 1.4rem; align-items: start; overscroll-behavior: contain; }
+.rb-rugzak[data-tab="rugzak"] .rz-deel[data-deel="recepten"], .rb-rugzak[data-tab="recepten"] .rz-deel[data-deel="maken"] { display: none; }
+.rb-rugzak.stapel .rb-rugzak-inhoud { grid-template-columns: minmax(0, 1fr); }
+.rz-deel { min-width: 0; display: flex; flex-direction: column; gap: .5rem; }
+.rz-deel[data-deel="rugzak"] { position: relative; }
+.rb-vlakje { background: var(--vlak); border: 1px solid var(--lijn); border-radius: 16px; padding: .8rem; }
+.rb-raster { display: grid; gap: 6px; justify-content: start; }
+.rb-raster.r9 { grid-template-columns: repeat(9, var(--vm)); }
+.rb-raster.balk { background: var(--vlak); border: 1px solid var(--lijn); border-radius: 16px; padding: 8px; width: max-content; max-width: 100%; }
+.rb-maken { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.rb-pijl { display: grid; place-items: center; color: var(--goud); }
+.rb-pijl svg { display: block; }
+.rb-plus { font-size: 1.4rem; font-weight: 800; color: var(--stil); }
+.rb-uitvak { width: 60px !important; height: 60px !important; }
+.rb-uitvak.kan { border: 2px solid var(--goud); background: var(--keuze); box-shadow: 0 0 0 3px var(--gloed); }
+.rb-kanknop { display: flex; align-items: center; gap: .55rem; width: 100%; text-align: left; }
+.rb-kanknop svg { flex: none; }
+.rb-oven { display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto auto; gap: .45rem .9rem; align-items: center; justify-content: start; }
+.rb-vuur { width: 26px; height: 26px; border-radius: 7px; background: var(--vak); position: relative; overflow: hidden; border: 1px solid var(--vakrand); justify-self: center; }
+.rb-vuur i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(#FFE27A, #FF7A2A 60%, #C8323C); }
+.rb-pijlbalk { width: 50px; height: 12px; border-radius: 999px; background: var(--vak); border: 1px solid var(--vakrand); overflow: hidden; }
+.rb-pijlbalk i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--goud), var(--goud-l)); }
+.rb-rz-voet { display: flex; gap: 1.1rem; flex-wrap: wrap; font-size: .78rem; color: var(--stil); border-top: 1px solid var(--lijn); padding-top: .6rem; }
+.rb-rz-voet b { color: var(--tekst); }
+.rb-weg { background: rgba(200,50,60,.18) !important; border-color: rgba(255,120,130,.4) !important; }
+.rb-weg::before { content: ""; width: 20px; height: 22px; background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFB4B4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6'/%3E%3C/svg%3E"); opacity: .85; }
+.rb-vasthouder { display: flex; align-items: center; gap: .5rem; min-height: 2.2rem; font-weight: 700; font-size: .85rem; }
+.rb-vasthouder span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; color: var(--zacht); } .rb-vasthouder .rb-klein { white-space: normal; line-height: 1.25; margin: 0; }
+.rb-vasthouder img { width: 26px; height: 26px; image-rendering: pixelated; }
+/* het receptenboek */
+.rb-recepten { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; max-height: min(40vh, 22rem); overflow: auto; padding: 2px; overscroll-behavior: contain; }
+.rb-recept { position: relative; cursor: pointer; aspect-ratio: 1; border: 1px solid var(--vakrand); border-radius: 12px; background: var(--vak); display: grid; place-items: center; padding: 0; }
+.rb-recept img { width: 62%; height: 62%; image-rendering: pixelated; opacity: .4; }
+.rb-recept.kan img { opacity: 1; }
+.rb-recept.kan { border-color: rgba(143,211,255,.45); }
+.rb-recept.gekozen { border: 2px solid var(--goud); }
+.rb-recept.werkbank::after { content: ""; position: absolute; right: 3px; top: 3px; width: 10px; height: 10px; border-radius: 3px; background: var(--hout); border: 1px solid #000; }
+.rb-recept b { position: absolute; right: 4px; bottom: 2px; font-size: .72rem; font-weight: 800; text-shadow: 0 1px 2px #000; }
+.rb-recept-info { background: var(--kaart); color: var(--inkt); border-radius: 16px; padding: .7rem .8rem; font-size: .88rem; min-height: 3.2rem; }
+.rb-recept-info > b { font-size: 1rem; }
+.rb-recept-info .ing { display: inline-flex; align-items: center; gap: .25rem; margin: .2rem .5rem .1rem 0; font-weight: 700; color: var(--inkt2); }
+.rb-recept-info .ing img { width: 20px; height: 20px; image-rendering: pixelated; } .rb-recept-info .ing.mist { color: var(--rood); }
+.rb-recept-info .rb-klein { color: var(--inkt2); }
+.rb-recept-info .rb-knop { background: var(--inkt); color: var(--tekst); border-color: var(--inkt); }
+.rb-recept-info .rb-knop.rood { background: var(--goud); color: var(--inkt); border-color: var(--blauw-d); }
+/* de uitlegkaart bij een voorwerp (muis) en de kaart bovenin op een telefoon */
+#rb-tip { position: fixed; z-index: 40; width: 16.5rem; pointer-events: none; }
+.rb-infokaart { background: var(--kaart); color: var(--inkt); border-radius: 16px; padding: .7rem .85rem; box-shadow: 0 12px 30px rgba(0,0,0,.45); font-size: .8rem; line-height: 1.35; }
+.rb-infokaart .ik-kop { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.rb-infokaart .ik-naam { font-size: 1rem; font-weight: 800; }
+.rb-infokaart .ik-soort { font-size: .66rem; font-weight: 800; letter-spacing: .06em; color: var(--blauw-d); text-transform: uppercase; white-space: nowrap; }
+.rb-infokaart .ik-tekst { color: var(--inkt2); margin-top: .3rem; }
+.rb-infokaart .ik-slijt { height: 6px; border-radius: 9px; background: var(--kaartlijn); margin: .45rem 0 .25rem; overflow: hidden; }
+.rb-infokaart .ik-slijt i { display: block; height: 100%; border-radius: 9px; }
+.rb-infokaart .ik-hulp { color: var(--inkt2); margin-top: .45rem; border-top: 1px solid var(--kaartlijn); padding-top: .4rem; }
+.rb-rz-kaart { display: none; }
+body.rb-aanraak .rb-rz-kaart { display: block; } .rb-rz-kaart[hidden] { display: none !important; }
+.rb-rz-kaart .rb-infokaart { display: flex; flex-direction: column; gap: .5rem; padding: .7rem; }
+.rb-rz-kaart .ik-rij { display: flex; align-items: center; gap: .6rem; }
+.rb-rz-kaart .ik-rij img { width: 40px; height: 40px; image-rendering: pixelated; background: #E7ECF2; border-radius: 12px; padding: 4px; flex: none; }
+.rb-rz-kaart .ik-knoppen { display: flex; gap: 6px; }
+.rb-rz-kaart .ik-knoppen .rb-knop { flex: 1; min-height: 44px; background: var(--inkt); color: var(--tekst); border-color: var(--inkt); padding: .4rem .3rem; font-size: .85rem; }
+.rb-rz-hulp { font-size: .78rem; color: var(--stil); margin: 0; }
+body.rb-aanraak #rb-tip { display: none !important; }
+.rb-segment .alleen-smal { display: none; }
+.rb-rugzak[data-tab="maken"] .rz-deel[data-deel="recepten"] { display: none; }
+#rb-vast { position: fixed; left: 0; top: 0; width: 46px; height: 46px; pointer-events: none; z-index: 41; display: none; place-items: center; transform: translate(-50%, -50%); }
+#rb-vast img { width: 100%; height: 100%; image-rendering: pixelated; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
+#rb-vast b { position: absolute; right: -2px; bottom: -4px; color: #fff; font-weight: 800; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+@media (max-width: 900px) { .rb-rugzak-inhoud { grid-template-columns: minmax(0, 1fr); justify-items: start; } .rb-rugzak[data-tab="rugzak"] .rz-deel[data-deel="maken"] { order: -1; } }
+/* op een telefoon: een paneel van onderen, met drie tabbladen en een kaart met wat je hebt gekozen */
+@media (max-width: 640px) {
+  .rb-scherm-rugzak { padding: 0; place-items: end stretch !important; align-content: end; }
+  .rb-rugzak { width: 100%; max-height: calc(100% - 28px - var(--veilig-b)); height: auto; border-radius: 26px 26px 0 0; background: rgba(14,17,28,.72); border-width: 1px 0 0; padding: .55rem .85rem calc(.85rem + var(--veilig-o)); gap: .6rem; --vm: calc((100vw - 1.7rem - 5 * 8px) / 6); }
+  .rb-greep { display: block; width: 42px; height: 5px; border-radius: 9px; background: rgba(255,255,255,.35); align-self: center; flex: none; }
+  .rb-rz-kop { flex-wrap: wrap; gap: .5rem; }
+  .rb-rz-kop .rb-tape { display: none; }
+  .rb-rz-kop .rb-segment { flex: 1; } .rb-rz-kop .rb-segment button { flex: 1; padding: .5rem .3rem; font-size: .9rem; }
+  .rb-rz-kop .rb-sluit { width: 44px; height: 44px; }
+  .rb-rz-kop .rb-zoekveld { order: 3; width: 100%; margin: 0; }
+  .rb-rugzak[data-tab="rugzak"] .rz-deel[data-deel="maken"], .rb-rugzak[data-tab="recepten"] .rz-deel[data-deel="rugzak"], .rb-rugzak[data-tab="maken"] .rz-deel[data-deel="recepten"] { display: none; }
+  .rb-rugzak[data-tab="maken"] .rz-deel[data-deel="maken"] { display: flex; }
+  .rb-rugzak-inhoud { gap: .9rem; }
+  .rb-raster.r9 { grid-template-columns: repeat(6, var(--vm)); gap: 8px; }
+  .rb-raster.balk { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px; width: 100%; padding: 6px; }
+  .rb-raster.balk .rb-vak { width: auto; height: auto; aspect-ratio: 1; }
+  .rb-rz-voet { display: none; }
+  .rb-rz-kaart { display: block; }
+  .rb-segment .alleen-smal { display: block; }
+  .rb-recepten { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); max-height: 38vh; }
+  #rb-tip { display: none !important; }
+}
+/* ---------------- aanraakbesturing */
+.rb-touch { display: none; }
+body.rb-aanraak .rb-touch { display: block; }
+.rb-tk { position: absolute; z-index: 4; width: 62px; height: 62px; border-radius: 50%; border: 1px solid rgba(255,255,255,.24); background: rgba(14,17,28,.5); color: var(--tekst); font-weight: 800; font-size: .8rem; box-shadow: 0 6px 16px rgba(0,0,0,.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); touch-action: none; display: grid; place-items: center; padding: 0; }
+.rb-tk.groot { width: 78px; height: 78px; font-size: .9rem; }
+.rb-tk.rood { background: rgba(200,50,60,.8); } .rb-tk.groen { background: rgba(59,165,92,.8); }
+.rb-tk[aria-pressed="true"] { background: rgba(143,211,255,.92); color: var(--inkt); }
+.rb-tk.ingedrukt { transform: scale(.94); filter: brightness(1.15); }
+#tk-menu { left: calc(10px + var(--veilig-l)); top: calc(10px + var(--veilig-b)); width: 46px; height: 46px; font-size: 1.2rem; }
+#tk-rugzak { right: calc(10px + var(--veilig-r)); top: calc(10px + var(--veilig-b)); width: 52px; height: 52px; font-size: 1.4rem; }
+#tk-spring { right: calc(22px + var(--veilig-r)); bottom: calc(96px + var(--veilig-o)); }
+#tk-sluip { right: calc(110px + var(--veilig-r)); bottom: calc(86px + var(--veilig-o)); }
+#tk-vlieg { right: calc(22px + var(--veilig-r)); bottom: calc(188px + var(--veilig-o)); }
+#tk-op { right: calc(96px + var(--veilig-r)); bottom: calc(166px + var(--veilig-o)); width: 50px; height: 50px; }
+#tk-neer { right: calc(110px + var(--veilig-r)); bottom: calc(86px + var(--veilig-o)); width: 50px; height: 50px; }
+#tk-hak { right: calc(22px + var(--veilig-r)); bottom: calc(276px + var(--veilig-o)); }
+#tk-bouw { right: calc(96px + var(--veilig-r)); bottom: calc(252px + var(--veilig-o)); }
+#tk-gooi { right: calc(10px + var(--veilig-r)); top: calc(70px + var(--veilig-b)); width: 44px; height: 44px; font-size: 1.1rem; }
+body:not(.rb-kruismodus) #tk-hak, body:not(.rb-kruismodus) #tk-bouw { display: none; }
+body:not(.rb-vliegt) #tk-op, body:not(.rb-vliegt) #tk-neer { display: none; }
+body.rb-vliegt #tk-sluip { display: none; }
+body:not(.rb-bouwen) #tk-vlieg { display: none; }
+#rb-joy { display: none; position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; background: rgba(14,17,28,.28); border: 1px solid rgba(255,255,255,.4); pointer-events: none; z-index: 4; }
+#rb-joyknop { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(242,238,228,.75); border: 1px solid rgba(0,0,0,.3); }
+body.rb-aanraak .rb-onder { bottom: calc(6px + var(--veilig-o)); }
+body.rb-aanraak .rb-balk .rb-vak { width: 46px; height: 46px; }
+@media (max-width: 520px) {
+  .rb-balk { gap: 2px; padding: 4px; }
+  .rb-balk .rb-vak, body.rb-aanraak .rb-balk .rb-vak { width: calc((100vw - 44px) / 9); height: calc((100vw - 44px) / 9); max-width: 46px; max-height: 46px; }
+  .rb-harten i, .rb-vlaaien i, .rb-adem i { width: 14px; height: 13px; }
+}
+@media (max-height: 460px) and (orientation: landscape) {
+  .rb-tk { width: 54px; height: 54px; } .rb-tk.groot { width: 66px; height: 66px; }
+  #tk-spring { bottom: calc(70px + var(--veilig-o)); } #tk-sluip { bottom: calc(66px + var(--veilig-o)); right: calc(96px + var(--veilig-r)); }
+  #tk-vlieg { bottom: calc(150px + var(--veilig-o)); } #tk-op { bottom: calc(136px + var(--veilig-o)); right: calc(86px + var(--veilig-r)); } #tk-neer { bottom: calc(66px + var(--veilig-o)); right: calc(96px + var(--veilig-r)); }
+  #tk-hak { bottom: calc(222px + var(--veilig-o)); } #tk-bouw { bottom: calc(206px + var(--veilig-o)); right: calc(86px + var(--veilig-r)); }
+  .rb-balk .rb-vak, body.rb-aanraak .rb-balk .rb-vak { width: 42px; height: 42px; }
+  :root { --vm: 42px; }
+}
+/* ---------------- het bouwmenu (bouwstand): groepen links, een raster met namen, en je snelbalk onderaan */
+.rb-bouwmenu { position: relative; width: min(100%, 64rem); max-width: 100%; min-width: 0; height: min(100%, 44rem); display: flex; flex-direction: column; gap: .7rem; padding: 1rem 1.15rem; border-radius: 22px; border: 1px solid var(--rand); background: var(--paneel); -webkit-backdrop-filter: var(--glas); backdrop-filter: var(--glas); box-shadow: 0 24px 60px rgba(0,0,0,.4); color: var(--tekst); min-height: 0; }
+.rb-bm-kop { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.rb-bm-kop .rb-tape { margin: 0; }
+.rb-pil { font-size: .74rem; font-weight: 800; color: var(--inkt); background: #A8F0C0; border-radius: 999px; padding: .18rem .6rem; white-space: nowrap; }
+.rb-bm-kop .rb-zoekveld { margin-left: auto; width: min(22rem, 45%); }
+.rb-bm-midden { flex: 1; min-height: 0; display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 1rem; }
+.rb-bm-tabs { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-y: auto; }
+.rb-bm-groep { display: flex; align-items: center; gap: .6rem; min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--zacht); font-weight: 700; font-size: .9rem; padding: .3rem .6rem; text-align: left; cursor: pointer; white-space: nowrap; }
+.rb-bm-groep img { width: 24px; height: 24px; image-rendering: pixelated; flex: none; }
+.rb-bm-groep:hover { background: var(--vlak); color: var(--tekst); }
+.rb-bm-groep[aria-selected="true"] { background: #FFFFFF; color: var(--inkt); }
+.rb-bm-groep .n { margin-left: auto; font-size: .72rem; opacity: .65; font-weight: 800; }
+.rb-bm-hoofd { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .5rem; }
+.rb-bm-laatst { display: flex; gap: 6px; flex-wrap: wrap; min-height: 46px; }
+.rb-bm-laatst .rb-vak { --vm: 46px; }
+.rb-bm-laatst .rb-klein { margin: 0; align-self: center; }
+.rb-bm-raster { flex: 1; min-height: 6rem; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; padding: 2px 2px .6rem; align-content: start; overscroll-behavior: contain; }
+.rb-bm-ding { position: relative; min-height: 80px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid var(--lijn); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: grab; touch-action: none; padding: 6px 4px; color: rgba(255,255,255,.9); font-weight: 600; font-size: .7rem; line-height: 1.1; text-align: center; }
+.rb-bm-ding:hover { border-color: var(--hoverrand); background: var(--hover); }
+.rb-bm-ding img { width: 38px; height: 38px; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.rb-bm-ding span { pointer-events: none; max-width: 100%; overflow-wrap: break-word; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rb-bm-ding.net { animation: rb-plop .35s ease-out; }
+.rb-bm-ding.lang span { font-size: .92em; letter-spacing: -.015em; word-break: break-word; }
+.rb-bm-leeg { grid-column: 1 / -1; color: var(--zacht); font-weight: 700; }
+.rb-bm-voet { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; background: rgba(255,255,255,.06); border: 1px solid var(--lijn); border-radius: 16px; padding: .55rem .7rem; }
+.rb-bm-uitleg { display: flex; flex-direction: column; gap: 2px; width: 8.5rem; }
+.rb-bm-uitleg b { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.rb-bm-uitleg span { font-size: .72rem; color: var(--stil); line-height: 1.2; }
+.rb-bm-balk { display: flex; gap: 5px; }
+#rb-bm-balk .rb-vak { --vm: 46px; }
+.rb-bm-balk .rb-vak.doel, #rb-bm-weg.doel { border: 2px solid var(--goud); }
+.rb-bm-balk .rb-vak.net { animation: rb-plop .35s ease-out; }
+.rb-bm-balk .rb-vak .nr { position: absolute; left: 4px; top: 2px; font-size: .6rem; font-weight: 800; color: var(--stil); pointer-events: none; }
+#rb-bm-weg { --vm: 46px; }
+.rb-bm-knoppen { margin-left: auto; display: flex; gap: .4rem; flex-wrap: wrap; }
+#rb-bm-vast { position: fixed; left: 0; top: 0; width: 48px; height: 48px; pointer-events: none; z-index: 41; display: none; transform: translate(-50%, -60%); }
+#rb-bm-vast img { width: 100%; height: 100%; image-rendering: pixelated; filter: drop-shadow(0 5px 4px rgba(0,0,0,.55)); }
+@keyframes rb-plop { 0% { transform: scale(.82); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .rb-bm-ding.net, .rb-bm-balk .rb-vak.net { animation: none; } }
+@media (max-width: 760px) {
+  .rb-scherm-bouw { padding: 6px; }
+  .rb-bouwmenu { height: 100%; padding: .65rem .6rem .6rem; gap: .5rem; border-radius: 20px; }
+  .rb-bm-kop { flex-wrap: wrap; gap: .5rem; }
+  .rb-bm-kop .rb-zoekveld { order: 3; width: 100%; margin: 0; }
+  .rb-bm-kop .rb-sluit { margin-left: auto; width: 44px; height: 44px; }
+  .rb-bm-midden { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: .5rem; }
+  .rb-bm-tabs { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding-bottom: 3px; scrollbar-width: none; }
+  .rb-bm-groep { min-height: 36px; padding: .25rem .65rem .25rem .4rem; border: 1px solid var(--vakrand); background: var(--vlak); }
+  .rb-bm-groep .n { display: none; }
+  .rb-bm-laatst { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .rb-bm-laatst .rb-vak { --vm: 40px; flex: none; }
+  .rb-bm-raster { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+  .rb-bm-ding { min-height: 70px; font-size: .64rem; gap: 4px; }
+  .rb-bm-ding img { width: 32px; height: 32px; }
+  .rb-bm-uitleg { display: none; }
+  .rb-bm-voet { gap: .4rem; padding: .4rem; justify-content: center; }
+  .rb-bm-balk { gap: 2px; }
+  #rb-bm-balk .rb-vak, #rb-bm-weg { --vm: min(34px, calc((100vw - 60px) / 10)); border-radius: 9px; }
+  .rb-bm-balk .rb-vak .nr { display: none; }
+  .rb-bm-knoppen { margin-left: 0; width: 100%; justify-content: center; }
+  .rb-bm-knoppen .rb-knop { flex: 1; }
+}
+/* ---------------- de kleine kaart (met een kaart in je hand) */
+#rb-minikaart { position: absolute; right: calc(10px + var(--veilig-r)); top: calc(44px + var(--veilig-b)); width: 128px; height: 128px; border: 2px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,.4); background: #1B2033; z-index: 3; cursor: pointer; image-rendering: pixelated; }
+#rb-minikaart[hidden] { display: none; }
+@media (max-width: 520px) { #rb-minikaart { width: 104px; height: 104px; } }
+/* op een telefoon staan rechtsboven de knoppen voor rugzak en weggooien: de kleine kaart staat dan linksboven, onder het menu */
+body.rb-aanraak #rb-minikaart { right: auto; left: calc(10px + var(--veilig-l)); top: calc(64px + var(--veilig-b)); }
+/* ---------------- de grote kaart */
+.rb-kaartpaneel { width: min(100%, 62rem); height: min(100%, 44rem); display: flex; flex-direction: column; gap: .55rem; }
+.rb-kaart-knoppen { display: flex; gap: .35rem; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+.rb-kaart-veld { flex: 1; min-height: 160px; border: 1px solid var(--vakrand); border-radius: 16px; overflow: hidden; background: #1B2033; }
+#rb-kaart-doek { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; image-rendering: pixelated; }
+#rb-kaart-doek:active { cursor: grabbing; }
+.rb-kaart-info { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; min-height: 2.2rem; }
+.rb-kaart-tekst { font-weight: 700; margin-right: .3rem; }
+.rb-kaart-legenda { display: flex; flex-wrap: wrap; gap: .3rem .9rem; font-size: .78rem; color: var(--stil); }
+.rb-leg { display: inline-flex; align-items: center; gap: .3rem; }
+@media (max-width: 560px) { .rb-kaartpaneel { height: 100%; padding: .75rem; } .rb-kaart-knoppen { justify-content: flex-start; order: 3; flex-basis: 100%; } }
+/* ---------------- het logboek */
+.rb-rang { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin: .2rem 0 .3rem; }
+.rb-rang-naam { font-size: 1.25rem; font-weight: 800; color: var(--goud); }
+.rb-rang-volgende { margin: .4rem 0 .6rem; }
+.rb-logboek-lijst h3 { margin: .9rem 0 .4rem; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--stil); }
+.rb-mijlpalen { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: .4rem; }
+.rb-mijlpalen li { display: flex; gap: .55rem; align-items: flex-start; padding: .5rem .6rem; border-radius: 14px; background: var(--vlak); border: 1px dashed var(--vakrand); color: var(--zacht); }
+.rb-mijlpalen li.gehaald { background: var(--keuze); border: 1px solid rgba(143,211,255,.45); color: var(--tekst); }
+.rb-mijlpalen b { display: block; font-size: .9rem; }
+.rb-mijlpalen small { display: block; font-size: .76rem; opacity: .85; }
+.rb-mijlpalen .vinkje { flex: none; width: 1.3rem; height: 1.3rem; border-radius: 50%; display: grid; place-items: center; font-size: .78rem; font-weight: 800; border: 1px solid currentColor; }
+.rb-mijlpalen li.gehaald .vinkje { background: var(--goud); border-color: var(--goud); color: var(--inkt); }
+
+/* ---------------- ruilen met een bewoner: links wat je geeft, rechts wat je krijgt */
+.rb-ruil { width: min(100%, 36rem); }
+.rb-ruil-wie { margin: -.2rem 0 .85rem; color: var(--zacht); font-size: .95rem; line-height: 1.35; }
+.rb-ruil-lijst { display: grid; gap: .5rem; margin-bottom: .4rem; }
+.rb-ruil-rij { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto; grid-template-areas: "geef pijl krijg naam knop" "geef pijl krijg nog knop"; align-items: center; column-gap: .55rem; background: var(--vlak); border: 1px solid var(--lijn); border-radius: 16px; padding: .5rem .6rem; }
+.rb-ruil-geef { grid-area: geef; display: flex; gap: .3rem; }
+.rb-ruil-pijl { grid-area: pijl; display: grid; place-items: center; }
+.rb-ruil-ding.krijg { grid-area: krijg; }
+.rb-ruil-naamk { grid-area: naam; font-weight: 800; align-self: end; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rb-ruil-nog { grid-area: nog; font-size: .8rem; color: var(--stil); align-self: start; }
+.rb-ruil-rij .rb-knop { grid-area: knop; min-width: 5rem; }
+.rb-ruil-ding { position: relative; width: 44px; height: 44px; border-radius: 12px; background: var(--vak); border: 1px solid var(--vakrand); display: grid; place-items: center; flex: none; }
+.rb-ruil-ding img { width: 70%; height: 70%; image-rendering: pixelated; display: block; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+.rb-ruil-ding b { position: absolute; right: 4px; bottom: 2px; font-size: .78rem; font-weight: 800; line-height: 1; text-shadow: 0 1px 2px #000, 0 0 2px #000; }
+.rb-ruil-ding.tekort { border-color: rgba(255,120,130,.45); background: rgba(200,50,60,.18); } .rb-ruil-ding.tekort b { color: #FFC2C2; }
+.rb-ruil-ding.krijg { border-color: var(--goud); background: var(--keuze); }
+.rb-ruil-rij.op { opacity: .55; }
+@media (max-width: 520px) {
+  .rb-ruil-rij { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: "geef pijl krijg knop" "naam naam naam nog"; row-gap: .35rem; }
+  .rb-ruil-nog { align-self: center; justify-self: end; } .rb-ruil-naamk { align-self: center; white-space: normal; }
+  .rb-ruil-rij .rb-knop { justify-self: end; }
+}
+
+/* ---------------- glas: zonder wazig glas (oude browser, of minder doorzichtigheid gevraagd) wat steviger, en op een telefoon minder wazig */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root { --paneel: rgba(18,21,32,.94); } .rb-scherm-rugzak .rb-rugzak { background: rgba(18,21,32,.96) !important; } }
+@media (prefers-reduced-transparency: reduce) { :root { --paneel: rgba(18,21,32,.96); --glas: none; } .rb-rugzak { background: rgba(18,21,32,.97) !important; } }
+@media (max-width: 640px) { :root { --glas: blur(10px) saturate(1.1); } }

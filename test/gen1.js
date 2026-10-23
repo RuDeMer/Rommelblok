@@ -1,0 +1,10 @@
+const { gedeeld } = require('./laad');
+const G = gedeeld();
+console.log('blokken', G.BL.filter(Boolean).length, 'texturen', G.TEXNAMEN.length, 'recepten', G.REC.length, 'oven', G.OVEN.length, 'voorwerpen', G.IT.filter(Boolean).length);
+const W = G.maakWereld(12345);
+let t = performance.now(); const s1 = W.maakStuk(0, 0); console.log('eerste stuk', (performance.now() - t).toFixed(1), 'ms');
+t = performance.now(); for (let i = 0; i < 40; i++) W.maakStuk(i, 3); console.log('gemiddeld', ((performance.now() - t) / 40).toFixed(2), 'ms per stuk');
+const W2 = G.maakWereld(12345); const s2 = W2.maakStuk(0, 0);
+console.log('zelfde zaadje, zelfde stuk:', Buffer.from(s1.d.buffer).equals(Buffer.from(s2.d.buffer)));
+const tel = {}; for (const v of s1.d) { const n = G.BL[v & 255] ? G.BL[v & 255].sleutel : '?' + v; tel[n] = (tel[n] || 0) + 1; } console.log(tel);
+console.log('start', W.startPlek());

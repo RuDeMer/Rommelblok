@@ -1,0 +1,221 @@
+<div id="rb-veld">
+  <canvas id="rb-doek" aria-label="De wereld van Rommelblok" data-t-label="De wereld van Rommelblok"></canvas>
+  <div id="rb-rood" aria-hidden="true" hidden></div>
+  <div id="rb-water" aria-hidden="true" hidden></div>
+  <div id="rb-slaap" aria-hidden="true" hidden></div>
+  <div class="rb-kruis" aria-hidden="true"></div>
+  <div id="rb-fps" hidden></div>
+  <div id="rb-melding" role="status" aria-live="polite" hidden></div>
+  <div id="rb-tip" role="tooltip" hidden></div>
+  <div id="rb-wijzer" hidden><span class="pijl" aria-hidden="true">➤</span><span id="rb-wijzer-tekst"></span></div>
+  <div id="rb-klok" hidden></div>
+  <canvas id="rb-minikaart" hidden aria-label="Kleine kaart. Tik om de grote kaart te openen." data-t-label="Kleine kaart. Tik om de grote kaart te openen."></canvas>
+  <div class="rb-onder" id="rb-onder">
+    <div class="rb-status" id="rb-status" hidden>
+      <div class="rb-rij"><span class="rb-harten" id="rb-harten" role="img" aria-label="Levens" data-t-label="Levens"></span><span class="rb-adem" id="rb-adem" role="img" aria-label="Adem" data-t-label="Adem"></span></div>
+      <span class="rb-vlaaien" id="rb-vlaaien" role="img" aria-label="Honger" data-t-label="Honger"></span>
+    </div>
+    <div id="rb-naam" aria-live="polite"></div>
+    <div class="rb-balk" id="rb-balk" role="toolbar" aria-label="Snelbalk" data-t-label="Snelbalk"></div>
+  </div>
+  <!-- aanraken -->
+  <div id="rb-joy" aria-hidden="true"><div id="rb-joyknop"></div></div>
+  <div class="rb-touch" id="rb-touch">
+    <button type="button" class="rb-tk" id="tk-menu" aria-label="Menu" data-t-label="Menu">☰</button>
+    <button type="button" class="rb-tk" id="tk-rugzak" aria-label="Rugzak" data-t-label="Rugzak">🎒</button>
+    <button type="button" class="rb-tk groot" id="tk-spring" aria-label="Springen" data-t-label="Springen"><span data-t>Spring</span></button>
+    <button type="button" class="rb-tk" id="tk-sluip" aria-label="Sluipen" data-t-label="Sluipen" aria-pressed="false"><span data-t>Sluip</span></button>
+    <button type="button" class="rb-tk" id="tk-vlieg" aria-label="Vliegen" data-t-label="Vliegen" aria-pressed="false"><span data-t>Vlieg</span></button>
+    <button type="button" class="rb-tk" id="tk-op" aria-label="Omhoog" data-t-label="Omhoog">▲</button>
+    <button type="button" class="rb-tk" id="tk-neer" aria-label="Omlaag" data-t-label="Omlaag">▼</button>
+    <button type="button" class="rb-tk rood" id="tk-hak" aria-label="Hakken" data-t-label="Hakken"><span data-t>Hak</span></button>
+    <button type="button" class="rb-tk groen" id="tk-bouw" aria-label="Bouwen of gebruiken" data-t-label="Bouwen of gebruiken"><span data-t>Bouw</span></button>
+    <button type="button" class="rb-tk" id="tk-gooi" aria-label="Weggooien" data-t-label="Weggooien">⤓</button>
+  </div>
+
+  <!-- schermen -->
+  <div class="rb-scherm" id="rb-begin" hidden>
+    <div class="rb-begin">
+      <div class="rb-bord">
+        <h1 class="rb-logo" aria-label="Rommelblok"><span>R</span><span>o</span><span>m</span><span>m</span><span>e</span><span>l</span><span>b</span><span>l</span><span>o</span><span>k</span></h1>
+        <p class="rb-sub" data-t>Een eindeloze wereld van blokken om te ontdekken, te verzamelen en op te bouwen.</p>
+      </div>
+      <div class="rb-briefje" id="rb-nieuwtje" hidden></div>
+      <div class="rb-paneel rb-werelden-paneel">
+        <div class="rb-paneel-kop"><h2 class="rb-tape" data-t>Je werelden</h2>
+          <div class="rb-kop-knoppen"><button type="button" class="rb-knop" id="rb-import" data-t>Importeer</button><button type="button" class="rb-knop rood" id="rb-nieuw" data-t>Nieuwe wereld</button></div>
+        </div>
+        <ul class="rb-werelden" id="rb-werelden"></ul>
+        <input type="file" id="rb-bestand" accept=".rommelblok,.json,application/json" hidden>
+      </div>
+      <div class="rb-begin-voet">
+        <a href="./" class="rb-link" data-t>← Terug naar het rommelhoekje</a>
+        <button type="button" class="rb-knop klein" id="rb-taal" aria-label="English">EN</button>
+        <button type="button" class="rb-knop klein" id="rb-begin-inst" data-t>Instellingen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-maak" hidden>
+    <form class="rb-paneel rb-dialoog" id="rb-maak-vorm" autocomplete="off">
+      <h2 class="rb-tape" data-t>Nieuwe wereld</h2>
+      <label class="rb-veldje"><span data-t>Naam</span><input type="text" id="rb-maak-naam" maxlength="40" required></label>
+      <div class="rb-standen" role="radiogroup" aria-label="Stand" data-t-label="Stand">
+        <button type="button" class="rb-stand" data-stand="overleven" role="radio" aria-checked="true"><b data-t>Overleven</b><small data-t>Verzamel alles zelf. Pas op voor vallen, verdrinken en honger.</small></button>
+        <button type="button" class="rb-stand" data-stand="bouwen" role="radio" aria-checked="false"><b data-t>Bouwen</b><small data-t>Alle blokken onbeperkt, vliegen, en niets kan je pijn doen.</small></button>
+      </div>
+      <label class="rb-veldje"><span data-t>Zaadje (leeg = verrassing)</span><span class="rb-rij-in"><input type="text" id="rb-maak-zaad" maxlength="32" placeholder="bijvoorbeeld vlaai" data-t-plek="bijvoorbeeld vlaai"><button type="button" class="rb-knop" id="rb-dobbel" aria-label="Willekeurig zaadje" data-t-label="Willekeurig zaadje">🎲</button></span></label>
+      <p class="rb-klein" data-t>Hetzelfde zaadje geeft altijd dezelfde wereld. Zo kun je een wereld met vrienden delen.</p>
+      <div class="rb-knoppen"><button type="button" class="rb-knop" data-sluit data-t>Terug</button><button type="submit" class="rb-knop rood" data-t>Maak wereld</button></div>
+    </form>
+  </div>
+
+  <div class="rb-scherm" id="rb-laden" hidden>
+    <div class="rb-paneel rb-dialoog rb-midden">
+      <h2 class="rb-tape" data-t>Even geduld</h2>
+      <p id="rb-laden-tekst" data-t>De wereld wordt gemaakt…</p>
+      <div class="rb-voortgang"><i id="rb-laden-balk"></i></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-menu" hidden>
+    <div class="rb-paneel rb-dialoog rb-menu">
+      <h2 class="rb-tape" data-t>Pauze</h2>
+      <p class="rb-klein" id="rb-menu-info"></p>
+      <div class="rb-menu-knoppen">
+        <button type="button" class="rb-knop rood groot" data-sluit data-t>Verder spelen</button>
+        <button type="button" class="rb-knop" id="rb-menu-kaart" data-t>Kaart</button>
+        <button type="button" class="rb-knop" id="rb-menu-logboek">Logboek</button>
+        <button type="button" class="rb-knop" id="rb-menu-inst" data-t>Instellingen</button>
+        <button type="button" class="rb-knop" id="rb-menu-hulp" data-t>Besturing</button>
+        <button type="button" class="rb-knop" id="rb-menu-scherm" data-t>Volledig scherm</button>
+        <button type="button" class="rb-knop" id="rb-menu-uit" data-t>Opslaan en naar je werelden</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-kaart" hidden>
+    <div class="rb-paneel rb-kaartpaneel">
+      <div class="rb-paneel-kop">
+        <h2 class="rb-tape" data-t>Kaart</h2>
+        <div class="rb-kaart-knoppen">
+          <button type="button" class="rb-knop klein" id="rb-kaart-uit" aria-label="Uitzoomen" data-t-label="Uitzoomen">−</button>
+          <button type="button" class="rb-knop klein" id="rb-kaart-in" aria-label="Inzoomen" data-t-label="Inzoomen">+</button>
+          <button type="button" class="rb-knop klein" id="rb-kaart-mij" data-t>Naar mij</button>
+          <button type="button" class="rb-knop klein" id="rb-kaart-hier" data-t>Markering hier</button>
+        </div>
+        <button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button>
+      </div>
+      <div class="rb-kaart-veld"><canvas id="rb-kaart-doek" aria-label="Kaart van alles wat je hebt gezien" data-t-label="Kaart van alles wat je hebt gezien"></canvas></div>
+      <div class="rb-kaart-info" id="rb-kaart-info" aria-live="polite"></div>
+      <div class="rb-kaart-legenda" id="rb-kaart-legenda"></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-logboek" hidden>
+    <div class="rb-paneel rb-dialoog rb-breed">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" data-t>Logboek</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <div id="rb-logboek-rang"></div>
+      <div id="rb-logboek-lijst" class="rb-logboek-lijst"></div>
+      <div class="rb-knoppen"><button type="button" class="rb-knop rood" data-sluit data-t>Klaar</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-ruilen" hidden>
+    <div class="rb-paneel rb-dialoog rb-ruil" role="dialog" aria-modal="true" aria-labelledby="rb-ruil-naam">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" id="rb-ruil-naam">Bewoner</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <p class="rb-ruil-wie" id="rb-ruil-wie" aria-live="polite"></p>
+      <p class="rb-sectie" data-t>Spullen tegen spullen</p>
+      <div class="rb-ruil-lijst" id="rb-ruil-lijst"></div>
+      <p class="rb-klein" data-t>Links wat jij geeft, rechts wat je krijgt. Elke ruil kan een paar keer per dag; 's ochtends is er weer nieuwe voorraad.</p>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-inst" hidden>
+    <div class="rb-paneel rb-dialoog rb-breed">
+      <h2 class="rb-tape" data-t>Instellingen</h2>
+      <div class="rb-inst" id="rb-inst-lijst"></div>
+      <div class="rb-knoppen"><button type="button" class="rb-knop rood" data-sluit data-t>Klaar</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-hulp" hidden>
+    <div class="rb-paneel rb-dialoog rb-breed">
+      <h2 class="rb-tape" data-t>Besturing</h2>
+      <div id="rb-hulp-inhoud"></div>
+      <div class="rb-knoppen"><button type="button" class="rb-knop rood" data-sluit data-t>Klaar</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm rb-scherm-rugzak" id="rb-rugzak" hidden>
+    <div class="rb-paneel rb-rugzak" id="rb-rugzak-paneel" data-tab="rugzak" role="dialog" aria-modal="true" aria-labelledby="rb-rugzak-titel">
+      <div class="rb-greep" aria-hidden="true"></div>
+      <div class="rb-paneel-kop rb-rz-kop">
+        <h2 class="rb-tape" id="rb-rugzak-titel" data-t>Rugzak</h2>
+        <div class="rb-segment" id="rb-rz-tabs" role="tablist" aria-label="Onderdelen" data-t-label></div>
+        <label class="rb-zoekveld"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" id="rb-rz-zoek" placeholder="Zoek in je rugzak" data-t-plek aria-label="Zoek in je rugzak" data-t-label autocomplete="off"></label>
+        <button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button>
+      </div>
+      <div class="rb-rz-kaart" id="rb-rz-kaart" aria-live="polite"></div>
+      <div class="rb-rugzak-inhoud" id="rb-rugzak-inhoud"></div>
+      <div class="rb-rz-voet" id="rb-rz-voet"></div>
+    </div>
+    <div id="rb-vast" aria-hidden="true"></div>
+  </div>
+
+  <div class="rb-scherm rb-scherm-bouw" id="rb-bouwmenu" hidden>
+    <div class="rb-bouwmenu" id="rb-bouwmenu-paneel" role="dialog" aria-modal="true" aria-labelledby="rb-bm-titel">
+      <div class="rb-bm-kop">
+        <h2 class="rb-tape" id="rb-bm-titel" data-t>Bouwen</h2>
+        <span class="rb-pil" data-t>alles onbeperkt</span>
+        <label class="rb-zoekveld"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" id="rb-bm-zoek" placeholder="Zoek een blok: glas, trap, rood…" data-t-plek aria-label="Zoek een blok of ding" data-t-label autocomplete="off"></label>
+        <button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button>
+      </div>
+      <div class="rb-bm-midden">
+        <div class="rb-bm-tabs" id="rb-bm-tabs" role="tablist" aria-label="Groepen" data-t-label></div>
+        <div class="rb-bm-hoofd">
+          <p class="rb-sectie" data-t>Laatst gebruikt</p>
+          <div class="rb-bm-laatst" id="rb-bm-laatst"></div>
+          <p class="rb-sectie" id="rb-bm-teller"></p>
+          <div class="rb-bm-raster" id="rb-bm-raster" role="tabpanel"></div>
+        </div>
+      </div>
+      <div class="rb-bm-voet">
+        <div class="rb-bm-uitleg"><b data-t>Snelbalk</b><span data-t>Sleep hierheen, of klik op een blok</span></div>
+        <div class="rb-bm-balk" id="rb-bm-balk" aria-label="Snelbalk" data-t-label></div>
+        <button type="button" class="rb-vak rb-weg" id="rb-bm-weg" aria-label="Prullenbak: sleep hier iets heen om het uit je snelbalk te halen" data-t-label></button>
+        <div class="rb-bm-knoppen">
+          <button type="button" class="rb-knop klein" id="rb-bm-leeg" data-t>Leegmaken</button>
+          <button type="button" class="rb-knop klein rood" id="rb-bm-start" data-t>Bewaar als start</button>
+        </div>
+      </div>
+    </div>
+    <div id="rb-bm-vast" aria-hidden="true"></div>
+  </div>
+
+  <div class="rb-scherm" id="rb-dood" hidden>
+    <div class="rb-paneel rb-dialoog rb-midden">
+      <h2 class="rb-tape rood" data-t>Je bent flauwgevallen</h2>
+      <p id="rb-dood-tekst"></p>
+      <p class="rb-klein" id="rb-dood-spullen"></p>
+      <div class="rb-knoppen"><button type="button" class="rb-knop rood groot" id="rb-wakker" data-t>Word wakker</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-vraag" hidden>
+    <div class="rb-paneel rb-dialoog rb-midden">
+      <h2 class="rb-tape" id="rb-vraag-titel"></h2>
+      <p id="rb-vraag-tekst"></p>
+      <input type="text" id="rb-vraag-invoer" maxlength="40" hidden>
+      <div class="rb-knoppen"><button type="button" class="rb-knop" id="rb-vraag-nee" data-t>Annuleer</button><button type="button" class="rb-knop rood" id="rb-vraag-ja" data-t>Ja</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-geen-gl" hidden>
+    <div class="rb-paneel rb-dialoog rb-midden">
+      <h2 class="rb-tape" data-t>Dit apparaat kan Rommelblok niet tekenen</h2>
+      <p data-t>Rommelblok heeft WebGL2 nodig. Probeer een nieuwere browser, of zet hardwareversnelling aan in de instellingen van je browser.</p>
+      <p><a href="./" class="rb-link" data-t>← Terug naar het rommelhoekje</a></p>
+    </div>
+  </div>
+</div>

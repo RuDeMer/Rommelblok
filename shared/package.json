@@ -1,0 +1,6 @@
+{
+  "name": "@rommelblok/shared",
+  "private": true,
+  "type": "module",
+  "main": "index.js"
+}
