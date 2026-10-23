@@ -40,7 +40,9 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
   await page.click('#rb-werelden .rb-wereld [data-doe=speel]');
   await page.waitForFunction(() => window.__rommelblok.klaar, null, { timeout: 90000 });
   await page.evaluate(() => { window.__rommelblok.straal = 3; window.__rommelblok.valVrij = 60; });
-  await wacht(3500);
+  // wachten tot alle stukken rond de plek geladen zijn (niet een vaste tijd: op een drukke computer duurt het langer)
+  await page.waitForFunction(v => { const R = window.__rommelblok, X = Math.floor(v.pos[0]), Z = Math.floor(v.pos[2]); for (let dz = -20; dz <= 20; dz += 4) for (let dx = -20; dx <= 20; dx += 4) if (R.blokOp(X + dx, 60, Z + dz) < 0) return false; return true; }, oud, { timeout: 60000 });
+  await wacht(1500);
   const nieuw = await page.evaluate(async v => {
     const R = window.__rommelblok, I = R.G.I, lees = async p => (await R.wb({ t: 'lees', a: p })).a[0];
     const kist = R.WD.dingen[v.kist.join(',')];
@@ -72,17 +74,22 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
   if (!nieuw.tegels) mis.push('kaart');
   if (nieuw.gen !== 3 || weer.gen !== 3) mis.push('wereld niet omgezet naar versie 3');
   if (oud.genOud < 3 && !(nieuw.oudStukken > 0)) mis.push('de oude stukken zijn niet vastgelegd');
-  if (nieuw.hoogteAnders > 0) mis.push('het landschap waar je al was is veranderd (' + nieuw.hoogteAnders + ' plekken)');
+  // een wereld van de allereerste versie (zonder grottenstelsels, grotten 1) kreeg in ronde 2 bewust een nieuwe bodem en nieuwe grotten
+  if (nieuw.hoogteAnders > 0 && oud.versieOud >= 2) mis.push('het landschap waar je al was is veranderd (' + nieuw.hoogteAnders + ' plekken)');
+  if (nieuw.hoogteAnders > 0 && oud.versieOud < 2) console.log('(wereld van de eerste versie: het landschap is sinds ronde 2 vernieuwd, op', nieuw.hoogteAnders, 'meetplekken anders; zo bedoeld)');
   if (!nieuw.logboek.includes('werkbank')) mis.push('logboek');
   await page.evaluate(() => window.__rommelblok.naarWerelden()); await wacht(1200);
   const voor = await page.$$eval('#rb-werelden .rb-wereld', e => e.length);
-  await page.setInputFiles('#rb-bestand', exportPad); await wacht(2000);
+  await page.setInputFiles('#rb-bestand', exportPad);
+  await page.waitForFunction(() => /geïmporteerd|geen geldige/.test(document.getElementById('rb-melding').textContent), null, { timeout: 60000 }).catch(() => {});
+  await wacht(500); console.log('melding bij importeren:', await page.$eval('#rb-melding', e => e.textContent));
   const na = await page.$$eval('#rb-werelden .rb-wereld h3', e => e.map(x => x.textContent));
   if (na.length !== voor + 1) mis.push('de export van de oude versie is niet geïmporteerd'); else {
     // de geïmporteerde wereld openen: het torentje en de kist moeten er zijn
     const i = na.length - 1 - [...na].reverse().findIndex(n => n.startsWith('Oudland'));
     await page.evaluate(i => document.querySelectorAll('#rb-werelden .rb-wereld [data-doe=speel]')[i].click(), i);
-    await page.waitForFunction(() => window.__rommelblok.klaar, null, { timeout: 90000 }); await page.evaluate(() => { window.__rommelblok.straal = 3; window.__rommelblok.valVrij = 60; }); await wacht(3000);
+    await page.waitForFunction(() => window.__rommelblok.klaar, null, { timeout: 90000 }); await page.evaluate(() => { window.__rommelblok.straal = 3; window.__rommelblok.valVrij = 60; });
+    await page.waitForFunction(v => { const R = window.__rommelblok; return R.blokOp(v.toren[0], v.toren[1], v.toren[2]) >= 0 && R.blokOp(v.kist[0], v.kist[1], v.kist[2]) >= 0; }, oud, { timeout: 60000 }); await wacht(1000);
     const imp = await page.evaluate(v => { const R = window.__rommelblok, kist = R.WD.dingen[v.kist.join(',')]; return { toren: [0, 1, 2, 3, 4].map(h => R.blokOp(v.toren[0], v.toren[1] + h, v.toren[2]) & 255), kist: kist ? kist.inhoud.filter(Boolean).map(s => R.G.IT[s.id].sleutel + ':' + s.n).join(' ') : null }; }, oud);
     console.log('import van de oude export:', JSON.stringify(imp));
     if (imp.toren.some(b => b !== B.planken) || imp.kist !== 'appel:5 ijzerstaaf:2') mis.push('de geïmporteerde oude wereld is niet compleet');

@@ -26,6 +26,8 @@ const { gedeeld } = require('./laad.js'); const G = gedeeld();
   if (r1.ruil.some(n => n < 4)) mis.push('te weinig ruilen');
   if (new Set(r1.namen).size !== r1.namen.length) mis.push('dubbele namen');
   // 2. overdag: ze vinden een route en lopen (met de echte klok, zodat de route in stukjes gezocht wordt)
+  // zonder 3D-beeld: in de testbrowser (zonder grafische kaart) kost tekenen zoveel tijd dat het spel trager tikt dan echt
+  await page.evaluate(() => { window.__rommelblok.tekenUit = true; });
   const start = await page.evaluate(id => window.__rommelblok.WD.bewoners.filter(b => b.dorp === id).map(b => [b.x, b.z]), info.id);
   let liep = new Set(), deurOpen = 0;
   for (let i = 0; i < 20; i++) {

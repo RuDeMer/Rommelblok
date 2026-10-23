@@ -4,7 +4,8 @@ const UIT = require('./uit');
 const { open, wachtKlaar } = require('./pw');
 const welk = process.argv[2] || 'pc,tel';
 // RB_BESTAND: een andere pagina in RB_UIT (bijvoorbeeld de referentie); RB_VOOR: voorvoegsel van de beelden;
-// RB_ZONDER_WERELD=1: het 3D-beeld verbergen, zodat alleen de schermen zelf op de foto staan (om twee versies te vergelijken)
+// RB_ZONDER_WERELD=1: het 3D-beeld verbergen, zodat alleen de schermen zelf op de foto staan (om twee versies te vergelijken);
+// dan ook wat van de echte klok afhangt (meldingen die net wel of niet in beeld zijn, het balkje van de oven)
 const BESTAND = process.env.RB_BESTAND || 'rommelblok.html', VOOR = process.env.RB_VOOR || 'ui', ZONDER = !!process.env.RB_ZONDER_WERELD;
 (async () => {
   const fouten = [];
@@ -14,7 +15,7 @@ const BESTAND = process.env.RB_BESTAND || 'rommelblok.html', VOOR = process.env.
     for (const stand of ['overleven', 'bouwen']) {
       const b = await open({ bestand: BESTAND, q: `test=1&zaad=777&stand=${stand}&tijd=0.45&straal=2&x=51&z=-41`, ctx });
       const { page } = b;
-      await wachtKlaar(page); await page.waitForTimeout(1200); await page.evaluate(z => { window.__rommelblok.tekenUit = true; if (z) document.getElementById('rb-doek').style.visibility = 'hidden'; }, ZONDER);
+      await wachtKlaar(page); await page.waitForTimeout(1200); await page.evaluate(z => { window.__rommelblok.tekenUit = true; if (z) { document.getElementById('rb-doek').style.visibility = 'hidden'; const s = document.createElement('style'); s.textContent = '#rb-melding, #rb-oven-pijl, #rb-oven-vuur { visibility: hidden !important; }'; document.head.appendChild(s); } }, ZONDER);
       const foto = async n => { await page.waitForTimeout(300); await page.screenshot({ path: `${UIT}/${VOOR}_${soort}_${n}.png` }); };
       const doe = f => page.evaluate(f);
       if (stand === 'overleven') {

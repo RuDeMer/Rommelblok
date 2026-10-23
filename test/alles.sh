@@ -7,6 +7,9 @@ RB_VORIGE="${RB_VORIGE:-$PWD/test/referentie/rommelblok-ronde3.html}"
 node site/maak-pagina.js || exit 1
 fout=0
 loop() { echo "=== $1"; shift; "$@" 2>&1 | tail -${N:-3}; [ ${PIPESTATUS[0]} -eq 0 ] || { echo "!!! MISLUKT"; fout=$((fout+1)); }; }
+N=2 loop "ombouw: gedeelde code gelijk aan de huidige site-pagina (wereld blok voor blok)" node test/identiek_wereld.js
+N=16 loop "ombouw: gebouwde pagina gelijk aan de huidige (kop, blokken, code, texturen, licht, vormen)" node test/identiek_pagina.js
+N=4 loop "blokwaarden: ruimte voor 1024 soorten zonder iets om te zetten" node test/standen.js
 N=3 loop "zaadje: zelfde wereld" node test/gen1.js
 N=7 loop "landschap: land en zee, oceanen, rivieren, begin op land" node test/landschap.js
 N=5 loop "oude wereld: oud landschap blijft, zachte overgang" node test/oudland.js
@@ -42,7 +45,10 @@ N=2 loop "browser: kaart, kompas en logboek" node test/kaart2.js
 N=2 loop "browser: kaart en logboek op een telefoon" node test/kaart2.js telefoon
 N=2 loop "browser: grote kaart met 22.500 verkende stukken" node test/kaartmeting.js
 N=3 loop "browser: acties (opnieuw uitvoeren geeft dezelfde wereld)" node test/acties.js
-N=2 loop "browser: een wereld van de vorige versie" node test/oudewereld.js "$RB_VORIGE"
+N=2 loop "browser: een wereld van de vorige versie (ronde 3, ook als export)" node test/oudewereld.js "$RB_VORIGE"
+N=2 loop "browser: een wereld van ronde 2 (versie 2 van de wereldmaker, ook als export)" node test/oudewereld.js test/referentie/rommelblok-ronde2.html
+N=3 loop "browser: een wereld van ronde 1 (ook als export)" node test/oudewereld.js test/referentie/rommelblok-ronde1.html
+N=3 loop "ombouw: alle schermen pixel voor pixel gelijk aan de huidige (computer en telefoon)" node test/schermen_vergelijk.js
 N=2 loop "browser: kleine kaart op een telefoon (geen knoppen eronder)" node test/minikaart_beeld.js
 N=40 loop "browser: bewaren, opnieuw laden, exporteren, importeren" node test/bewaar.js
 echo "=== klaar: $fout mislukt"
