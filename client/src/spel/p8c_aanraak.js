@@ -98,6 +98,7 @@ knop('tk-hak', () => { hakKnop = true; hakBegin(); }, () => { hakKnop = false; h
 knop('tk-bouw', () => { const s = inHand(); if (s && IT[s.id].eten) { houdGebruik = true; eetBegin(); } else { gebruik(); bouwKnop = true; bouwHerhaal = performance.now() + 320; } }, () => { bouwKnop = false; houdGebruik = false; });
 knop('tk-rugzak', () => openRugzak());
 knop('tk-menu', () => openMenu());
+knop('tk-camera', () => wisselCamera());
 knop('tk-gooi', () => gooiWeg(false));
 // na een draai van het scherm: alles loslaten
 addEventListener('orientationchange', aanraakLos);

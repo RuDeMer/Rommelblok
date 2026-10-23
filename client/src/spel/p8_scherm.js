@@ -35,6 +35,8 @@ function lichaamKlassen() {
   c.toggle('rb-vliegt', !!sp.vliegt);
   c.toggle('rb-kruismodus', inst.richtModus === 'kruis');
   c.toggle('rb-tikmodus', inst.richtModus !== 'kruis');
+  // van voren zie je je eigen gezicht: dan geen kruisje
+  c.toggle('rb-cam-voor', spelBezig && typeof camBeeld === 'function' && camBeeld() === 2);
 }
 // ---------------- meldingen
 let meldingKlok = null;
@@ -187,7 +189,8 @@ const INST_RIJEN = [
   ['muziek', 'Rustige muziek', 'Af en toe een kort, kalm stukje.', 'aanuit'],
   ['schommel', 'Schommelen bij het lopen', 'Hoe sterk je hoofd meedeint met je stappen.', 'niveau', ['Uit', 'Zacht', 'Rustig', 'Normaal', 'Sterk']],
   ['opstappen', 'Vanzelf opstappen', 'Loop vanzelf een blok omhoog, zonder te springen. Halve blokken gaan altijd vanzelf.', 'aanuit'],
-  ['huid', 'Huidskleur van je arm', '', 'kleur', ['#F1D3BC', '#E3B591', '#C68C62', '#A36A45', '#7B4B2E', '#4F3020']],
+  ['pop', 'Mijn poppetje', 'Kies hoe je eruitziet: je huid, je haar, je gezicht, je kleren en je spullen. Je arm in beeld past erbij.', 'knop', 'Aanpassen'],
+  ['camera', 'Camera', 'Door je eigen ogen, van achteren of van voren. Wisselen kan ook met de toets V, of op een telefoon met de cameraknop.', 'keuze', [[0, 'Door je ogen'], [1, 'Van achteren'], [2, 'Van voren']]],
   ['fps', 'Beelden per seconde tonen', '', 'aanuit'],
   ['taal', 'Taal', '', 'keuze', [['nl', 'Nederlands'], ['en', 'English']]],
 ];
@@ -201,7 +204,10 @@ function openInstellingen() {
     r.innerHTML = `<label for="${id}">${t(titel)}${uitleg ? `<small>${t(uitleg)}</small>` : ''}</label><div></div>`;
     const plek = r.lastChild;
     const waarde = k === 'taal' ? TAAL : inst[k];
-    if (soort === 'keuze') {
+    if (soort === 'knop') {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'rb-knop klein'; b.id = id; b.textContent = t(extra); b.onclick = () => openPop();
+      plek.className = 'rb-inst-knop'; plek.appendChild(b);
+    } else if (soort === 'keuze') {
       const g = document.createElement('div'); g.className = 'rb-keuzes'; g.id = id; g.setAttribute('role', 'group');
       for (const [w, nm] of extra) { const b = document.createElement('button'); b.type = 'button'; b.textContent = t(nm); b.setAttribute('aria-pressed', String(waarde === w)); b.onclick = () => { zetInst(k, w); openInstellingen(); }; g.appendChild(b); }
       plek.appendChild(g);
@@ -239,6 +245,7 @@ function zetInst(k, v) {
   if (k === 'geluid' && GELUID) { GELUID.aan(!!v); if (v) GELUID.ontgrendel(); }
   if (k === 'volume' && GELUID) GELUID.volume(v);
   if (k === 'muziek' && GELUID) GELUID.muziek(!!v);
+  if (k === 'camera') lichaamKlassen();
 }
 if (GELUID) { try { GELUID.aan(!!inst.geluid); GELUID.volume(inst.volume); GELUID.muziek(!!inst.muziek); } catch (e) {} }
 addEventListener('pointerdown', () => { if (GELUID && inst.geluid) try { GELUID.ontgrendel(); } catch (e) {} }, { capture: true });

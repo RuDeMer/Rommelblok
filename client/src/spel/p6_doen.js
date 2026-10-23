@@ -63,13 +63,25 @@ function richt(o, d, max, metWater) {
 }
 let doel = null;
 const BEREIK = () => (wereldStand() === 'bouwen' ? 6 : 5);
-function oogPos() { return [camVorige ? camVorige.x : sp.x, camVorige ? camVorige.y : sp.y + sp.oog, camVorige ? camVorige.z : sp.z]; }
+// je ogen: waar je nu staat, met het schommelen van je hoofd uit het laatste beeldje
+function oogPos() { const [bx, by] = camBob; return [sp.x + Math.cos(sp.yaw) * bx, sp.y + sp.oog - sp.stapOp + by, sp.z - Math.sin(sp.yaw) * bx]; }
 function kijkVector() { const cp = Math.cos(sp.pitch); return [-Math.sin(sp.yaw) * cp, Math.sin(sp.pitch), -Math.cos(sp.yaw) * cp]; }
 let richtScherm = null; // [sx, sy] als je op een telefoon op een plek tikt
 function werkDoel() {
   const slot = inHand(), water = slot && slot.id === I.emmer;
-  const d = richtScherm ? R.kijkRichting(richtScherm[0], richtScherm[1]) : kijkVector();
-  const o = oogPos(); doel = richt(o, d, BEREIK(), water);
+  const m = camBeeld(), tik = richtScherm && m !== 2;
+  const d = tik ? R.kijkRichting(richtScherm[0], richtScherm[1]) : kijkVector();
+  let o = oogPos();
+  if (tik && m === 1 && camPlek) {
+    // van achteren, tikken: de straal begint bij de camera, maar je bereik telt vanaf je hoofd
+    const oog = o, extraAfst = Math.hypot(camPlek[0] - oog[0], camPlek[1] - oog[1], camPlek[2] - oog[2]);
+    o = camPlek.slice(); doel = richt(o, d, BEREIK() + extraAfst, water);
+    if (doel && Math.hypot(doel.p[0] - oog[0], doel.p[1] - oog[1], doel.p[2] - oog[2]) > BEREIK() + 0.5) doel = null;
+  } else {
+    // van achteren met het kruisje: vanaf je schouder, precies langs het midden van het beeld
+    if (m === 1 && camSchouder) o = [sp.x + camSchouder[0], sp.y + sp.oog + camSchouder[1], sp.z + camSchouder[2]];
+    doel = richt(o, d, BEREIK(), water);
+  }
   // een karretje dat dichterbij staat dan het blok, gaat voor
   const max = doel ? Math.hypot(doel.p[0] - o[0], doel.p[1] - o[1], doel.p[2] - o[2]) : BEREIK();
   const kk = karOpStraal(o, d, max); doelKar = kk ? kk.kar : null;
@@ -594,10 +606,13 @@ function tekenExtra(dt, C) {
     fase: sp.schommelT, schommel: schommelSterkte() * sp.schommel, ren: minderBeweging ? 0 : klem(sp.renMix, 0, 1), wissel: wisselT, eet: eet.bezig ? eet.t : -1,
     tijd: performance.now() / 1000, stil: minderBeweging, licht: lichtKleur(l), huid: HUID[inst.huid] || HUID[1],
   };
+  popArm(hand);
   if (handProef) Object.assign(hand, handProef);
+  // van achteren of van voren zie je jezelf, en geen arm in beeld
+  if (camBeeld()) popTeken(wezens, hand.licht, hand);
   const n = deeltjesTik(dt);
   if (schud > 0) C.schud = [(Math.random() - 0.5) * schud * 0.06, (Math.random() - 0.5) * schud * 0.06];
-  return { dingen, kader, hand, wezens, deeltjes: { n, a: DEELTJES } };
+  return { dingen, kader, hand: camBeeld() ? null : hand, wezens, deeltjes: { n, a: DEELTJES } };
 }
 let doelZichtbaar = true, handProef = null; // handProef: alleen voor tests (een vaste houding van de arm)
 // licht op een plek als kleur, voor voorwerpen en de hand

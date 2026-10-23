@@ -27,6 +27,22 @@ const VERANDERD = [
   [/^G\.(vormDozen|botsDozen|bouwGroep)$/, 'stap 2: de vorm en de groep van de taart heten anders'],
 ];
 const TEXTUUR_ANDERS = new Set(Object.values(TEXTUUR));   // nieuwe tekeningen (stap 2)
+// stap 3, je poppetje: twee nieuwe onderdelen achteraan in G, en de plaatjes voor het gezicht en de arm achteraan in de stapel
+const ERBIJ_G = ['POP', 'BLOKWAARDE'];
+const ERBIJ_DTEX = /^(pop_(ogen|mond)_[a-z]+|pop_(sproetjes|blosjes)|arm_stof)$/;
+// de nieuwe lijsten zonder wat er alleen bij is gekomen (dat moet dan wel precies achteraan staan)
+function zonderErbij(G, oudAantalDtex) {
+  const kopie = Object.assign({}, G), erbij = [];
+  const namen = Object.keys(G), staart = namen.slice(namen.length - ERBIJ_G.length);
+  if (staart.join() !== ERBIJ_G.join()) fout('de nieuwe onderdelen staan niet achteraan in G:', staart.join());
+  for (const k of ERBIJ_G) delete kopie[k];
+  const extra = G.DTEXNAMEN.slice(oudAantalDtex);
+  for (const n of extra) if (!ERBIJ_DTEX.test(n)) fout('nieuw plaatje dat er niet bij hoort:', n);
+  kopie.DTEXNAMEN = G.DTEXNAMEN.slice(0, oudAantalDtex);
+  kopie.DTEXNR = Object.fromEntries(Object.entries(G.DTEXNR).filter(([, v]) => v < oudAantalDtex));
+  erbij.push(...ERBIJ_G, extra.length + ' plaatjes (' + extra.join(', ') + ')');
+  return { kopie, erbij };
+}
 
 // de oude lijsten met de nieuwe namen, zodat we de rest precies kunnen vergelijken
 const hernoem = (m, s) => (Object.prototype.hasOwnProperty.call(m, s) ? m[s] : s);
@@ -57,10 +73,12 @@ function zelfde(a, b, pad, gezien, ouder) {
   for (const k of ka) zelfde(a[k], b[k], pad + '.' + k, gezien, a);
 }
 // maakWereld is over losse bestanden in shared/wereld/ verdeeld: die vergelijken we op wat hij maakt (deel 1)
-const { maakWereld: mo, ...restO } = oudHernoemd(GO), { maakWereld: mn, ...restN } = NIEUW;
+const { kopie: NIEUW_ZONDER, erbij: ERBIJ } = zonderErbij(NIEUW, GO.DTEXNAMEN.length);
+const { maakWereld: mo, ...restO } = oudHernoemd(GO), { maakWereld: mn, ...restN } = NIEUW_ZONDER;
 zelfde(restO, restN, 'G', new Set(), null);
-console.log('lijsten en functies:', fouten ? fouten + ' verschillen' : 'gelijk', '(' + Object.keys(NIEUW).length + ' namen)');
+console.log('lijsten en functies:', fouten ? fouten + ' verschillen' : 'gelijk', '(' + Object.keys(NIEUW_ZONDER).length + ' namen)');
 for (const r of gebruikt) console.log('  bewust anders:', r);
+console.log('  erbij gekomen (stap 3, je poppetje):', ERBIJ.join(', '));
 
 // ---------- 1. werelden
 const gelijk = (a, b) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength));
@@ -119,9 +137,13 @@ for (const zaad of [777, 4242]) {
 const TO = OUD.RB_TEXTUREN(GO), TN = RB_TEXTUREN(NIEUW);
 let lagenAnders = 0;
 const vergelijkLagen = (namen, a, b, n) => { for (let l = 0; l < n; l++) { const x = a.subarray(l * 1024, (l + 1) * 1024), y = b.subarray(l * 1024, (l + 1) * 1024); if (!gelijk(x, y)) { if (TEXTUUR_ANDERS.has(namen[l])) lagenAnders++; else fout('textuur anders:', namen[l]); } } };
-if (TO.N !== TN.N || TO.ND !== TN.ND) fout('aantal texturen anders', TO.N, TN.N, TO.ND, TN.ND);
-else { vergelijkLagen(NIEUW.TEXNAMEN, TO.data, TN.data, TN.N); vergelijkLagen(NIEUW.DTEXNAMEN, TO.ddata, TN.ddata, TN.ND); }
-console.log('texturen:', TN.N + TN.ND, 'lagen,', lagenAnders, 'bewust nieuw getekend (' + [...TEXTUUR_ANDERS].join(', ') + '), de rest elke pixel gelijk');
+if (TO.N !== TN.N || TO.ND > TN.ND) fout('aantal texturen anders', TO.N, TN.N, TO.ND, TN.ND);
+else {
+  vergelijkLagen(NIEUW.TEXNAMEN, TO.data, TN.data, TN.N); vergelijkLagen(NIEUW.DTEXNAMEN, TO.ddata, TN.ddata, TO.ND);
+  // de nieuwe plaatjes achteraan zijn echt getekend (niet leeg)
+  for (let l = TO.ND; l < TN.ND; l++) { const x = TN.ddata.subarray(l * 1024, (l + 1) * 1024); let vol = 0; for (let i = 3; i < x.length; i += 4) if (x[i] > 0) vol++; if (!vol) fout('nieuw plaatje is leeg:', NIEUW.DTEXNAMEN[l]); else lagenAnders++; }
+}
+console.log('texturen:', TN.N + TN.ND, 'lagen,', lagenAnders, 'bewust nieuw getekend (' + [...TEXTUUR_ANDERS].join(', ') + ', en ' + (TN.ND - TO.ND) + ' nieuwe voor je poppetje), de rest elke pixel gelijk');
 
 console.log(fouten ? 'MISLUKT: ' + fouten + ' verschillen' : 'zelfde zaadje, zelfde wereld: alles gelijk, op de bewuste veranderingen na');
 process.exit(fouten ? 1 : 0);

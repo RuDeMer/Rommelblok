@@ -420,3 +420,31 @@ body.rb-aanraak #rb-minikaart { right: auto; left: calc(10px + var(--veilig-l));
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root { --paneel: rgba(18,21,32,.94); } .rb-scherm-rugzak .rb-rugzak { background: rgba(18,21,32,.96) !important; } }
 @media (prefers-reduced-transparency: reduce) { :root { --paneel: rgba(18,21,32,.96); --glas: none; } .rb-rugzak { background: rgba(18,21,32,.97) !important; } }
 @media (max-width: 640px) { :root { --glas: blur(10px) saturate(1.1); } }
+/* ---------------- Mijn poppetje: het poppetje draait links (op een telefoon boven), de keuzes staan rechts (onderaan) */
+body.rb-cam-voor .rb-kruis { display: none; }
+#tk-camera { left: calc(64px + var(--veilig-l)); top: calc(10px + var(--veilig-b)); width: 46px; height: 46px; font-size: 1.15rem; }
+.rb-scherm-pop { display: block; padding: 0; background: transparent; overflow: hidden; }
+.rb-pop-buhne { position: absolute; left: 0; top: 0; bottom: 0; right: calc(min(440px, 48vw) + var(--veilig-r)); touch-action: none; cursor: grab; }
+.rb-pop-buhne.sleept { cursor: grabbing; }
+.rb-pop-draai { position: absolute; left: calc((100% - min(440px, 48vw) - var(--veilig-r)) / 2); bottom: calc(16px + var(--veilig-o)); transform: translateX(-50%); display: flex; gap: .6rem; }
+.rb-pop-draai .rb-knop { width: 44px; height: 44px; padding: 0; font-size: 1.2rem; border-radius: 50%; }
+.rb-pop-paneel { position: absolute; top: calc(12px + var(--veilig-b)); bottom: calc(12px + var(--veilig-o)); right: calc(12px + var(--veilig-r)); width: calc(min(440px, 48vw) - 12px); display: flex; flex-direction: column; overflow: hidden; }
+.rb-pop-tabs { flex: none; overflow-x: auto; scrollbar-width: none; }
+.rb-pop-tabs button { flex: 1; }
+.rb-pop-keuzes { flex: 1; min-height: 0; overflow: auto; display: grid; gap: .85rem; align-content: start; margin-top: .8rem; padding-right: 2px; }
+.rb-pop-rij h3 { margin: 0 0 .35rem; font-size: .92rem; font-weight: 800; color: var(--zacht); }
+.rb-pop-rij small { display: block; margin-top: .3rem; color: var(--stil); font-size: .8rem; }
+.rb-pop-rij .rb-keuzes { justify-content: flex-start; justify-self: stretch; }
+.rb-pop-rij .rb-keuzes:not(.rb-kleuren) button { padding: .42rem .75rem; font-size: .88rem; }
+.rb-pop-paneel .rb-knoppen { flex: none; margin-top: .8rem; }
+@media (max-width: 720px), (orientation: portrait) and (max-width: 1024px) {
+  .rb-pop-buhne { right: 0; bottom: 55%; }
+  .rb-pop-draai { left: auto; right: calc(12px + var(--veilig-r)); bottom: calc(55% + 10px); transform: none; }
+  .rb-pop-paneel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 55%; border-radius: 26px 26px 0 0; border-width: 1px 0 0; padding: .7rem .85rem calc(.8rem + var(--veilig-o)); }
+  .rb-pop-paneel .rb-paneel-kop { margin-bottom: .45rem; }
+  .rb-pop-keuzes { margin-top: .6rem; }
+  .rb-pop-paneel .rb-knoppen { margin-top: .6rem; }
+  .rb-pop-paneel .rb-knoppen .rb-knop { flex: 1; }
+}
+.rb-inst-knop { display: flex; justify-content: flex-end; }
+@media (max-width: 520px) { .rb-inst-knop { justify-content: flex-start; } }

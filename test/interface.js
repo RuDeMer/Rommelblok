@@ -34,6 +34,8 @@ const BESTAND = process.env.RB_BESTAND || 'rommelblok.html', VOOR = process.env.
         await page.click('#rb-menu-inst'); await foto('inst'); await page.click('#rb-inst [data-sluit]');
         await page.click('#rb-menu-logboek'); await foto('logboek'); await page.click('#rb-logboek [data-sluit]');
         await page.click('#rb-menu-kaart').catch(() => {}); await page.waitForTimeout(400); await foto('kaart');
+        // je poppetje (stap 3; niet in oudere versies)
+        if (await doe(() => !!window.__rommelblok.openPop)) { await doe(() => { const R = window.__rommelblok; R.tekenUit = false; R.openPop(); }); await page.waitForTimeout(500); await foto('poppetje'); await doe(() => { window.__rommelblok.tekenUit = true; }); }
         await doe(() => { while (document.querySelector('.rb-scherm:not([hidden])')) { const s = document.querySelector('.rb-scherm:not([hidden]) [data-sluit]'); if (!s) break; s.click(); } });
         await doe(() => window.__rommelblok.flauwvallen('water')); await foto('dood');
       } else {

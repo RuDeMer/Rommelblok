@@ -841,6 +841,37 @@ export function RB_TEXTUREN(G) {
     for (const x of [3, 7, 11]) { zet(x, 2, '#bdb7b2'); zet(x, 3, '#cfcac6'); }
     for (let y = 6; y < 12; y++) zet(1, y, y === 6 || y === 11 ? '#c4beb9' : '#d4cfcb');
   };
+  // de stof van de arm als je een poppetje hebt: licht en bijna kleurloos (hij krijgt de kleur van je bovenstuk), met een naad en een manchet
+  TEK.arm_stof = () => {
+    const pal = P('#b8b4b0', '#cbc7c3', '#dcd9d6', '#ecebe9', '#f8f7f6');
+    const v = veld(33, 4, 2);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const draad = ((x + y) & 1) ? 0.05 : -0.03, plooi = Math.sin((y + x * 0.35) * 0.9) * 0.07;
+      zet(x, y, kies(pal, 0.45 + v[y * 16 + x] * 0.35 + draad + plooi - (y < 3 ? 0.1 : 0), x, y, 0.5));
+    }
+    for (let y = 0; y < 12; y++) zet(7, y, '#b0aca8');
+    for (let x = 0; x < 16; x++) { zet(x, 12, '#c4c0bc'); zet(x, 13, '#a9a5a1'); zet(x, 14, '#bdb9b5'); zet(x, 15, '#9e9a96'); }
+  };
+  // ---------------- het gezicht van je poppetje: losse laagjes (ogen, mond, extra) die vlak voor het hoofd zitten.
+  // Het hoofd is 10 breed en 10 hoog; vakje (fx, fy) van het gezicht (fx van links naar rechts, fy van boven naar beneden)
+  // valt in de textuur op kolom (11 + fx) % 16 en rij 3 + fy (zo legt de tekenaar dozen op de textuur).
+  const gz = (fx, fy, c) => zet((11 + fx) % 16, 3 + fy, c);
+  const OOG = '#2A1E1A', WIT = '#FFFFFF', LID = '#6B4530';
+  const tweeOgen = f => { f(2, 0); f(6, 1); };
+  TEK.pop_ogen_rond = () => { leeg(); tweeOgen(x => { gz(x, 4, OOG); gz(x + 1, 4, OOG); gz(x, 5, OOG); gz(x + 1, 5, OOG); gz(x, 4, WIT); }); };
+  TEK.pop_ogen_groot = () => { leeg(); tweeOgen(x => { for (let y = 3; y <= 5; y++) { gz(x, y, WIT); gz(x + 1, y, WIT); } gz(x, 4, OOG); gz(x + 1, 4, OOG); gz(x, 5, OOG); gz(x + 1, 5, OOG); gz(x + 1, 4, WIT); }); };
+  TEK.pop_ogen_blij = () => { leeg(); tweeOgen(x => { gz(x - 1, 5, OOG); gz(x, 4, OOG); gz(x + 1, 4, OOG); gz(x + 2, 5, OOG); }); };
+  TEK.pop_ogen_knipoog = () => { leeg(); gz(2, 4, WIT); gz(3, 4, OOG); gz(2, 5, OOG); gz(3, 5, OOG); gz(5, 5, OOG); gz(6, 5, OOG); gz(7, 5, OOG); gz(8, 4, OOG); };
+  TEK.pop_ogen_slaperig = () => { leeg(); tweeOgen(x => { gz(x, 4, LID); gz(x + 1, 4, LID); gz(x, 5, OOG); gz(x + 1, 5, OOG); }); };
+  TEK.pop_ogen_wimpers = () => { leeg(); tweeOgen((x, r) => { gz(x, 4, OOG); gz(x + 1, 4, OOG); gz(x, 5, OOG); gz(x + 1, 5, OOG); gz(x + (r ? 1 : 0), 4, WIT); gz(r ? x + 2 : x - 1, 3, OOG); gz(r ? x + 1 : x, 3, OOG); }); };
+  const MOND = '#5A2620', TONG = '#E06070';
+  TEK.pop_mond_lach = () => { leeg(); gz(3, 7, MOND); gz(6, 7, MOND); gz(4, 8, MOND); gz(5, 8, MOND); };
+  TEK.pop_mond_grijns = () => { leeg(); for (let x = 3; x <= 6; x++) gz(x, 7, MOND); gz(4, 8, TONG); gz(5, 8, TONG); gz(3, 8, MOND); gz(6, 8, MOND); };
+  TEK.pop_mond_oh = () => { leeg(); gz(4, 7, MOND); gz(5, 7, MOND); gz(4, 8, MOND); gz(5, 8, MOND); };
+  TEK.pop_mond_tandjes = () => { leeg(); gz(3, 7, MOND); gz(4, 7, WIT); gz(5, 7, WIT); gz(6, 7, MOND); gz(4, 8, MOND); gz(5, 8, MOND); };
+  TEK.pop_mond_rustig = () => { leeg(); gz(4, 8, MOND); gz(5, 8, MOND); };
+  TEK.pop_sproetjes = () => { leeg(); for (const [x, y] of [[1, 6], [2, 7], [0, 7], [7, 7], [8, 6], [9, 7]]) gz(x, y, '#A0603A'); };
+  TEK.pop_blosjes = () => { leeg(); for (const [x, y] of [[0, 6], [1, 6], [8, 6], [9, 6]]) gz(x, y, '#F08C9A'); };
 
   // ============================================================================
   // ronde 2: nieuwe steen, kersen- en notenhout, gekleurde basissen, decoratie, bloemen, landbouw en vondsten

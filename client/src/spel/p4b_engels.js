@@ -238,4 +238,13 @@ Object.assign(EN_ZIN, {
   'Dorpje': 'Village', 'Een dorpje': 'A village', 'Vind een dorpje met bewoners.': 'Find a village with villagers.',
   'Je hebt een dorpje gevonden! Het staat nu op je kaart. Praat eens met de bewoners.': 'You found a village! It is on your map now. Have a chat with the villagers.',
   'Instappen!': 'All aboard!', 'Rijd in een karretje over het spoor.': 'Ride a cart along the rails.',
+  // je poppetje en de camera
+  'Mijn poppetje': 'My character', 'Aanpassen': 'Change', 'Camera': 'Camera', 'Camera wisselen': 'Switch camera', 'Camera: {0}': 'Camera: {0}',
+  'Kies hoe je eruitziet: je huid, je haar, je gezicht, je kleren en je spullen. Je arm in beeld past erbij.': 'Choose how you look: your skin, your hair, your face, your clothes and your things. Your arm in view matches.',
+  'Door je eigen ogen, van achteren of van voren. Wisselen kan ook met de toets V, of op een telefoon met de cameraknop.': 'Through your own eyes, from behind or from the front. You can also switch with the V key, or with the camera button on a phone.',
+  'Door je ogen': 'Through your eyes', 'Van achteren': 'From behind', 'Van voren': 'From the front',
+  'Huid en haar': 'Skin and hair', 'Gezicht': 'Face', 'Kleren': 'Clothes', 'Huidskleur': 'Skin colour', 'Kapsel': 'Hairstyle', 'Haarkleur': 'Hair colour', 'Ogen': 'Eyes', 'Mond': 'Mouth', 'Extra': 'Extra',
+  'Bovenkant': 'Top', 'Kleur van je bovenkant': 'Colour of your top', 'Onderkant': 'Bottoms', 'Kleur van je onderkant': 'Colour of your bottoms', 'Schoenen': 'Shoes', 'Iets extra': 'Something extra',
+  'Bij een jurk of een overall zie je dit niet.': 'You can\'t see this with a dress or dungarees.', '🎲 Verras me': '🎲 Surprise me',
+  'Je poppetje. Sleep om het rond te draaien.': 'Your character. Drag to turn it around.', 'Draai naar links': 'Turn left', 'Draai naar rechts': 'Turn right',
 });

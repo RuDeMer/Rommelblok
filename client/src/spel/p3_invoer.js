@@ -24,6 +24,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyQ') gooiWeg(e.ctrlKey);
   if (e.code === 'KeyM') { e.preventDefault(); openKaart(); }
   if (e.code === 'KeyL') { e.preventDefault(); openLogboek(); }
+  if (e.code === 'KeyV') wisselCamera();
   if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); openMenu(); }
   if (e.code === 'F3' || e.code === 'KeyI' && e.altKey) { e.preventDefault(); inst.fps = !inst.fps; bewaarInst(); }
 });

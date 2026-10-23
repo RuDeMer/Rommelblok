@@ -23,6 +23,7 @@
   <div class="rb-touch" id="rb-touch">
     <button type="button" class="rb-tk" id="tk-menu" aria-label="Menu" data-t-label="Menu">☰</button>
     <button type="button" class="rb-tk" id="tk-rugzak" aria-label="Rugzak" data-t-label="Rugzak">🎒</button>
+    <button type="button" class="rb-tk" id="tk-camera" aria-label="Camera wisselen" data-t-label="Camera wisselen">🎥</button>
     <button type="button" class="rb-tk groot" id="tk-spring" aria-label="Springen" data-t-label="Springen"><span data-t>Spring</span></button>
     <button type="button" class="rb-tk" id="tk-sluip" aria-label="Sluipen" data-t-label="Sluipen" aria-pressed="false"><span data-t>Sluip</span></button>
     <button type="button" class="rb-tk" id="tk-vlieg" aria-label="Vliegen" data-t-label="Vliegen" aria-pressed="false"><span data-t>Vlieg</span></button>
@@ -51,6 +52,7 @@
       <div class="rb-begin-voet">
         <a href="./" class="rb-link" data-t>← Terug naar het rommelhoekje</a>
         <button type="button" class="rb-knop klein" id="rb-taal" aria-label="English">EN</button>
+        <button type="button" class="rb-knop klein" id="rb-begin-pop" data-t>Mijn poppetje</button>
         <button type="button" class="rb-knop klein" id="rb-begin-inst" data-t>Instellingen</button>
       </div>
     </div>
@@ -86,6 +88,7 @@
         <button type="button" class="rb-knop rood groot" data-sluit data-t>Verder spelen</button>
         <button type="button" class="rb-knop" id="rb-menu-kaart" data-t>Kaart</button>
         <button type="button" class="rb-knop" id="rb-menu-logboek">Logboek</button>
+        <button type="button" class="rb-knop" id="rb-menu-pop" data-t>Mijn poppetje</button>
         <button type="button" class="rb-knop" id="rb-menu-inst" data-t>Instellingen</button>
         <button type="button" class="rb-knop" id="rb-menu-hulp" data-t>Besturing</button>
         <button type="button" class="rb-knop" id="rb-menu-scherm" data-t>Volledig scherm</button>
@@ -136,6 +139,20 @@
       <h2 class="rb-tape" data-t>Instellingen</h2>
       <div class="rb-inst" id="rb-inst-lijst"></div>
       <div class="rb-knoppen"><button type="button" class="rb-knop rood" data-sluit data-t>Klaar</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm rb-scherm-pop" id="rb-pop" hidden>
+    <div class="rb-pop-buhne" id="rb-pop-buhne" role="img" aria-label="Je poppetje. Sleep om het rond te draaien." data-t-label="Je poppetje. Sleep om het rond te draaien."></div>
+    <div class="rb-pop-draai">
+      <button type="button" class="rb-knop klein" id="rb-pop-links" aria-label="Draai naar links" data-t-label="Draai naar links">⟲</button>
+      <button type="button" class="rb-knop klein" id="rb-pop-rechts" aria-label="Draai naar rechts" data-t-label="Draai naar rechts">⟳</button>
+    </div>
+    <div class="rb-paneel rb-pop-paneel" role="dialog" aria-modal="true" aria-labelledby="rb-pop-titel">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" id="rb-pop-titel" data-t>Mijn poppetje</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <div class="rb-segment rb-pop-tabs" id="rb-pop-tabs" role="tablist" aria-label="Onderdelen" data-t-label="Onderdelen"></div>
+      <div class="rb-pop-keuzes" id="rb-pop-keuzes" role="tabpanel"></div>
+      <div class="rb-knoppen"><button type="button" class="rb-knop" id="rb-pop-verras" data-t>🎲 Verras me</button><button type="button" class="rb-knop rood" id="rb-pop-klaar" data-t>Klaar</button></div>
     </div>
   </div>
 

@@ -592,9 +592,11 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
         }
       }
     };
-    tekenLaag(PB, 0);
+    // extra.alleenWezens: zonder de wereld (het kiesscherm van je poppetje: alleen de lucht en het poppetje)
+    const wereld = !(extra && extra.alleenWezens);
+    if (wereld) tekenLaag(PB, 0);
     gl.disable(gl.CULL_FACE);
-    tekenLaag(PU, 1);
+    if (wereld) tekenLaag(PU, 1);
     // lucht achter alles
     gl.depthMask(false);
     gl.useProgram(PL.p); gl.uniformMatrix4fv(PL.u.uInvVP, false, INV);
@@ -619,9 +621,9 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     }
     // water en ijs: eerst het water (zonder diepte), dan het ijs (met diepte, zodat ijs nooit dubbel over ijs heen valt)
     gl.depthMask(false);
-    tekenLaag(PW, 2);
+    if (wereld) tekenLaag(PW, 2);
     gl.depthMask(true);
-    tekenLaag(PW, 3);
+    if (wereld) tekenLaag(PW, 3);
     // omlijning en barsten
     if (extra && extra.kader) tekenKader(extra.kader, C, L);
     // het ding in je hand
@@ -669,12 +671,19 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(I), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
-    return { vao, n: I.length };
+    return { vao, n: I.length, vb, ib };
   }
   function model(naam, delen) {
     const m = delen.map(d => ({ naam: d.naam, ding: d.dtex !== undefined, vorm: dozenVorm(d.dozen, d.dtex !== undefined ? d.dtex : d.tex || 0), kleur: d.kleur || null, spil: d.spil || [0, 0, 0] }));
     MODELLEN.set(naam, m); return m;
   }
+  // een model weer weggooien (bijvoorbeeld een oud poppetje na het aanpassen)
+  function modelWeg(naam) {
+    const m = MODELLEN.get(naam); if (!m) return;
+    for (const d of m) { gl.deleteVertexArray(d.vorm.vao); gl.deleteBuffer(d.vorm.vb); gl.deleteBuffer(d.vorm.ib); }
+    MODELLEN.delete(naam);
+  }
+  const heeftModel = naam => MODELLEN.has(naam);
   const MB = new Float32Array(16), MP = new Float32Array(16), MQ = new Float32Array(16), MR = new Float32Array(16);
   // lijst: [{ model, x, y, z, yaw, pitch, licht: [r,g,b], delen: { naam: [rx, ry, rz] }, kleuren: { naam: [r,g,b] } }]
   function tekenWezens(lijst, L, C) {
@@ -692,8 +701,24 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
         const k = (w.kleuren && w.kleuren[d.naam]) || d.kleur;
         gl.uniform1f(PD.u.uBron, d.ding ? 1 : 0); gl.uniform1f(PD.u.uTint, k ? 1 : 0); if (k) gl.uniform3fv(PD.u.uTintK, k);
         gl.bindVertexArray(d.vorm.vao); gl.drawElements(gl.TRIANGLES, d.vorm.n, gl.UNSIGNED_SHORT, 0);
+        if (w.vast && w.vast.deel === d.naam) tekenVast(w.vast, a ? MQ : MB);
       }
     }
+  }
+  // een voorwerp in de hand van een poppetje: op een plek in het deel (de hand), in de houding die bij de soort past
+  const MV = new Float32Array(16), MW = new Float32Array(16), MX = new Float32Array(16);
+  function tekenVast(vast, Mdeel) {
+    const v = dingVorm(vast.id); if (!v) return;
+    const [px, py, pz] = vast.plek, s = (v.blok ? 0.5 : 1) * (vast.schaal || 7);
+    // houding: een blok recht voor de hand, gereedschap schuin naar voren, een fakkel rechtop, iets kleins plat
+    const h = vast.soort === 'blok' ? [0, 0.6, 0] : vast.soort === 'gereed' ? [-0.3, -1.57, 0.8] : vast.soort === 'rechtop' ? [0, -1.57, 0] : [0.4, -1.57, 0];
+    stelM(MV, px, py, pz, h[0], h[1], h[2], s);
+    // het handvat (linksonder in het plaatje) of de steel in de vuist
+    if (vast.soort === 'gereed' || vast.soort === 'rechtop') { stelM(MX, vast.soort === 'gereed' ? 0.28 : 0, vast.soort === 'gereed' ? 0.3 : 0.32, 0, 0, 0, 0, 1); mul(MW, MV, MX); MV.set(MW); }
+    mul(MW, Mdeel, MV);
+    gl.uniformMatrix4fv(PD.u.uM, false, MW); gl.uniform1f(PD.u.uBron, v.ding ? 1 : 0);
+    gl.uniform1f(PD.u.uTint, v.tint || v.kleur ? 1 : 0); gl.uniform3fv(PD.u.uTintK, v.kleur || (v.tint === 2 ? [0.31, 0.62, 0.23] : [0.44, 0.7, 0.29]));
+    gl.bindVertexArray(v.vao); gl.drawElements(gl.TRIANGLES, v.n, gl.UNSIGNED_SHORT, 0);
   }
   function tekenDeeltjes(D, L, C) {
     gl.useProgram(PDt.p); gl.uniformMatrix4fv(PDt.u.uVP, false, VP); gl.uniform1i(PDt.u.uTex, 0); gl.uniform1i(PDt.u.uDing, 3);
@@ -791,6 +816,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   }
   function armKlaar() {
     if (ARM.mouw) return;
+    // voor een poppetje: stof die de kleur van het bovenstuk krijgt, een blote arm, en een korte mouw bij de schouder
+    ARM.stof = doosVorm([-0.095, -0.095, -ARM.L, 0.095, 0.095, 0.05], G.DTEXNR.arm_stof, true); ARM.stof.ding = true;
+    ARM.bloot = doosVorm([-0.088, -0.088, -ARM.L, 0.088, 0.088, 0.05], G.DTEXNR.arm_huid, true); ARM.bloot.ding = true;
+    ARM.kort = doosVorm([-0.1, -0.1, -ARM.L * 0.32, 0.1, 0.1, 0.05], G.DTEXNR.arm_stof, true); ARM.kort.ding = true;
     ARM.mouw = doosVorm([-0.095, -0.095, -ARM.L, 0.095, 0.095, 0.05], G.DTEXNR.arm_mouw, true); ARM.mouw.ding = true;
     ARM.hand = doosVorm([-0.082, -0.086, -ARM.L - 0.21, 0.082, 0.082, -ARM.L + 0.03], G.DTEXNR.arm_huid, false); ARM.hand.ding = true;
     // de duim, aan de binnenkant van de hand: zo zie je dat de hand iets vasthoudt
@@ -884,7 +913,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.uniform2f(PD.u.uMist, 1e5, 1e5 + 1); gl.uniform1f(PD.u.uOnderWater, 0); zetLuchtUniforms(PD, L);
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
     const huid = h.huid || [0.89, 0.71, 0.57];
-    tekenArmDeel(ARM.mouw, MA, h.licht, false, huid);
+    // h.mouw: de kleur van je bovenstuk (met een poppetje); h.kort: korte mouwen, dan zie je je blote arm
+    if (h.mouw && h.kort) { tekenArmDeel(ARM.bloot, MA, h.licht, true, huid); tekenArmDeel(ARM.kort, MA, h.licht, true, h.mouw); }
+    else if (h.mouw) tekenArmDeel(ARM.stof, MA, h.licht, true, h.mouw);
+    else tekenArmDeel(ARM.mouw, MA, h.licht, false, huid);
     tekenArmDeel(ARM.hand, MA, h.licht, true, huid);
     tekenArmDeel(ARM.duim, MA, h.licht, true, huid);
     if (leeg) return;
@@ -908,5 +940,5 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     const l = Math.hypot(q[0] / q[3], q[1] / q[3], q[2] / q[3]);
     return [q[0] / q[3] / l, q[1] / q[3] / l, q[2] / q[3] / l];
   }
-  return { gl, kijkMatrix, zetStuk, weg, allesWeg, zetKleur, teken, stats, kijkRichting, model, get gpuMB() { return gpuBytes / 1048576; }, stukken, dingVorm, maat: () => [W, H], verlies: () => gl.isContextLost() };
+  return { gl, kijkMatrix, zetStuk, weg, allesWeg, zetKleur, teken, stats, kijkRichting, model, modelWeg, heeftModel, get gpuMB() { return gpuBytes / 1048576; }, stukken, dingVorm, maat: () => [W, H], verlies: () => gl.isContextLost() };
 }

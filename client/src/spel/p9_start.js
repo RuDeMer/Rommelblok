@@ -35,16 +35,15 @@ function lus(nu) {
   const zl = (lichtOp(Math.floor(sp.x), Math.floor(sp.y + sp.oog), Math.floor(sp.z)) >> 4) / 15;
   mistDonker += (Math.max(0.04, Math.pow(zl, 1.5)) - mistDonker) * (1 - Math.exp(-dt * 1.5)); L.mistDonker = mistDonker;
   const [bobX, bobY] = hoofdSchommel();
-  const C = {
-    x: sp.x + Math.cos(sp.yaw) * bobX, y: sp.y + sp.oog - sp.stapOp + bobY, z: sp.z - Math.sin(sp.yaw) * bobX, yaw: sp.yaw, pitch: sp.pitch,
-    fov: (inst.fov + sp.fovExtra) * Math.PI / 180, schaal: dynSchaal,
-  };
+  // de camera: door je ogen, van achteren of van voren (p6d_poppetje.js); in het kiesscherm van je poppetje een eigen plek
+  let C = maakCamera(bobX, bobY), LT = L;
   camVorige = C;
-  const extra = typeof tekenExtra === 'function' ? tekenExtra(dt, C) : null;
+  let extra = typeof tekenExtra === 'function' ? tekenExtra(dt, C) : null;
+  if (huidigScherm() === 'pop') ({ C, L: LT, extra } = popStudio(dt, C));
   // met de grote kaart open hoeft de wereld erachter niet getekend te worden (scheelt veel op een telefoon).
   // Achter een ander (glazen) scherm tekent een telefoon de wereld maar elk derde beeldje: het glas maakt hem toch wazig.
-  const achterGlas = telefoon && schermOpen() && (glasTel++ % 3) !== 0;
-  if (!tekenUit && huidigScherm() !== 'kaart' && !achterGlas) R.teken(C, L, extra); else R.kijkMatrix(C);
+  const achterGlas = telefoon && schermOpen() && huidigScherm() !== 'pop' && (glasTel++ % 3) !== 0;
+  if (!tekenUit && huidigScherm() !== 'kaart' && !achterGlas) R.teken(C, LT, extra); else R.kijkMatrix(C);
   if (spelBezig && wereldKlaar && WD && (!WD.plaatje || plaatjeVragen) && sinds > 2 && !schermOpen()) { maakPlaatje(); plaatjeVragen = false; }
   if (typeof hudTik === 'function') hudTik(dt, L);
   frameMs = performance.now() - t0;
@@ -106,5 +105,8 @@ window.__rommelblok = {
   get doelBewoner() { return doelBewoner; }, RUIL, BEROEP, NAMEN, NAMEN_OUD, bewonerNamenOmzetten, dorpBinnen, bewonersTik, bewonersTeken, openRuilen, ruil, zoekRoute, staanOp, bwRust, DORPINFO, bwFase, tel,
   get rijdtIn() { return rijdtIn; }, get doelKar() { return doelKar; }, KAR, karNieuw, karWeg, instappen, uitstappen, karTik, spoorBaan, spoorLeg, karrenUitStuk, karData,
   acties, ACTIES, KAART, BOUWW, tekenRegio, REGIO, openKaart, openLogboek, logboek, kaartLaden, kaartBewaren, kompasDoel, KM, LOGBOEK, aantalMijlpalen,
+  // je poppetje en de camera
+  POP, get opslag() { return opslag; }, openPop, popZetVeld, verrasPop, popStudio, STUDIO: ST, popModel, popDelen, popHouding, popArm,
+  wisselCamera, camModus, camBeeld, maakCamera, camAchterVoor, get camPlek() { return camPlek; }, get oogVorige() { return oogVorige; }, get camSchouder() { return camSchouder && [sp.x + camSchouder[0], sp.y + sp.oog + camSchouder[1], sp.z + camSchouder[2]]; }, kijkVector, BEREIK, oogPos, get camVorige() { return camVorige; },
 };
 opstarten();
