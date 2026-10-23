@@ -3,8 +3,8 @@
 // 1. alles wat het spel kent (blokken, voorwerpen, recepten, texturen, ...) is gelijk, ook de tekst van elke functie
 // 2. voor een reeks zaadjes zijn alle stukken byte voor byte gelijk (blokken, streken en kleuren), voor versie 2,
 //    versie 3 en een oude wereld met een lijst oude stukken; ook startplek, kolommen, bouwwerken en dorpjes
-const OUD = require('./oude_pagina')(process.env.RB_REFERENTIE);
-const { G: NIEUW } = require('../shared/index.js');
+const OUD = require('../oude_pagina')(process.env.RB_REFERENTIE);
+const { G: NIEUW } = require('../../shared/index.js');
 const GO = OUD.RB_GEDEELD();
 const groot = process.argv.includes('groot');
 let fouten = 0;
@@ -32,7 +32,7 @@ console.log('lijsten en functies:', fouten ? fouten + ' verschillen' : 'gelijk',
 
 // ---------- 2. werelden
 const gelijk = (a, b) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength));
-const ZAADJES = [12345, 777, 4242, 0, 4294967295, NIEUW.zaadVan('vlaai'), NIEUW.zaadVan('Rommelblok')];
+const ZAADJES = [12345, 777, 4242, 0, 4294967295, NIEUW.zaadVan('zolder'), NIEUW.zaadVan('Rommelblok')];
 let stukken = 0;
 function vergelijk(zaad, opt, naam, plekken) {
   const wo = GO.maakWereld(zaad, opt && Object.assign({}, opt)), wn = NIEUW.maakWereld(zaad, opt && Object.assign({}, opt));

@@ -22,7 +22,7 @@ console.log('rasters getest:', getest, 'recepten:', REC.length, 'oven:', OVEN.le
 const bereik = new Set();
 for (const b of BL) if (b && b.geeft) { const g = typeof b.geeft === 'string' ? (I[b.geeft] !== undefined ? I[b.geeft] : B[b.geeft]) : b.geeft; if (IT[g]) bereik.add(g); }
 // extra opbrengsten (zie opbrengst() in p6_doen.js) en wat er in de wereld groeit of ligt
-for (const k of ['appel', 'stok', 'bessen', 'vlas', 'bessenstruik', 'kolen', 'grind', 'mostkei', 'waterlelie', 'riet', 'cactus', 'stekje_eik', 'stekje_berk', 'stekje_spar', 'stekje_esdoorn', 'stekje_baobab', 'stekje_wilg', 'blad_eik', 'wilgentak', 'paddenstoel_bruin', 'paddenstoel_rood', 'gloeizwam', 'druipsteen_hang', 'druipsteen_staand', 'mergel', 'klei', 'ijs',
+for (const k of ['appel', 'stok', 'bessen', 'vlas', 'bessenstruik', 'kolen', 'grind', 'mostkei', 'waterlelie', 'riet', 'cactus', 'stekje_eik', 'stekje_berk', 'stekje_spar', 'stekje_esdoorn', 'stekje_baobab', 'stekje_wilg', 'blad_eik', 'wilgentak', 'paddenstoel_bruin', 'paddenstoel_rood', 'gloeizwam', 'druipsteen_hang', 'druipsteen_staand', 'kalksteen', 'klei', 'ijs',
   // ronde 2: uit bladeren, gras, wilde gewassen en de natuur
   'kersen', 'walnoot', 'stekje_kers', 'stekje_noten', 'tarwezaad', 'bietenzaad', 'aardappel', 'wortel', 'suikerbiet', 'pompoen', 'pompoenpit', 'tarwe', 'zonnebloem', 'klaproos', 'lavendel', 'madelief', 'vergeetmenietje', 'mos', 'klimop', 'graniet', 'basalt', 'marmer', 'veen', 'stam_kers', 'stam_noten', 'linnendraad', 'sterrensplinter'].filter(k => k !== 'ijs')) bereik.add(I[k] !== undefined ? I[k] : B[k]);
 // bladeren krijg je met een zwaard
@@ -37,7 +37,7 @@ while (meer) {
   // de smidse: gereedschap met een sterrensplinter krijgt sterrenglans
   IT.forEach((it, id) => { if (it && it.ster && !bereik.has(id) && bereik.has(it.basis) && bereik.has(I.sterrensplinter) && bereik.has(B.smidse)) { bereik.add(id); meer = true; } });
 }
-const niet = IT.map((it, id) => (it && !bereik.has(id) ? it.sleutel : null)).filter(Boolean).filter(k => !['rugzak', 'vlaaipunt'].includes(k));
+const niet = IT.map((it, id) => (it && !bereik.has(id) ? it.sleutel : null)).filter(Boolean).filter(k => !['rugzak', 'taartpunt'].includes(k));
 // blokken die (net als echt) iets anders opleveren: alleen in de bouwstand te pakken
 const ALLEEN_BOUWEN = ['gras', 'ijs', 'bosgrond', 'sneeuwgras', 'hooggras', 'varen', 'dorre_struik', 'erts_kolen', 'erts_koper', 'erts_ijzer', 'erts_goud', 'erts_ijzer_lei', 'erts_goud_lei', 'erts_robijn',
   // ronde 2: deze leveren iets anders op (spinnenweb: draad, akker: aarde, sterrensteen: splinters, oude kist: een kist)

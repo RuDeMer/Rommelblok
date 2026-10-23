@@ -44,7 +44,7 @@ for (let k = 1; k <= 5; k++) {
 vorm('steenstenen', 4, ['SS', 'SS'], { S: 'steen' }, 'bouwen');
 vorm('zandsteen', 1, ['ZZ', 'ZZ'], { Z: 'zand' }, 'bouwen');
 vorm('leitegels', 4, ['LL', 'LL'], { L: 'leisteen' }, 'bouwen');
-vorm('mergelblokken', 4, ['MM', 'MM'], { M: 'mergel' }, 'bouwen');
+vorm('kalksteenblokken', 4, ['MM', 'MM'], { M: 'kalksteen' }, 'bouwen');
 los('mostkei', 1, ['kei', 'varen'], 'bouwen');
 STEENSOORT.forEach(([s, , , , , , ], i) => {
   const m = s === 'hout' ? '#planken' : s === 'zandsteen' ? 'zandsteen' : s;
@@ -67,9 +67,9 @@ for (const [blk, st] of [['koperblok', 'koperstaaf'], ['ijzerblok', 'ijzerstaaf'
 }
 // eten
 los('soep', 1, ['kom', 'paddenstoel_bruin', 'paddenstoel_rood'], 'eten');
-vorm('vlaai', 1, ['BBB', 'AAA', 'PPP'], { B: 'bessen', A: 'appel', P: '#planken' }, 'eten');
+vorm('bessentaart', 1, ['BBB', 'SSS', 'TTT'], { B: 'bessen', S: 'suiker', T: 'tarwe' }, 'eten');
 // oven
-smelt('zand', 'glas'); smelt('kei', 'steen'); smelt('steen', 'gladde_steen'); smelt('klei', 'baksteen'); smelt('mergel', 'tegel_wit');
+smelt('zand', 'glas'); smelt('kei', 'steen'); smelt('steen', 'gladde_steen'); smelt('klei', 'baksteen'); smelt('kalksteen', 'tegel_wit');
 smelt('koperbrok', 'koperstaaf'); smelt('ijzerbrok', 'ijzerstaaf'); smelt('goudbrok', 'goudstaaf'); smelt('appel', 'gebakken_appel');
 smelt('cactus', 'verf_groen'); smelt('modder', 'klei');
 for (let i = 0; i < 6; i++) OVEN.push({ in: 24 + i, uit: I.houtskool, aantal: 1 });
@@ -90,7 +90,7 @@ los('verf_beige', 2, ['verf_geel', 'verf_wit'], 'kleur'); los('verf_lichtblauw',
 // per kleur van het palet: welke verf hoort erbij
 const VERF = ['verf_wit', 'verf_beige', 'verf_geel', 'verf_oranje', 'verf_rood', 'verf_roze', 'verf_paars', 'verf_blauw', 'verf_lichtblauw', 'verf_groen', 'verf_bruin', 'verf_zwart'];
 // gekleurd glas, pleisterwerk, geglazuurde tegels en tapijt: een basis, en daarna verven
-vorm('pleister_wit', 4, ['MZ', 'ZM'], { M: 'mergel', Z: 'zand' }, 'kleur');
+vorm('pleister_wit', 4, ['MZ', 'ZM'], { M: 'kalksteen', Z: 'zand' }, 'kleur');
 vorm('tapijt_wit', 3, ['LL'], { L: 'linnen_wit' }, 'kleur');
 los('tegel_glazuur_wit', 4, ['tegel_wit', 'tegel_wit', 'tegel_wit', 'tegel_wit', 'verf_wit'], 'kleur');
 PALET.forEach(([k], i) => {
@@ -125,8 +125,8 @@ los('hutspot', 1, ['kom', 'aardappel', 'aardappel', 'wortel', 'wortel'], 'eten')
 los('pompoensoep', 1, ['kom', 'pompoen'], 'eten');
 los('stroopwafel', 2, ['tarwe', 'tarwe', 'suiker'], 'eten');
 los('appelmoes', 1, ['kom', 'appel', 'appel', 'suiker'], 'eten');
-vorm('kersenvlaai', 1, ['KKK', 'SSS', 'TTT'], { K: 'kersen', S: 'suiker', T: 'tarwe' }, 'eten');
-vorm('appelvlaai', 1, ['AAA', 'SSS', 'TTT'], { A: 'appel', S: 'suiker', T: 'tarwe' }, 'eten');
+vorm('kersentaart', 1, ['KKK', 'SSS', 'TTT'], { K: 'kersen', S: 'suiker', T: 'tarwe' }, 'eten');
+vorm('appeltaart', 1, ['AAA', 'SSS', 'TTT'], { A: 'appel', S: 'suiker', T: 'tarwe' }, 'eten');
 // papier en de kaart, en de smidse
 vorm('papier', 3, ['RRR'], { R: 'riet' }, 'handig');
 vorm('kaart', 1, ['PP', 'PH'], { P: 'papier', H: '#kolen' }, 'handig');

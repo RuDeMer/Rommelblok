@@ -27,7 +27,7 @@ ding(271, 'emmer', 'Emmer', 'Bucket', { stapel: 16 });
 ding(272, 'emmer_water', 'Emmer met water', 'Water bucket', { stapel: 1 });
 ding(273, 'kompas', 'Kompas', 'Compass', { stapel: 1 });
 ding(274, 'klok', 'Klok', 'Clock', { stapel: 1 });
-ding(275, 'vlaaipunt', 'Punt vlaai', 'Slice of vlaai', { eten: 5 });
+ding(275, 'taartpunt', 'Taartpunt', 'Slice of tart', { eten: 5 });
 ding(276, 'linnendraad', 'Linnendraad', 'Linen thread');
 KLEUREN.forEach(([s, , en, bijv], i) => { if (i) ding(277 + i - 1, 'verf_' + s, bijv + ' verf', en + ' dye'); });
 ding(285, 'rugzak', 'Achtergelaten rugzak', 'Left-behind backpack', { stapel: 1 });
@@ -64,7 +64,7 @@ for (let k = 1; k <= 5; k++) for (const [g, nl, en] of GEREED) {
   ding(gid++, g + '_' + K[0], K[1] + ' ' + nl, K[2] + ' ' + en, { stapel: 1, gereed: g, klasse: k, snel: K[3], duur: K[4], brand: k === 1 ? 10 : 0, tex: dtex('i_' + g + '_' + K[0]) });
 }
 // ---------------- groepen voor het bouwmenu (bouwstand): elk voorwerp staat in precies één groep
-const NATUURLIJK = new Set(['gras', 'aarde', 'zand', 'grind', 'klei', 'sneeuw', 'ijs', 'modder', 'bosgrond', 'leisteen', 'mergel', 'sneeuwgras', 'zandsteen', 'steen', 'bodemsteen']);
+const NATUURLIJK = new Set(['gras', 'aarde', 'zand', 'grind', 'klei', 'sneeuw', 'ijs', 'modder', 'bosgrond', 'leisteen', 'kalksteen', 'sneeuwgras', 'zandsteen', 'steen', 'bodemsteen']);
 const WERKBLOKKEN = new Set(['werkbank', 'oven', 'oven_aan', 'kist']);
 function bouwGroep(id) {
   const it = IT[id]; if (!it) return null;
@@ -73,7 +73,7 @@ function bouwGroep(id) {
   const b = BL[it.blok], k = b.sleutel;
   if (b.groep) return b.groep;
   if (WERKBLOKKEN.has(k)) return 'werk';
-  if (k === 'vlaai') return 'eten';
+  if (k === 'bessentaart') return 'eten';
   if (k.startsWith('linnen_')) return 'kleur';
   if (k.startsWith('stam_') || k.startsWith('planken_') || ['trap_hout', 'plaat_hout', 'deur', 'luik', 'ladder', 'hek'].includes(k)) return 'hout';
   if (NATUURLIJK.has(k) || k.startsWith('erts_') || k.startsWith('blad_') || b.vorm === 'kruis' || b.vorm === 'lelie' || b.vorm === 'cactus' || b.laag === 1 && b.vorm !== 'kubus' && !b.licht) return 'natuur';

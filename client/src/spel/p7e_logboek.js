@@ -17,7 +17,7 @@ const LOGBOEK = [
   ['brood', 'Vers brood', 'Bak brood van tarwe.', 'leven'],
   ['ruil', 'Eerlijk geruild', 'Ruil iets met een bewoner van een dorpje.', 'leven'],
   ['hutspot', 'Echte hutspot', 'Maak hutspot met aardappels en wortels.', 'leven'],
-  ['vlaai', 'Een hele vlaai', 'Bak een vlaai.', 'leven'],
+  ['taart', 'Een hele taart', 'Bak een taart.', 'leven'],
   ['emmer', 'Water in een emmer', 'Schep water met een emmer.', 'leven'],
   ['grot', 'Onder de grond', 'Ga een grot in.', 'verkennen'],
   ['diep', 'Heel diep', 'Kom lager dan 16 blokken boven de bodem van de wereld.', 'verkennen'],
@@ -51,7 +51,7 @@ const RANGEN = [[0, 'Kleine rommelaar'], [4, 'Echte houthakker'], [10, 'Dappere 
 // welke voorwerpen welke mijlpaal geven
 const LB_DING = {
   hout: G.TAG['#stam'], werkbank: [B.werkbank], houweel: [I.houweel_hout], steen: [B.kei], oven: [B.oven], fakkel: [B.fakkel],
-  brood: [I.brood], hutspot: [I.hutspot], vlaai: [B.vlaai, B.kersenvlaai, B.appelvlaai], emmer: [I.emmer_water], kaart: [I.kaart],
+  brood: [I.brood], hutspot: [I.hutspot], taart: [B.bessentaart, B.kersentaart, B.appeltaart], emmer: [I.emmer_water], kaart: [I.kaart],
   koper: [I.koperbrok], ijzer: [I.ijzerstaaf], goud: [I.goudbrok], robijn: [I.robijn], ijzerhouweel: [I.houweel_ijzer, I.houweel_ijzer_ster], robijnhouweel: [I.houweel_robijn, I.houweel_robijn_ster],
   splinter: [I.sterrensplinter], smidse: [B.smidse],
 };

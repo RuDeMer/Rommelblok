@@ -3,7 +3,7 @@
 module.exports = function waarden(G) {
   const { IT, I, B, REC, OVEN, TAG } = G, W = new Map();
   const vast = {
-    aarde: 0.1, zand: 0.3, grind: 0.3, kei: 0.3, klei: 0.5, sneeuw: 0.2, ijs: 0.5, mergel: 0.3, leisteen: 0.4, graniet: 0.4, basalt: 0.4, marmer: 0.5, veen: 0.3, modder: 0.2, zandsteen: 0.6,
+    aarde: 0.1, zand: 0.3, grind: 0.3, kei: 0.3, klei: 0.5, sneeuw: 0.2, ijs: 0.5, kalksteen: 0.3, leisteen: 0.4, graniet: 0.4, basalt: 0.4, marmer: 0.5, veen: 0.3, modder: 0.2, zandsteen: 0.6,
     kolen: 2, koperbrok: 2, ijzerbrok: 4, goudbrok: 7, robijn: 30, sterrensplinter: 30, sterrensteen: 30,
     tarwe: 1, tarwezaad: 0.3, aardappel: 0.8, wortel: 0.8, suikerbiet: 0.8, bietenzaad: 0.5, pompoen: 3, pompoenpit: 1,
     appel: 2, bessen: 1, kersen: 1.5, walnoot: 1.5, paddenstoel_bruin: 0.6, paddenstoel_rood: 0.6, vlas: 0.8, riet: 0.5, hooggras: 0.1, varen: 0.2, cactus: 0.6, waterlelie: 1,

@@ -19,6 +19,9 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
     const R = window.__rommelblok, sp = R.sp, X = Math.floor(sp.x), Z = Math.floor(sp.z), y = Math.floor(sp.y), B = R.G.B, I = R.G.I;
     const a = [];
     for (let h = 0; h < 5; h++) a.push(X + 3, y + h, Z, B.planken_eik);
+    // blokken die sinds stap 2 anders heten (mergel is kalksteen, vlaai is taart): ze moeten blijven staan, met hetzelfde nummer
+    a.push(X + 5, y, Z, B.mergel, X + 6, y, Z, B.mergelblokken, X + 7, y, Z, B.vlaai);
+    R.WD.logboek = Object.assign(R.WD.logboek || {}, { vlaai: 1 });
     a.push(X - 2, y - 1, Z, 0, X, y, Z + 3, B.kist);
     R.wbWorker.postMessage({ t: 'zet', a });
     R.WD.dingen[X + ',' + y + ',' + (Z + 3)] = { soort: 'kist', inhoud: [{ id: I.appel, n: 5 }, null, { id: I.ijzerstaaf, n: 2 }].concat(new Array(24).fill(null)) };
@@ -27,7 +30,7 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
     const info = await R.wb({ t: 'info' });
     // de hoogte van het land rond de speler (om te zien of het landschap hetzelfde blijft)
     const hoogte = []; for (let dz = -20; dz <= 20; dz += 4) for (let dx = -20; dx <= 20; dx += 4) { let y = 120; while (y > 1 && !((R.blokOp(X + dx, y, Z + dz) & 255) && R.G.VAST[R.blokOp(X + dx, y, Z + dz) & 255])) y--; hoogte.push(y); }
-    return { hoogte, toren: [X + 3, y, Z], gat: [X - 2, y - 1, Z], kist: [X, y, Z + 3], id: R.WD.id, pos: [sp.x, sp.y, sp.z], versieOud: R.WD.grotten || 1, genOud: R.WD.gen || 2, wacht: info.opslaanWacht };
+    return { hoogte, hernoemd: [[X + 5, y, Z, B.mergel], [X + 6, y, Z, B.mergelblokken], [X + 7, y, Z, B.vlaai]], toren: [X + 3, y, Z], gat: [X - 2, y - 1, Z], kist: [X, y, Z + 3], id: R.WD.id, pos: [sp.x, sp.y, sp.z], versieOud: R.WD.grotten || 1, genOud: R.WD.gen || 2, wacht: info.opslaanWacht };
   });
   await page.evaluate(() => window.__rommelblok.naarWerelden()); await wacht(1500);
   // ook een export van de oude versie (een .rommelblok-bestand), om straks in de nieuwe te importeren
@@ -53,6 +56,8 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
       grotten: R.WD.grotten, melding: document.getElementById('rb-melding').textContent, tegels: R.KAART.size, logboek: Object.keys(R.WD.logboek || {}),
       gen: R.WD.gen, oudStukken: await new Promise(ok => { const q = indexedDB.open('rommelblok', 1); q.onsuccess = () => { const r = q.result.transaction('stukken').objectStore('stukken').get('oud|' + R.WD.id); r.onsuccess = () => ok(r.result ? r.result.length / 2 : 0); r.onerror = () => ok(-1); }; }),
       hoogteAnders: (() => { const X = Math.floor(v.pos[0]), Z = Math.floor(v.pos[2]); let i = 0, n = 0; for (let dz = -20; dz <= 20; dz += 4) for (let dx = -20; dx <= 20; dx += 4) { let y = 120; while (y > 1 && !((R.blokOp(X + dx, y, Z + dz) & 255) && R.G.VAST[R.blokOp(X + dx, y, Z + dz) & 255])) y--; if (y !== v.hoogte[i]) n++; i++; } return n; })(),
+      hernoemd: v.hernoemd.map(([x, y, z, id]) => { const b = R.blokOp(x, y, z) & 255; return { zelfde: b === id, naam: R.G.BL[b] ? R.G.BL[b].nl : '?' }; }),
+      logboekTaart: R.WD.logboek && R.WD.logboek.taart === 1 && R.WD.logboek.vlaai === undefined,
       torenWerker: await Promise.all([0, 1, 2, 3, 4].map(h => lees([v.toren[0], v.toren[1] + h, v.toren[2]]))), gatPagina: R.blokOp(...v.gat), sp: [R.sp.x, R.sp.y, R.sp.z].map(Math.round),
     };
   }, oud);
@@ -78,6 +83,8 @@ if (!VORIGE || !fs.existsSync(VORIGE)) { console.log('geen vorige versie opgegev
   if (nieuw.hoogteAnders > 0 && oud.versieOud >= 2) mis.push('het landschap waar je al was is veranderd (' + nieuw.hoogteAnders + ' plekken)');
   if (nieuw.hoogteAnders > 0 && oud.versieOud < 2) console.log('(wereld van de eerste versie: het landschap is sinds ronde 2 vernieuwd, op', nieuw.hoogteAnders, 'meetplekken anders; zo bedoeld)');
   if (!nieuw.logboek.includes('werkbank')) mis.push('logboek');
+  if (!nieuw.hernoemd.every(h => h.zelfde) || nieuw.hernoemd.map(h => h.naam).join() !== 'Kalksteen,Kalksteenblokken,Bessentaart') mis.push('mergel en vlaai: ' + JSON.stringify(nieuw.hernoemd));
+  if (!nieuw.logboekTaart) mis.push('de mijlpaal van de vlaai is niet overgegaan op de taart');
   await page.evaluate(() => window.__rommelblok.naarWerelden()); await wacht(1200);
   const voor = await page.$$eval('#rb-werelden .rb-wereld', e => e.length);
   await page.setInputFiles('#rb-bestand', exportPad);

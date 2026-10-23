@@ -154,7 +154,7 @@ function opbrengst(v, slot) {
   if (b.vorm === 'plaat' && (st & 2)) { uit.push([id, 2]); return uit; }
   if (b.vorm === 'deur' && (st & 8)) return uit; // de onderste helft geeft de deur
   if (b.vorm === 'bed' && (st & 4)) return uit;
-  if (id === B.vlaai) { if (!st) uit.push([B.vlaai, 1]); return uit; }
+  if (id === B.bessentaart) { if (!st) uit.push([B.bessentaart, 1]); return uit; }
   if (id === B.wilgentak && slot && IT[slot.id] && IT[slot.id].gereed === 'zwaard') { uit.push([id, 1]); return uit; }
   const g = b.geeft;
   if (!g) return uit;
@@ -169,7 +169,7 @@ function opbrengst(v, slot) {
 function afhankelijk(x, y, z) {
   const uit = [];
   const boven = blokOp(x, y + 1, z), bb = BL[boven & 255];
-  if (boven > 0 && bb && (bb.vorm === 'kruis' && bb.plaatsOp !== 'hang' || (bb.vorm === 'fakkel' && !(boven >> 8)) || bb.vorm === 'deur' || bb.vorm === 'spoor' || bb.vorm === 'lelie' || bb.vorm === 'cactus' || (bb.vorm === 'lantaarn' && !((boven >> 8) & 1)) || boven === B.vlaai || (boven & 255) === B.vlaai)) uit.push([x, y + 1, z]);
+  if (boven > 0 && bb && (bb.vorm === 'kruis' && bb.plaatsOp !== 'hang' || (bb.vorm === 'fakkel' && !(boven >> 8)) || bb.vorm === 'deur' || bb.vorm === 'spoor' || bb.vorm === 'lelie' || bb.vorm === 'cactus' || (bb.vorm === 'lantaarn' && !((boven >> 8) & 1)) || boven === B.bessentaart || (boven & 255) === B.bessentaart)) uit.push([x, y + 1, z]);
   const onder = blokOp(x, y - 1, z), ob = BL[onder & 255];
   if (onder > 0 && ob && ((ob.plaatsOp === 'hang') || (ob.vorm === 'lantaarn' && ((onder >> 8) & 1)))) uit.push([x, y - 1, z]);
   for (let r = 0; r < 4; r++) {

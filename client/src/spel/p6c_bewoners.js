@@ -28,10 +28,10 @@ const RUIL = {
     { geef: [['ijzerstaaf', 3]], krijg: ['schoffel_ijzer', 1], max: 1 },
   ],
   bakker: [
-    { geef: [['tarwe', 10], ['appel', 2]], krijg: ['appelvlaai', 1], max: 3 },
-    { geef: [['tarwe', 8], ['kersen', 2]], krijg: ['kersenvlaai', 1], max: 3 },
+    { geef: [['tarwe', 10], ['appel', 2]], krijg: ['appeltaart', 1], max: 3 },
+    { geef: [['tarwe', 8], ['kersen', 2]], krijg: ['kersentaart', 1], max: 3 },
     { geef: [['suikerbiet', 6]], krijg: ['stroopwafel', 3], max: 6 },
-    { geef: [['kolen', 6]], krijg: ['vlaai', 1], max: 2 },
+    { geef: [['kolen', 6]], krijg: ['bessentaart', 1], max: 2 },
     { geef: [['wortel', 12]], krijg: ['hutspot', 2], max: 4 },
     { geef: [['pompoen', 3]], krijg: ['pompoensoep', 2], max: 4 },
     { geef: [['goudstaaf', 1]], krijg: ['brood', 2], max: 4 },
@@ -63,10 +63,12 @@ const RUIL = {
     { geef: [['ijzerstaaf', 1]], krijg: ['tegel_delfts', 4], max: 8 },
   ],
 };
-const NAMEN = 'Jeanne Sjeng Fien Lei Door Bertha Toon Netje Gerrit Wiesje Pierre Jo Mariet Huub Trees Giel Annemie Sef Lewie Marieke Thei Mia Funs Lies Hein Bets Jan-Willem Riek Wullem Leentje Sraar Nel Kobus Tine Frits Greet'.split(' ');
+const NAMEN = 'Anna Bram Daan Eva Fenna Gijs Hugo Isa Jop Kim Lotte Mees Noor Olivier Pim Roos Sam Tijn Vera Wout Yara Zoë Bo Cas Dex Elin Femke Guus Hanna Ivo Juul Lars Mila Niek Otto Puck'.split(' ');
+// de namen van vóór deze versie, in dezelfde volgorde: een bewoner uit een oudere wereld krijgt eenmalig de nieuwe naam op dezelfde plek in de lijst
+const NAMEN_OUD = 'Jeanne Sjeng Fien Lei Door Bertha Toon Netje Gerrit Wiesje Pierre Jo Mariet Huub Trees Giel Annemie Sef Lewie Marieke Thei Mia Funs Lies Hein Bets Jan-Willem Riek Wullem Leentje Sraar Nel Kobus Tine Frits Greet'.split(' ');
 const GROET = {
   boer: ['Goeiedag! De oogst staat er mooi bij.', 'Heb je tarwe over? Ik heb ijzer genoeg.', 'Zonder regen geen brood, zeg ik altijd.'],
-  bakker: ['Vers uit de oven!', 'Een stukje vlaai? Dat kan geen kwaad.', 'Voor mijn oven heb ik altijd kolen nodig.'],
+  bakker: ['Vers uit de oven!', 'Een stukje taart? Dat kan geen kwaad.', 'Voor mijn oven heb ik altijd kolen nodig.'],
   smid: ['Pas op, het ijzer is nog heet.', 'Kolen, daar draait mijn smidse op.', 'Spoor nodig? Ik maak het zo.'],
   bibliothecaris: ['Sst, hier wordt gelezen.', 'Een goede kaart is goud waard.', 'Ken je het verhaal van de gevallen ster?'],
   dorpeling: ['Mooi weer vandaag, hè?', 'Ik heb wat moois voor je huis.', 'Kom je van ver?'],
@@ -157,7 +159,7 @@ function bewonerOntvang(id, d) {
   WD.bewonerNr = Math.max(WD.bewonerNr || 0, id);
 }
 // ---------------- waar kun je staan? (de hoogte van je voeten, of NaN)
-const GEEN_VLOER = new Set('hek deur bed tafel stoel kist lantaarn fakkel kaars pot vlaai cactus luik ladder kruis water spoor'.split(' '));
+const GEEN_VLOER = new Set('hek deur bed tafel stoel kist lantaarn fakkel kaars pot taart cactus luik ladder kruis water spoor'.split(' '));
 function bwVrij(v) { if (v < 0) return false; const i = v & 255; if (!i) return true; const b = BL[i]; return i !== G.W && (!G.VAST[i] || b.vorm === 'deur'); }
 function staanOp(x, y, z) {
   const v = blokOp(x, y, z); if (v < 0) return NaN;
@@ -410,4 +412,10 @@ function ruil(k, nr) {
   bouwRuilen(false);
 }
 // een andere wereld: alles van de vorige vergeten
+// een wereld van vóór de nieuwe namen: elke bewoner krijgt één keer de nieuwe naam op dezelfde plek in de lijst (dus nog steeds uniek in zijn dorpje)
+function bewonerNamenOmzetten() {
+  if (!WD || WD.bwNamen === 2) return;
+  for (const k of WD.bewoners || []) { const i = NAMEN_OUD.indexOf(k.naam); if (i >= 0) k.naam = NAMEN[i]; }
+  WD.bwNamen = 2;
+}
 function bewonersLaden() { bwRust.clear(); DORPINFO.clear(); bwDeuren.clear(); bwTijd = -1; doelBewoner = null; ruilMet = null; }

@@ -411,8 +411,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
         vlak([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], t[5], d[0] / 16, 1 - d[4] / 16, d[3] / 16, 1 - d[1] / 16, 0.88);
       }
       if (bl.tint && bl.tint < 3) tint = bl.tint;
-    } else if (bl && (bl.vorm === 'kubus' || bl.vorm === 'plaat' || bl.vorm === 'trap' || bl.vorm === 'kist' || bl.vorm === 'cactus' || bl.vorm === 'hek' || bl.vorm === 'bed' || bl.vorm === 'vlaai')) {
-      const h = bl.vorm === 'plaat' ? 0.5 : bl.vorm === 'vlaai' ? 0.5 : bl.vorm === 'bed' ? 0.56 : 1;
+    } else if (bl && (bl.vorm === 'kubus' || bl.vorm === 'plaat' || bl.vorm === 'trap' || bl.vorm === 'kist' || bl.vorm === 'cactus' || bl.vorm === 'hek' || bl.vorm === 'bed' || bl.vorm === 'taart')) {
+      const h = bl.vorm === 'plaat' ? 0.5 : bl.vorm === 'taart' ? 0.5 : bl.vorm === 'bed' ? 0.56 : 1;
       const s = 0.5, x0 = -s, x1 = s, y0 = -s, y1 = -s + h * 2 * s, z0 = -s, z1 = s;
       const tb = bl.tb, tz = bl.tz, to = bl.to, tv = bl.stand === 'richting' || bl.vorm === 'kist' ? bl.tv : tz;
       vlak([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], tb, 0, 0, 1, 1, 1.0);
@@ -447,7 +447,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(I), gl.STATIC_DRAW);
     gl.bindVertexArray(null);
-    const r = { vao, n: I.length, tint, ding: !bl, blok: !!(bl && (DOZENVORM.has(bl.vorm) || bl.vorm === 'kubus' || bl.vorm === 'plaat' || bl.vorm === 'trap' || bl.vorm === 'kist' || bl.vorm === 'cactus' || bl.vorm === 'hek' || bl.vorm === 'bed' || bl.vorm === 'vlaai')), gloed: !!(bl && bl.gloed), kleur: it && it.kleur !== undefined ? paletKleur(it.kleur) : null };
+    const r = { vao, n: I.length, tint, ding: !bl, blok: !!(bl && (DOZENVORM.has(bl.vorm) || bl.vorm === 'kubus' || bl.vorm === 'plaat' || bl.vorm === 'trap' || bl.vorm === 'kist' || bl.vorm === 'cactus' || bl.vorm === 'hek' || bl.vorm === 'bed' || bl.vorm === 'taart')), gloed: !!(bl && bl.gloed), kleur: it && it.kleur !== undefined ? paletKleur(it.kleur) : null };
     dingVormen.set(id, r); return r;
   }
   // ---------------- deeltjes

@@ -14,7 +14,7 @@ export function ertsen(wm) {
   const ERTS = [
     // blok, in leisteen, laagste, hoogste, aders per stuk, grootte
     [B.erts_kolen, 0, 8, 118, 16, 10], [B.erts_koper, 0, 22, 92, 9, 8], [B.erts_ijzer, B.erts_ijzer_lei, 3, 66, 8, 7],
-    [B.erts_goud, B.erts_goud_lei, 3, 32, 3, 6], [B.erts_robijn, B.erts_robijn, 2, 20, 3, 4], [B.mergel, 0, 44, 80, 2, 22], [B.klei, 0, 34, 58, 1, 14], [B.grind, 0, 5, 70, 3, 16],
+    [B.erts_goud, B.erts_goud_lei, 3, 32, 3, 6], [B.erts_robijn, B.erts_robijn, 2, 20, 3, 4], [B.kalksteen, 0, 44, 80, 2, 22], [B.klei, 0, 34, 58, 1, 14], [B.grind, 0, 5, 70, 3, 16],
     [B.graniet, 0, 30, 118, 2, 30], [B.basalt, B.basalt, 3, 30, 1, 18], [B.marmer, 0, 12, 70, 1, 20],
   ];
   const ADER_OFS = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1];

@@ -43,9 +43,9 @@ body:not(.rb-speelt) .rb-kruis, body:not(.rb-speelt) .rb-onder, body:not(.rb-spe
 .rb-onder { position: absolute; left: 50%; bottom: calc(10px + var(--veilig-o)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 3; pointer-events: none; }
 .rb-status { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; padding: 0 4px; gap: 1rem; }
 .rb-rij { display: flex; flex-direction: column; gap: 3px; }
-.rb-harten, .rb-vlaaien, .rb-adem { display: flex; gap: 1px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
-.rb-harten i, .rb-vlaaien i, .rb-adem i { width: 17px; height: 16px; display: block; background-size: 100% 100%; image-rendering: pixelated; }
-.rb-vlaaien { flex-direction: row-reverse; }
+.rb-harten, .rb-honger, .rb-adem { display: flex; gap: 1px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+.rb-harten i, .rb-honger i, .rb-adem i { width: 17px; height: 16px; display: block; background-size: 100% 100%; image-rendering: pixelated; }
+.rb-honger { flex-direction: row-reverse; }
 #rb-naam { font-weight: 800; font-size: .95rem; text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.5); min-height: 1.3em; transition: opacity .4s; }
 .rb-balk { display: flex; gap: 4px; padding: 5px; border-radius: 18px; background: rgba(14,17,28,.6); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 22px rgba(0,0,0,.4); pointer-events: auto; }
 /* ---------------- een vak */
@@ -290,7 +290,7 @@ body.rb-aanraak .rb-balk .rb-vak { width: 46px; height: 46px; }
 @media (max-width: 520px) {
   .rb-balk { gap: 2px; padding: 4px; }
   .rb-balk .rb-vak, body.rb-aanraak .rb-balk .rb-vak { width: calc((100vw - 44px) / 9); height: calc((100vw - 44px) / 9); max-width: 46px; max-height: 46px; }
-  .rb-harten i, .rb-vlaaien i, .rb-adem i { width: 14px; height: 13px; }
+  .rb-harten i, .rb-honger i, .rb-adem i { width: 14px; height: 13px; }
 }
 @media (max-height: 460px) and (orientation: landscape) {
   .rb-tk { width: 54px; height: 54px; } .rb-tk.groot { width: 66px; height: 66px; }

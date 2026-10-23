@@ -4,7 +4,7 @@ let t = performance.now(); const T = RB_TEXTUREN(G); const ms = performance.now(
 t = performance.now(); RB_TEXTUREN(G); console.log('tijd', ms.toFixed(1), 'ms (tweede keer', (performance.now() - t).toFixed(1), 'ms), lagen', T.N, 'ontbreekt', T.ontbreekt.length, T.ontbreekt.join(' '));
 const opaak = new Set(), uit = new Set(), tint = {};
 for (const b of G.BL) { if (!b || !b.id) continue; const ls = [b.tb, b.to, b.tz, b.tv, b.ta]; if (b.laag === 0) ls.forEach(l => opaak.add(l)); else if (b.laag === 1) ls.forEach(l => uit.add(l)); if (b.tint && b.tint < 3) { tint[b.tb] = b.tint; if (!b.overlay) tint[b.tz] = b.tint; else tint[b.tz + 1] = b.tint; } if (b.overlay) uit.add(b.tz + 1); }
-for (const n of ['fakkel_houder', 'lantaarn_top', 'vlaai_binnen']) opaak.add(G.TEXNR[n]);
+for (const n of ['fakkel_houder', 'lantaarn_top', 'taart_binnen']) opaak.add(G.TEXNR[n]);
 for (const n of G.TEXNAMEN) if (n.startsWith('i_') || n.startsWith('barst') || n === 'lantaarn_ketting' || n === 'deur_boven' || n === 'bessenstruik_vol') uit.add(G.TEXNR[n]);
 const ov = new Set(G.BL.filter(b => b && b.overlay).map(b => b.tz + 1));
 let fout = 0;

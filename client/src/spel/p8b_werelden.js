@@ -62,6 +62,9 @@ async function speelWereld(w) {
   WD = w; WD._sinds = performance.now();
   WD.dingen = WD.dingen || {}; WD.rugzakken = WD.rugzakken || []; WD.markers = WD.markers || []; WD.gevonden = WD.gevonden || [];
   bewonersLaden(); WD.bewoners = WD.bewoners || []; WD.dorpen = WD.dorpen || [];
+  // uit een wereld van vóór de nieuwe namen: de mijlpaal van de taart heette anders, en de bewoners krijgen eenmalig hun nieuwe naam
+  if (WD.logboek && WD.logboek.vlaai !== undefined) { if (WD.logboek.taart === undefined) WD.logboek.taart = WD.logboek.vlaai; delete WD.logboek.vlaai; }
+  bewonerNamenOmzetten();
   rijdtIn = null; doelKar = null; WD.karren = (WD.karren || []).map(k => Object.assign({ x: k.bx + 0.5, y: k.by, z: k.bz + 0.5, yaw: 0, pitch: 0, los: false }, k));
   if (typeof kaartLaden === 'function') kaartLaden(w.id);
   // wat bij de vorige wereld hoorde: logboek-klokjes, de open kist, het actielog
@@ -150,7 +153,7 @@ $('rb-taal').addEventListener('click', () => zetTaal(TAAL === 'en' ? 'nl' : 'en'
 let gekozenStand = 'overleven';
 function kiesStand(s) { gekozenStand = s; for (const b of document.querySelectorAll('.rb-stand')) b.setAttribute('aria-checked', String(b.dataset.stand === s)); }
 for (const b of document.querySelectorAll('.rb-stand')) b.addEventListener('click', () => kiesStand(b.dataset.stand));
-const ZAADWOORDEN = ['vlaai', 'rommel', 'molen', 'tulp', 'kraanvogel', 'zolder', 'schuurtje', 'hamer', 'knikker', 'kroket', 'polder', 'duin', 'klomp', 'drop', 'paling', 'heide'];
+const ZAADWOORDEN = ['taart', 'rommel', 'molen', 'tulp', 'kraanvogel', 'zolder', 'schuurtje', 'hamer', 'knikker', 'kroket', 'polder', 'duin', 'klomp', 'drop', 'paling', 'heide'];
 $('rb-dobbel').addEventListener('click', () => { $('rb-maak-zaad').value = ZAADWOORDEN[Math.floor(Math.random() * ZAADWOORDEN.length)] + Math.floor(Math.random() * 1000); });
 $('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand); speelWereld(w); });
 
@@ -225,7 +228,7 @@ function schoonWereld(w) {
     dorpen: (Array.isArray(w.dorpen) ? w.dorpen : []).filter(d => typeof d === 'string' && /^-?\d+,-?\d+$/.test(d)).slice(0, 2000), bewonerNr: Math.max(0, Math.floor(getal(w.bewonerNr, 0))),
     karNr: Math.max(0, Math.floor(getal(w.karNr, 0))), karBronnen: (Array.isArray(w.karBronnen) ? w.karBronnen : []).filter(b => typeof b === 'string' && /^-?\d+,-?\d+,-?\d+$/.test(b)).slice(-400),
     gevonden: (Array.isArray(w.gevonden) ? w.gevonden : []).slice(0, 300).filter(g => Array.isArray(g) && /^(ruine|mijn|krater|dorp)$/.test(g[0]) && g.slice(1, 4).every(v => typeof v === 'number' && isFinite(v))).map(g => g.slice(0, 4)),
-    logboek: w.logboek && typeof w.logboek === 'object' ? Object.fromEntries(Object.entries(w.logboek).filter(([k, v]) => LB[k] && Number.isInteger(v) && v > 0)) : undefined,
+    logboek: w.logboek && typeof w.logboek === 'object' ? Object.fromEntries(Object.entries(w.logboek).map(([k, v]) => [k === 'vlaai' ? 'taart' : k, v]).filter(([k, v]) => LB[k] && Number.isInteger(v) && v > 0)) : undefined,
     stats: { geplaatst: Math.max(0, Math.floor(getal(w.stats && w.stats.geplaatst, 0))) }, plaatje: typeof w.plaatje === 'string' && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(w.plaatje) && w.plaatje.length < 60000 ? w.plaatje : null,
   };
 }

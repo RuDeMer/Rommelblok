@@ -88,7 +88,7 @@ export function RB_TEXTUREN(G) {
     zand: P('#c5a066', '#d4b277', '#e0c38a', '#ebd39f', '#f5e3b8'),
     sneeuw: P('#c4d2e8', '#d6e1f1', '#e6eef8', '#f3f7fd', '#ffffff'),
     grijs: P('#8a8a8a', '#a0a0a0', '#b6b6b6', '#cacaca', '#dedede', '#efefef'),
-    mergel: P('#cdbf8e', '#d9cda0', '#e4dab3', '#ede6c6', '#f6f1dc'),
+    kalksteen: P('#aeaa9c', '#c1bcae', '#d2cdc0', '#e1ddd2', '#eeebe3'),
     modder: P('#2e221e', '#3c2d26', '#4c3a30', '#5c4a3c', '#6e5b4a'),
     hout: P('#5a3820', '#7a4e2d', '#9a6a3a', '#b8864e', '#d4a46a'),
     ijzer: P('#3a3e46', '#5c626c', '#8a9099', '#b8bdc4', '#e2e5e8'),
@@ -191,11 +191,15 @@ export function RB_TEXTUREN(G) {
     }
     const r = rng(112); for (let i = 0; i < 4; i++) { const x = Math.floor(r() * 16), y = Math.floor(r() * 16); lijn(x, y, x + 3, y, '#1e2330', 255, true); }
   };
-  TEK.mergel = () => {
-    kaart(PAL.mergel, veld(121, 4, 2), 0.8, (x, y, t) => 0.25 + t * 0.6);
-    const r = rng(122); for (let i = 0; i < 10; i++) zet(Math.floor(r() * 16), Math.floor(r() * 16), r() < 0.7 ? '#fffbea' : '#bfae7a');
-    // een klein fossieltje
-    for (const [x, y] of [[10, 4], [11, 4], [12, 5], [12, 6], [11, 7], [10, 6], [10, 5]]) zet(x, y, '#b4a272');
+  TEK.kalksteen = () => {
+    const v = veld(121, 4, 2);
+    // dunne, bijna vlakke laagjes, zoals in een steengroeve
+    kaart(PAL.kalksteen, v, 0.8, (x, y, t) => 0.3 + t * 0.5 + (Math.floor((y + Math.round(Math.sin(x * 0.35) * 0.8)) / 4) % 2 ? 0.08 : -0.06));
+    const r = rng(122); for (let i = 0; i < 8; i++) zet(Math.floor(r() * 16), Math.floor(r() * 16), r() < 0.6 ? '#f7f5ef' : '#9c978a');
+    // twee kleine schelpjes
+    for (const [x, y] of [[10, 4], [11, 4], [12, 5], [11, 6], [10, 5]]) zet(x, y, '#9a9384');
+    zet(11, 5, '#e9e5da');
+    for (const [x, y] of [[3, 11], [4, 11], [4, 12], [3, 12]]) zet(x, y, '#a39d8f');
   };
   TEK.water = () => { const pal = P('#24589e', '#2f6fbe', '#3d8fd6', '#6db4ec', '#b8e2ff'); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, kies(pal, 0.5 + 0.35 * Math.sin((x * 0.8 + y * 0.4) * 0.9) * Math.cos(y * 0.7), x, y)); };
 
@@ -495,15 +499,17 @@ export function RB_TEXTUREN(G) {
       zet(x, y, kies(pal, Math.max(0, Math.min(1, t)), x, y, 0.5));
     }
   };
-  TEK.mergelblokken = () => {
-    const pal = PAL.mergel, v = veld(331, 4, 2);
+  TEK.kalksteenblokken = () => {
+    const pal = PAL.kalksteen, v = veld(331, 4, 2);
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
       const lx = x % 8, ly = w(y + (x < 8 ? 0 : 4)) % 8;
-      let t = 0.45 + (v[y * 16 + x] - 0.5) * 0.4;
-      if (lx === 7 || ly === 7) t = 0.05; else if (lx === 0 || ly === 0) t += 0.3;
-      zet(x, y, kies(pal, Math.max(0, Math.min(1, t)), x, y, 0.6));
+      let t = 0.5 + (v[y * 16 + x] - 0.5) * 0.35;
+      if (lx === 7 || ly === 7) t = 0.02; else if (lx === 0 || ly === 0) t += 0.28;
+      // fijne beitelstreepjes
+      else if ((x * 3 + y * 5) % 11 === 0) t -= 0.18;
+      zet(x, y, kies(pal, Math.max(0, Math.min(1, t)), x, y, 0.55));
     }
-    zet(3, 3, '#fffbea'); zet(11, 9, '#fffbea'); zet(5, 12, '#bfae7a');
+    zet(3, 3, '#f7f5ef'); zet(11, 10, '#f7f5ef'); zet(5, 12, '#9c978a');
   };
   TEK.tegel_wit = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const rand = x === 0 || y === 0; const t = rand ? '#c9c4b8' : meng('#f7f5ef', '#e4e0d6', (x + y) / 30); zet(x, y, t); } zet(3, 3, '#ffffff'); zet(4, 3, '#ffffff'); zet(3, 4, '#ffffff'); };
   TEK.tegel_delfts = () => {
@@ -666,20 +672,66 @@ export function RB_TEXTUREN(G) {
   TEK.bed_zij = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y >= 13 ? HOUTSOORT.eik.plank[y === 13 ? 3 : 1] : y >= 7 ? DEKEN(x, y + 1) : '#f2e8d8'); for (const x of [0, 15]) { zet(x, 14, '#5a3820'); zet(x, 15, '#5a3820'); } };
   TEK.bed_kop = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y < 7 ? (x === 0 || x === 15 || y === 0 ? '#d8ccb8' : meng('#fbf6e9', '#e6dccb', y / 7)) : y === 7 ? '#c8bca8' : DEKEN(x, y)); };
   TEK.bed_kop_zij = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y >= 13 ? HOUTSOORT.eik.plank[y === 13 ? 3 : 1] : y >= 7 ? (x < 7 ? (y === 7 ? '#e6dccb' : '#fbf6e9') : DEKEN(x, y + 1)) : '#f2e8d8'); };
-  const VL = { deeg: P('#9a6a32', '#b8843e', '#d09a52', '#e4b46a', '#f2cc88'), kers: P('#5a0a18', '#7e1022', '#a8162b', '#c8283a', '#e0505a') };
-  TEK.vlaai_top = () => {
+  // taarten: een gouden zandtaartrand met ribbels, en bovenop bessen met poedersuiker, kersen met slagroom, of appel met kruimels
+  const TA = { deeg: P('#8a5a26', '#b07a38', '#cf9a50', '#e6b76a', '#f5d496'), bes: P('#3a1030', '#6a1838', '#a01c34', '#cc2c40', '#ec5a66'), room: P('#e8dcc4', '#f4ecdb', '#fffaf0') };
+  // de rand van boven gezien: geribbeld (om de twee pixels licht en donker), net als een taartvorm
+  const taartRand = (x, y) => {
+    const buiten = x < 1 || y < 1 || x > 14 || y > 14, rand = x < 3 || y < 3 || x > 12 || y > 12;
+    if (!rand) return null;
+    const langs = (x < 3 || x > 12) ? y : x, rib = (langs >> 1) % 2;
+    return kies(TA.deeg, buiten ? 0.3 : rib ? 0.85 : 0.6, x, y, 0.5);
+  };
+  TEK.bessentaart_top = () => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      const rand = x < 3 || y < 3 || x > 12 || y > 12;
-      if (rand) { zet(x, y, kies(VL.deeg, x < 2 || y < 2 || x > 13 || y > 13 ? 0.35 : 0.8, x, y, 0.6)); continue; }
-      const rooster = ((x + y) % 5 === 0) || ((x - y + 20) % 5 === 0);
-      zet(x, y, rooster ? kies(VL.deeg, 0.7 + ((x + y) % 5 === 0 ? 0.2 : 0), x, y, 0.4) : kies(VL.kers, 0.35 + hs(x, y, 5) * 0.5, x, y, 0.6));
+      const r = taartRand(x, y); if (r) { zet(x, y, r); continue; }
+      // een laag bessen: ronde besjes, rood en donkerpaars door elkaar
+      const bes = ((x * 5 + y * 3) % 4) < 2, donker = hs(x >> 1, y >> 1, 41) < 0.35;
+      zet(x, y, bes ? kies(TA.bes, donker ? 0.15 : 0.7, x, y, 0.5) : kies(TA.bes, 0.4 + hs(x, y, 42) * 0.25, x, y, 0.5));
+    }
+    // glans op de besjes en een beetje poedersuiker
+    for (const [x, y] of [[5, 5], [9, 6], [6, 9], [10, 10], [8, 8]]) zet(x, y, '#ff9aa4');
+    for (const [x, y] of [[4, 7], [7, 4], [11, 5], [4, 11], [8, 11], [11, 8], [6, 6], [9, 9]]) zet(x, y, '#fbf6ee');
+  };
+  TEK.kersentaart_top = () => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const r = taartRand(x, y); if (r) { zet(x, y, r); continue; }
+      zet(x, y, kies(TA.bes, 0.55 + hs(x, y, 43) * 0.25, x, y, 0.5));
+    }
+    // een kring van toefjes slagroom, met in elk toefje een kers
+    for (const [x, y] of [[5, 5], [10, 5], [5, 10], [10, 10], [7, 3], [3, 7], [12, 8], [8, 12]]) {
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) zn(x + dx, y + dy, kies(TA.room, dx + dy === 0 ? 1 : 0.5, x + dx, y + dy, 0.3));
+    }
+    for (const [x, y] of [[5, 5], [10, 5], [5, 10], [10, 10]]) { zet(x, y, '#a8162b'); zet(x + 1, y, '#7e1022'); }
+    for (const [x, y] of [[7, 7], [8, 8]]) zet(x, y, '#ff8a8a');
+  };
+  TEK.appeltaart_top = () => {
+    const v = veld(441, 4, 2);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const r = taartRand(x, y); if (r) { zet(x, y, r); continue; }
+      // kruimels: hobbelig, goudbruin
+      const t = 0.35 + (v[y * 16 + x] - 0.5) * 0.9 + ((x + y * 2) % 3 === 0 ? 0.15 : 0);
+      zet(x, y, kies(TA.deeg, Math.max(0.1, Math.min(1, t)), x, y, 0.7));
+    }
+    // stukjes appel die tussen de kruimels uit komen, en kaneel
+    for (const [x, y] of [[5, 6], [9, 4], [10, 9], [6, 10], [8, 7]]) { zet(x, y, '#f2e2a8'); zet(x + 1, y, '#e6cc84'); }
+    for (const [x, y] of [[4, 4], [11, 11], [7, 12], [12, 6]]) zet(x, y, '#6a3e1c');
+  };
+  // de zijkant: bovenaan het beleg, dan de vulling en onderaan de gebakken bodem met ribbels
+  TEK.taart_zij = () => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c;
+      if (y < 8) c = kies(TA.deeg, 0.7, x, y, 0.5);
+      else if (y < 10) c = kies(TA.deeg, y === 8 ? 0.95 : 0.8, x, y, 0.4);
+      else if (y < 13) c = kies(TA.bes, 0.45 + hs(x, y, 44) * 0.35, x, y, 0.5);
+      else c = kies(TA.deeg, y === 15 ? 0.2 : (x >> 1) % 2 ? 0.7 : 0.5, x, y, 0.5);
+      zet(x, y, c);
     }
   };
-  TEK.vlaai_zij = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y < 10 ? kies(VL.deeg, y === 8 ? 0.95 : 0.7, x, y, 0.5) : y < 13 ? kies(VL.kers, 0.4 + hs(x, y, 6) * 0.4, x, y, 0.5) : kies(VL.deeg, y === 15 ? 0.15 : 0.5, x, y, 0.5)); };
-  TEK.vlaai_onder = () => kaart(VL.deeg, veld(411, 4, 2), 0.7, (x, y, t) => 0.2 + t * 0.5);
-  TEK.vlaai_binnen = () => {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y < 8 ? '#d09a52' : y < 10 ? kies(VL.deeg, y === 8 ? 0.95 : 0.75, x, y, 0.4) : y < 13 ? kies(VL.kers, 0.2 + hs(x, y, 7) * 0.4, x, y, 0.6) : kies(VL.deeg, y === 15 ? 0.1 : 0.6, x, y, 0.5));
-    for (const x of [2, 6, 10, 13]) { zet(x, 11, '#e0505a'); zet(x + 1, 11, '#c8283a'); zet(x, 10, '#ff8a8a'); }
+  TEK.taart_onder = () => kaart(TA.deeg, veld(411, 4, 2), 0.7, (x, y, t) => 0.2 + t * 0.45);
+  // waar een hap uit is: de doorsnede
+  TEK.taart_binnen = () => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) zet(x, y, y < 8 ? '#cf9a50' : y < 10 ? kies(TA.deeg, y === 8 ? 0.95 : 0.75, x, y, 0.4) : y < 13 ? kies(TA.bes, 0.3 + hs(x, y, 45) * 0.4, x, y, 0.6) : kies(TA.deeg, y === 15 ? 0.1 : 0.6, x, y, 0.5));
+    for (const x of [2, 6, 10, 13]) { zet(x, 11, '#ec5a66'); zet(x + 1, 11, '#cc2c40'); zet(x, 10, '#ffa0a8'); }
   };
 
   // ---------------- barsten (hakken): een groeiend netwerk van lijntjes
@@ -739,7 +791,17 @@ export function RB_TEXTUREN(G) {
   TEK.i_emmer_water = () => emmer(true);
   TEK.i_kompas = () => { leeg(); for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = Math.hypot(x - 8, y - 8.5); if (d < 6.3) zn(x, y, d > 5 ? (x + y < 16 ? '#e68e4e' : '#a04a22') : '#f4ecd8'); } lijn(8, 4, 8, 8, '#c8323c'); lijn(8, 9, 8, 13, '#4a4e56'); zn(8, 8, '#2a2420'); zn(7, 5, '#ff7a7a'); zn(5, 6, '#fffaf0'); omlijn(); };
   TEK.i_klok = () => { leeg(); for (let y = 2; y < 15; y++) for (let x = 2; x < 15; x++) { const d = Math.hypot(x - 8, y - 8.5); if (d < 6.3) zn(x, y, d > 5 ? (x + y < 16 ? '#f6cf4a' : '#b8860b') : (y < 9 ? '#cfe6ff' : '#2e3a6a')); } zn(8, 4, '#2a2420'); zn(12, 8, '#2a2420'); zn(4, 8, '#2a2420'); lijn(8, 8, 8, 5, '#2a2420'); lijn(8, 8, 10, 9, '#2a2420'); zn(6, 6, '#ffffff'); omlijn(); };
-  TEK.i_vlaaipunt = () => { leeg(); for (let y = 3; y < 14; y++) for (let x = 2; x < 15; x++) { if (y < 3 + (x - 2) * 0.55 || y > 13) continue; const rand = y > 11 || x > 12, rooster = (x + y) % 4 === 0 || (x - y + 20) % 4 === 0; zn(x, y, rand ? (y > 12 ? '#b8843e' : '#e4b46a') : rooster ? '#e4b46a' : '#a8162b'); } omlijn(); };
+  TEK.i_taartpunt = () => {
+    leeg();
+    // een punt van opzij en een beetje van boven: bodem, vulling en bovenop slagroom met een bes
+    for (let y = 4; y < 14; y++) for (let x = 2; x < 15; x++) {
+      if (y < 13 - (x - 2) * 0.62 && y < 11) continue;
+      const c = y >= 12 ? '#b07a38' : y >= 10 ? '#cc2c40' : y >= 8 ? '#e6b76a' : '#f4ecdb';
+      zn(x, y, c);
+    }
+    zn(12, 5, '#a01c34'); zn(13, 5, '#cc2c40'); zn(12, 4, '#ff9aa4');
+    omlijn();
+  };
   TEK.i_linnendraad = () => { leeg(); const h = HOUTSOORT.eik.plank; blok(4, 3, 11, 4, h[3]); blok(4, 12, 11, 13, h[1]); for (let y = 5; y < 12; y++) for (let x = 5; x <= 10; x++) zn(x, y, (y + (x >> 1)) % 2 ? '#eee9dd' : '#d8d0bc'); lijn(10, 8, 14, 11, '#eee9dd'); omlijn(); };
   const VERF = { rood: '#C8323C', oranje: '#E8782E', geel: '#E9C13A', groen: '#4E9A4E', blauw: '#2F5BB8', paars: '#7A4E9A', roze: '#E88AB0', zwart: '#2E2A30' };
   for (const [s, c] of Object.entries(VERF)) TEK['i_verf_' + s] = () => {
@@ -982,23 +1044,6 @@ export function RB_TEXTUREN(G) {
   TEK.pompoen_rijp = () => gewasLoof(5, LOOF, () => { for (let y = 10; y <= 15; y++) for (let x = 4; x <= 11; x++) { const d = Math.hypot((x - 7.5) / 4, (y - 12.6) / 3); if (d < 1) zn(x, y, x % 3 === 0 ? '#c8601e' : y < 12 ? '#f6a040' : '#e07b2e'); } zn(7, 9, '#4e7a2e'); zn(8, 9, '#3d5a22'); });
   TEK.pompoen_zij = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const rib = x % 4; zet(x, y, rib === 0 ? '#b8541a' : rib === 1 ? '#e8822e' : rib === 2 ? '#f69a44' : '#d86e24'); } for (let x = 0; x < 16; x++) { zet(x, 0, '#c8641e'); zet(x, 15, '#a04a16'); } };
   TEK.pompoen_top = () => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const a = Math.atan2(y - 7.5, x - 7.5), rib = Math.floor((a + Math.PI) / (Math.PI / 4)) % 2; zet(x, y, rib ? '#e8822e' : '#d06a22'); } blok(7, 6, 8, 9, '#5a3a1a'); zet(7, 6, '#4e7a2e'); zet(8, 7, '#3d5a22'); };
-  // vlaaien: kersen met een rooster, en appel met schijfjes
-  TEK.kersenvlaai_top = () => {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      if (x < 3 || y < 3 || x > 12 || y > 12) { zet(x, y, kies(VL.deeg, x < 2 || y < 2 || x > 13 || y > 13 ? 0.35 : 0.8, x, y, 0.6)); continue; }
-      const kers = ((x * 3 + y * 7) % 5) < 2;
-      zet(x, y, kers ? (hs(x, y, 31) < 0.5 ? '#7e1022' : '#a8162b') : kies(VL.kers, 0.5 + hs(x, y, 32) * 0.3, x, y, 0.5));
-    }
-    for (const [x, y] of [[5, 5], [9, 7], [6, 10], [10, 11]]) zet(x, y, '#ff8a8a');
-  };
-  TEK.appelvlaai_top = () => {
-    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-      if (x < 3 || y < 3 || x > 12 || y > 12) { zet(x, y, kies(VL.deeg, x < 2 || y < 2 || x > 13 || y > 13 ? 0.35 : 0.8, x, y, 0.6)); continue; }
-      const a = Math.atan2(y - 7.5, x - 7.5), d = Math.hypot(x - 7.5, y - 7.5), schijf = Math.floor((a + Math.PI) / (Math.PI / 6)) % 2;
-      zet(x, y, d < 1.5 ? '#c89a40' : schijf ? '#f2dc9a' : '#e6c87a');
-    }
-    for (let a = 0; a < 12; a++) { const t = a / 12 * Math.PI * 2; zet(Math.round(7.5 + Math.cos(t) * 4.6), Math.round(7.5 + Math.sin(t) * 4.6), '#c89a40'); }
-  };
   // ---------------- de smidse, sterrensteen en de oude kist
   TEK.smidse_zij = () => { ovenMuur(); for (let x = 0; x < 16; x++) { zet(x, 0, '#5e646c'); zet(x, 1, '#8a9099'); zet(x, 2, '#3a3e46'); } };
   TEK.smidse_top = () => {

@@ -4,10 +4,10 @@
 // en vergelijkt ze pixel voor pixel.
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const { PNG } = require('pngjs');
-const UIT = require('./uit');
-const REF = process.env.RB_REFERENTIE || path.join(__dirname, 'referentie', 'rommelblok-ronde3.html');
+const UIT = require('../uit');
+const REF = process.env.RB_REFERENTIE || path.join(__dirname, '..', 'referentie', 'rommelblok-ronde3.html');
 fs.copyFileSync(REF, path.join(UIT, 'referentie.html'));
-const draai = (bestand, voor) => execFileSync('node', [path.join(__dirname, 'interface.js')], { env: Object.assign({}, process.env, { RB_BESTAND: bestand, RB_VOOR: voor, RB_ZONDER_WERELD: '1' }), encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+const draai = (bestand, voor) => execFileSync('node', [path.join(__dirname, '..', 'interface.js')], { env: Object.assign({}, process.env, { RB_BESTAND: bestand, RB_VOOR: voor, RB_ZONDER_WERELD: '1' }), encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
 console.log('referentie:', draai('referentie.html', 'ref').trim().split('\n').pop());
 console.log('nieuw:', draai('rommelblok.html', 'nieuw').trim().split('\n').pop());
 let n = 0, anders = 0;

@@ -77,7 +77,7 @@ for (const zt of zaden) {
     if (t.gebouwen < 3 || t.bedden < 2) fout(`dorpje ${info.id}: te klein (${t.gebouwen} gebouwen, ${t.bedden} bedden)`);
     if (kaart) {
       // van boven: het bovenste vaste blok per kolom
-      const TEKEN = { [B.klinkers]: '=', [B.grind]: '=', [B.zandsteen]: 'z', [B.trap_baksteen]: '^', [B.trap_hout]: '^', [B.plaat_baksteen]: '-', [B.plaat_hout]: '-', [B.plaat_zandsteen]: '-', [WATER]: '~', [B.akker]: '#', [B.stam_eik]: 'H', [B.stam_spar]: 'H', [B.gras]: '.', [B.aarde]: ',', [B.hek]: 'i', [B.lantaarn]: '*', [B.deur]: 'D', [B.linnen_rood]: 'L', [B.linnen_geel]: 'L', [B.linnen_blauw]: 'L', [B.linnen_groen]: 'L', [B.linnen_oranje]: 'L', [B.steenstenen]: 'o', [B.kei]: 'o', [B.sneeuwgras]: '.', [B.mergelblokken]: 'm', [B.pleister]: 'p' };
+      const TEKEN = { [B.klinkers]: '=', [B.grind]: '=', [B.zandsteen]: 'z', [B.trap_baksteen]: '^', [B.trap_hout]: '^', [B.plaat_baksteen]: '-', [B.plaat_hout]: '-', [B.plaat_zandsteen]: '-', [WATER]: '~', [B.akker]: '#', [B.stam_eik]: 'H', [B.stam_spar]: 'H', [B.gras]: '.', [B.aarde]: ',', [B.hek]: 'i', [B.lantaarn]: '*', [B.deur]: 'D', [B.linnen_rood]: 'L', [B.linnen_geel]: 'L', [B.linnen_blauw]: 'L', [B.linnen_groen]: 'L', [B.linnen_oranje]: 'L', [B.steenstenen]: 'o', [B.kei]: 'o', [B.sneeuwgras]: '.', [B.kalksteenblokken]: 'm', [B.pleister]: 'p' };
       for (let Z = D.z - R; Z <= D.z + R; Z++) {
         let rijT = '';
         for (let X = D.x - R; X <= D.x + R; X++) {

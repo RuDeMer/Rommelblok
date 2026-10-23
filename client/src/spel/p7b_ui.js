@@ -64,7 +64,7 @@ function openBlok(soort, d) {
   if (soort === 'oven' || soort === 'kist') { ding(d.x, d.y, d.z, soort); openRugzak(soort, [d.x, d.y, d.z]); zwaai(); return true; }
   if (soort === 'bed') { slapen(d); return true; }
   if (soort === 'smidse') { openRugzak('smidse', [d.x, d.y, d.z]); zwaai(); klank('kist', true); return true; }
-  if (soort === 'vlaai') {
+  if (soort === 'taart') {
     if (wereldStand() !== 'bouwen' && WD.speler.honger >= 20) { melding(t('Je hebt geen honger.'), true); return true; }
     const hap = (d.v >> 8) & 3, s = WD.speler; s.honger = Math.min(20, s.honger + 4); s.verzadiging = Math.min(s.honger, (s.verzadiging || 0) + 2);
     zetBlok(d.x, d.y, d.z, hap >= 3 ? 0 : ((d.v & 255) | ((hap + 1) << 8))); stuurZetten(); klank('eet'); zwaai(); if (typeof logboek === 'function') logboek('eten'); return true;
@@ -429,7 +429,7 @@ function paletGroep(id) {
   const b = BL[it.blok];
   if (b.licht || b.sleutel === 'lichtblok') return 'licht';
   if (b.vorm === 'kruis' || b.vorm === 'lelie' || b.vorm === 'cactus' || b.sleutel.startsWith('blad')) return 'planten';
-  if (['gras', 'aarde', 'steen', 'kei', 'zand', 'grind', 'klei', 'sneeuw', 'ijs', 'modder', 'bosgrond', 'leisteen', 'mergel', 'sneeuwgras', 'zandsteen'].includes(b.sleutel) || b.sleutel.startsWith('erts') || b.sleutel.startsWith('stam')) return 'natuur';
+  if (['gras', 'aarde', 'steen', 'kei', 'zand', 'grind', 'klei', 'sneeuw', 'ijs', 'modder', 'bosgrond', 'leisteen', 'kalksteen', 'sneeuwgras', 'zandsteen'].includes(b.sleutel) || b.sleutel.startsWith('erts') || b.sleutel.startsWith('stam')) return 'natuur';
   return 'bouw';
 }
 function bouwPalet(Rt) {
@@ -475,7 +475,7 @@ function infoVan(s) {
   else if (it.gereed) zinnen.push(t(GEREED_UITLEG[it.gereed]));
   if (it.ster) zinnen.push(t('Met sterrenglans: gaat langer mee en hakt sneller.'));
   if (UITLEG[it.sleutel]) zinnen.push(t(UITLEG[it.sleutel]));
-  if (it.eten) zinnen.push(t('Eten: vult {0} van je 10 vlaaitjes.', String(Math.max(0.5, it.eten / 2)).replace('.', TAAL === 'en' ? '.' : ',')));
+  if (it.eten) zinnen.push(t('Eten: vult {0} van je 10 taartpuntjes.', String(Math.max(0.5, it.eten / 2)).replace('.', TAAL === 'en' ? '.' : ',')));
   if (it.plant) zinnen.push(t('Zaai het op een akker. Met water in de buurt groeit het sneller.'));
   const ov = G.ovenRecept(s.id); if (ov) zinnen.push(t('In de oven wordt dit: {0}.', naam(ov.uit).toLowerCase()));
   if (it.brand && !it.gereed) zinnen.push(t('Brandstof: genoeg voor {0} keer bakken.', Math.max(1, Math.round(it.brand / 8))));

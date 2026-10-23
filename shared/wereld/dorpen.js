@@ -17,7 +17,7 @@ export function dorpen(wm) {
   // ver van stukken die er al waren (oude werelden blijven waar je geweest bent zoals ze waren).
   // Een plein met een put en marktkraampjes, straten van klinkers die de grond volgen (met halve treden waar het
   // oploopt), huizen met de deur naar de straat, een bakkerij, smederij of bibliotheek, akkers met een sloot, en lantaarns.
-  // Drie bouwstijlen: vakwerk met mergel (gematigd), blokhutten (koud) en lemen huisjes (warm).
+  // Drie bouwstijlen: vakwerk op een plint van kalksteen (gematigd), blokhutten (koud) en lemen huisjes (warm).
   // Net als bij de andere bouwwerken komt alles alleen uit de kolommen (hoogte en streek): dus geen naden.
   // ============================================================================
   const DG = 4, DORP_KANS = 0.8, DORP_R = 40, dorpen = new Map();
@@ -57,8 +57,8 @@ export function dorpen(wm) {
     return null;
   }
   const STIJLEN = {
-    // vakwerk: een plint van mergel, wit pleisterwerk met eiken balken, een rood pannendak en een puntgevel aan de straat
-    mergel: { onder: B.mergelblokken, plint: B.mergelblokken, vul: B.pleister, balk: B.stam_eik, vloer: B.planken_eik, dak: B.trap_dakpannen, nok: B.plaat_dakpannen, gevel: B.pleister, pad: B.klinkers, trede: B.plaat_baksteen, rand: B.steenstenen },
+    // vakwerk: een plint van kalksteenblokken, wit pleisterwerk met eiken balken, een rood pannendak en een puntgevel aan de straat
+    vakwerk: { onder: B.kalksteenblokken, plint: B.kalksteenblokken, vul: B.pleister, balk: B.stam_eik, vloer: B.planken_eik, dak: B.trap_dakpannen, nok: B.plaat_dakpannen, gevel: B.pleister, pad: B.klinkers, trede: B.plaat_baksteen, rand: B.steenstenen },
     // blokhut: liggende sparrenstammen op een voet van keien, een houten dak en een schoorsteen
     blokhut: { onder: B.kei, plint: B.kei, vul: B.stam_spar, balk: B.stam_spar, vloer: B.planken_spar, dak: B.trap_hout, nok: B.plaat_hout, gevel: B.planken_spar, pad: B.grind, trede: B.plaat_kei, rand: B.kei },
     // leem: zandsteen met geel pleisterwerk, een plat dak met een randje en een gekleurde luifel boven de deur
@@ -67,7 +67,7 @@ export function dorpen(wm) {
   function dorp(r, D, zetEcht, soorten) {
     // eerst alles verzamelen: lukt het niet om minstens drie gebouwen neer te zetten, dan komt er geen dorpje
     const buf = [], zet = (x, y, z, v, m) => { buf.push(x, y, z, v, m || 0); };
-    const cx = D.x, cz = D.z, h0 = D.h, stijl = KOUD.has(D.b) ? 'blokhut' : WARM.has(D.b) ? 'leem' : 'mergel', S = STIJLEN[stijl];
+    const cx = D.x, cz = D.z, h0 = D.h, stijl = KOUD.has(D.b) ? 'blokhut' : WARM.has(D.b) ? 'leem' : 'vakwerk', S = STIJLEN[stijl];
     const bezet = new Set(), ks = (x, z) => x + ',' + z, gebouwen = [], akkers = [], deurPad = new Set();
     let R = 8;
     const tel = (x, z) => { const d = Math.hypot(x - cx, z - cz) + 2; if (d > R) R = d; };
@@ -87,7 +87,7 @@ export function dorpen(wm) {
     }
     zet(cx, h0 + 3, cz, B.lantaarn | (1 << 8));
     // marktkraampjes op een paar hoeken van het plein, met waar op tafel; op de andere hoeken een lantaarn of bloemen
-    const LUIFEL = [B.linnen_rood, B.linnen_geel, B.linnen_blauw, B.linnen_groen, B.linnen_oranje], WAAR = [B.pompoen, B.vlaai, B.hooi, B.bloempot | (1 << 8), B.kersenvlaai, B.appelvlaai];
+    const LUIFEL = [B.linnen_rood, B.linnen_geel, B.linnen_blauw, B.linnen_groen, B.linnen_oranje], WAAR = [B.pompoen, B.bessentaart, B.hooi, B.bloempot | (1 << 8), B.kersentaart, B.appeltaart];
     const hoeken = [[1, 1], [-1, 1], [-1, -1], [1, -1]], kramen = 1 + Math.floor(r() * 2);
     hoeken.forEach(([sx, sz], i) => {
       const x3 = cx + 3 * sx, z3 = cz + 3 * sz, x2 = cx + 2 * sx, z2 = cz + 2 * sz;
@@ -202,7 +202,7 @@ export function dorpen(wm) {
         let b;
         if (hoek) b = S.balk;
         else if (stijl === 'blokhut') b = stamLangs(S.balk, langs);
-        else if (stijl === 'mergel') b = y === 1 ? S.plint : y === 3 ? stamLangs(S.balk, langs) : S.vul;
+        else if (stijl === 'vakwerk') b = y === 1 ? S.plint : y === 3 ? stamLangs(S.balk, langs) : S.vul;
         else b = y === 1 ? S.plint : S.vul;
         // ramen: op ooghoogte, om en om, niet bij de deur
         const zij = v === 0 || v === l - 1 ? u : v, lang = v === 0 || v === l - 1 ? w : l;
@@ -223,7 +223,7 @@ export function dorpen(wm) {
         for (let v = -1; v <= l; v++) {
           if (uL === uR) { Z(uL, 4 + k, v, S.nok); continue; }
           Z(uL, 4 + k, v, S.dak | (RECHTS << 8)); Z(uR, 4 + k, v, S.dak | (LINKS << 8));
-          if (v === 0 || v === l - 1) for (let u = uL + 1; u < uR; u++) Z(u, 4 + k, v, stijl === 'mergel' && u === deurU ? S.balk : k === 1 && Math.abs(u - deurU) === 1 && stijl !== 'blokhut' ? B.glas : S.gevel);
+          if (v === 0 || v === l - 1) for (let u = uL + 1; u < uR; u++) Z(u, 4 + k, v, stijl === 'vakwerk' && u === deurU ? S.balk : k === 1 && Math.abs(u - deurU) === 1 && stijl !== 'blokhut' ? B.glas : S.gevel);
         }
       }
       if (stijl === 'blokhut') { const [x, z] = P(w - 1, l); fundeer(x, z, Y, B.kei); for (let y = 0; y <= 4 + (w >> 1) + 1; y++) Z(w - 1, y, l, B.kei); } // de schoorsteen achter
@@ -244,7 +244,7 @@ export function dorpen(wm) {
     } else if (soort === 'bakkerij') {
       for (let u = 1; u < w - 1; u++) for (let y = 1; y <= 3; y++) Z(u, y, l - 1, B.tegel_delfts);
       Z(2, 1, l - 2, B.oven | (VOOR << 8)); Z(4, 1, l - 2, B.oven | (VOOR << 8)); Z(3, 1, l - 2, B.tafel); Z(3, 2, l - 2, B.lantaarn);
-      Z(1, 1, 1, B.tafel); Z(1, 2, 1, B.vlaai); Z(1, 1, 2, B.tafel); Z(1, 2, 2, r() < 0.5 ? B.kersenvlaai : B.appelvlaai);
+      Z(1, 1, 1, B.tafel); Z(1, 2, 1, B.bessentaart); Z(1, 1, 2, B.tafel); Z(1, 2, 2, r() < 0.5 ? B.kersentaart : B.appeltaart);
       bed(w - 2, 1); kist(w - 2, l - 2, LINKS);
       g.werk = Pw(3, l - 3); g.kijk = Pw(2, l - 2);
     } else if (soort === 'smederij') {

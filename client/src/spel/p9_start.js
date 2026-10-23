@@ -103,7 +103,7 @@ window.__rommelblok = {
   zetBlok: (x, y, z, v) => { zetBlok(x, y, z, v); stuurZetten(); },
   set handProef(v) { handProef = v; },
   set valVrij(sec) { valVrijTot = performance.now() + sec * 1000; },
-  get doelBewoner() { return doelBewoner; }, RUIL, BEROEP, dorpBinnen, bewonersTik, bewonersTeken, openRuilen, ruil, zoekRoute, staanOp, bwRust, DORPINFO, bwFase, tel,
+  get doelBewoner() { return doelBewoner; }, RUIL, BEROEP, NAMEN, NAMEN_OUD, bewonerNamenOmzetten, dorpBinnen, bewonersTik, bewonersTeken, openRuilen, ruil, zoekRoute, staanOp, bwRust, DORPINFO, bwFase, tel,
   get rijdtIn() { return rijdtIn; }, get doelKar() { return doelKar; }, KAR, karNieuw, karWeg, instappen, uitstappen, karTik, spoorBaan, spoorLeg, karrenUitStuk, karData,
   acties, ACTIES, KAART, BOUWW, tekenRegio, REGIO, openKaart, openLogboek, logboek, kaartLaden, kaartBewaren, kompasDoel, KM, LOGBOEK, aantalMijlpalen,
 };

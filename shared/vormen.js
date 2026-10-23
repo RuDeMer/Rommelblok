@@ -80,7 +80,7 @@ function vormDozen(v, buur) {
     case 'kist': return [draai(doos(1, 0, 1, 15, 14, 15, [b.tz, b.tz, b.tb, b.to, b.ta, b.tv]), r)];
     case 'cactus': return [doos(1, 0, 1, 15, 16, 15, [b.tz, b.tz, b.tb, b.to, b.tz, b.tz])];
     case 'lelie': return [doos(1, -1, 1, 15, -1, 15, b.tz)];
-    case 'vlaai': { const h = st & 3; return [doos(1, 0, 1, 15 - h * 3, 8, 15, [h ? tex('vlaai_binnen') : b.tz, b.tz, b.tb, b.to, b.tz, b.tz])]; }
+    case 'taart': { const h = st & 3; return [doos(1, 0, 1, 15 - h * 3, 8, 15, [h ? tex('taart_binnen') : b.tz, b.tz, b.tb, b.to, b.tz, b.tz])]; }
     case 'tapijt': return [doos(0, 0, 0, 16, 1, 16, b.tz)];
     case 'pot': {
       // een pot van terracotta met aarde erin; met een plant (stand) staan er twee platte plantjes in, kruislings
@@ -140,7 +140,7 @@ function botsDozen(v, buur) {
       }
       return uit;
     }
-    case 'deur': case 'luik': case 'plaat': case 'trap': case 'bed': case 'kist': case 'cactus': case 'vlaai': case 'tafel': case 'stoel': return vormDozen(v, buur).map(d => d.slice(0, 6));
+    case 'deur': case 'luik': case 'plaat': case 'trap': case 'bed': case 'kist': case 'cactus': case 'taart': case 'tafel': case 'stoel': return vormDozen(v, buur).map(d => d.slice(0, 6));
     case 'tapijt': return [[0, 0, 0, 16, 1, 16]];
     case 'pot': return [[5, 0, 5, 11, 6, 11]];
     case 'lantaarn': return null;

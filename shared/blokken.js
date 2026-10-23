@@ -61,7 +61,7 @@ blok(19, 'erts_goud', 'Gouderts', 'Gold ore', { hard: 3, gereed: 'houweel', klas
 blok(20, 'erts_ijzer_lei', 'IJzererts in leisteen', 'Iron ore in slate', { hard: 4, gereed: 'houweel', klasse: 3, geeft: 'ijzerbrok' });
 blok(21, 'erts_goud_lei', 'Gouderts in leisteen', 'Gold ore in slate', { hard: 4, gereed: 'houweel', klasse: 4, geeft: 'goudbrok' });
 blok(22, 'erts_robijn', 'Robijnerts', 'Ruby ore', { hard: 4.5, gereed: 'houweel', klasse: 4, geeft: 'robijn' });
-blok(23, 'mergel', 'Mergel', 'Marl', { hard: 0.9, gereed: 'houweel', klasse: 1 });
+blok(23, 'kalksteen', 'Kalksteen', 'Limestone', { hard: 0.9, gereed: 'houweel', klasse: 1 });
 // hout: stam, bladeren en planken van zes bomen
 const HOUT = [['eik', 'Eiken', 'Oak'], ['berk', 'Berken', 'Birch'], ['spar', 'Sparren', 'Spruce'], ['esdoorn', 'Esdoorn', 'Maple'], ['baobab', 'Baobab', 'Baobab'], ['wilg', 'Wilgen', 'Willow']];
 HOUT.forEach(([s, nl, en], i) => {
@@ -103,7 +103,7 @@ blok(72, 'baksteen', 'Baksteen', 'Bricks', { hard: 2, gereed: 'houweel', klasse:
 blok(73, 'steenstenen', 'Gekapte steen', 'Cut stone', { hard: 1.5, gereed: 'houweel', klasse: 1 });
 blok(74, 'gladde_steen', 'Gladde steen', 'Smooth stone', { hard: 1.5, gereed: 'houweel', klasse: 1 });
 blok(75, 'leitegels', 'Leistenen tegels', 'Slate tiles', { hard: 3, gereed: 'houweel', klasse: 1 });
-blok(76, 'mergelblokken', 'Mergelblokken', 'Marl blocks', { hard: 1, gereed: 'houweel', klasse: 1 });
+blok(76, 'kalksteenblokken', 'Kalksteenblokken', 'Limestone blocks', { hard: 1, gereed: 'houweel', klasse: 1 });
 blok(77, 'mostkei', 'Bemoste keien', 'Mossy cobbles', { hard: 2, gereed: 'houweel', klasse: 1 });
 blok(78, 'tegel_wit', 'Witte tegel', 'White tile', { hard: 1.2, gereed: 'houweel', klasse: 1, geluid: 'glas' });
 blok(79, 'tegel_delfts', 'Delfts blauwe tegel', 'Delft blue tile', { hard: 1.2, gereed: 'houweel', klasse: 1, geluid: 'glas' });
@@ -134,7 +134,7 @@ blok(113, 'goudblok', 'Goudblok', 'Gold block', { hard: 4, gereed: 'houweel', kl
 blok(114, 'robijnblok', 'Robijnblok', 'Ruby block', { hard: 5, gereed: 'houweel', klasse: 4, geluid: 'glas' });
 blok(115, 'kolenblok', 'Kolenblok', 'Coal block', { hard: 4, gereed: 'houweel', klasse: 1 });
 blok(116, 'sneeuwgras', 'Besneeuwd gras', 'Snowy grass', { tex: { boven: 'sneeuw', onder: 'aarde', zij: 'sneeuwgras_zij' }, hard: 0.6, gereed: 'schop', geluid: 'sneeuw', geeft: 2 });
-blok(117, 'vlaai', 'Vlaai', 'Vlaai pie', { vorm: 'vlaai', laag: 0, tex: { boven: 'vlaai_top', onder: 'vlaai_onder', zij: 'vlaai_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'vlaai' });
+blok(117, 'bessentaart', 'Bessentaart', 'Berry tart', { vorm: 'taart', laag: 0, tex: { boven: 'bessentaart_top', onder: 'taart_onder', zij: 'taart_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'taart' });
 blok(118, 'boekenkast', 'Boekenkast', 'Bookshelf', { tex: { boven: 'planken_eik', onder: 'planken_eik', zij: 'boekenkast' }, hard: 1.5, gereed: 'bijl', geluid: 'hout' });
 blok(119, 'hooi', 'Strobaal', 'Straw bale', { tex: { boven: 'hooi_top', onder: 'hooi_top', zij: 'hooi_zij' }, hard: 0.5, geluid: 'gras', as: true });
 
@@ -198,8 +198,8 @@ GEWAS.forEach(([s2, nl, en], i) => {
   d.standTex = [tex('kiem_klein'), tex('kiem_groot'), tex(s2 + '_jong'), tex(s2 + '_rijp')];
 });
 blok(167, 'pompoen', 'Pompoen', 'Pumpkin', { tex: { boven: 'pompoen_top', onder: 'pompoen_top', zij: 'pompoen_zij' }, hard: 1, gereed: 'bijl', geluid: 'hout', groep: 'natuur' });
-blok(168, 'kersenvlaai', 'Kersenvlaai', 'Cherry vlaai', { vorm: 'vlaai', tex: { boven: 'kersenvlaai_top', onder: 'vlaai_onder', zij: 'vlaai_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'vlaai', groep: 'eten' });
-blok(169, 'appelvlaai', 'Appelvlaai', 'Apple vlaai', { vorm: 'vlaai', tex: { boven: 'appelvlaai_top', onder: 'vlaai_onder', zij: 'vlaai_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'vlaai', groep: 'eten' });
+blok(168, 'kersentaart', 'Kersentaart', 'Cherry tart', { vorm: 'taart', tex: { boven: 'kersentaart_top', onder: 'taart_onder', zij: 'taart_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'taart', groep: 'eten' });
+blok(169, 'appeltaart', 'Appeltaart', 'Apple tart', { vorm: 'taart', tex: { boven: 'appeltaart_top', onder: 'taart_onder', zij: 'taart_zij' }, hard: 0.4, geluid: 'stof', stand: 'hap', gebruik: 'taart', groep: 'eten' });
 // de smidse (gereedschap herstellen en verbeteren), sterrensteen (heel zeldzaam), en een oude kist met buit
 blok(170, 'smidse', 'Smidse', 'Smithy', { tex: { boven: 'smidse_top', onder: 'smidse_top', zij: 'smidse_zij', voor: 'smidse_voor' }, hard: 3.5, gereed: 'houweel', klasse: 1, geluid: 'metaal', stand: 'richting', gebruik: 'smidse', groep: 'werk' });
 blok(171, 'sterrensteen', 'Sterrensteen', 'Starstone', { hard: 5, gereed: 'houweel', klasse: 3, licht: 6, gloed: true, geeft: 'sterrensplinter', groep: 'natuur' });
@@ -217,12 +217,12 @@ blok(176, 'trap_dakpannen', 'Dakpannentrap', 'Roof tile stairs', { vorm: 'trap',
 blok(177, 'plaat_dakpannen', 'Dakpannenplaat', 'Roof tile slab', { vorm: 'plaat', tex: 'dakpannen', hard: 1.5, gereed: 'houweel', klasse: 1, stand: 'plaat' });
 
 // texturen die alleen in vormen gebruikt worden, vooraf vastleggen (dan is de volgorde overal gelijk)
-for (const n of ['fakkel_houder', 'lantaarn_top', 'lantaarn_ketting', 'vlaai_binnen', 'barst0', 'barst1', 'barst2', 'barst3', 'barst4', 'barst5', 'barst6', 'barst7', 'barst8', 'barst9']) tex(n);
+for (const n of ['fakkel_houder', 'lantaarn_top', 'lantaarn_ketting', 'taart_binnen', 'barst0', 'barst1', 'barst2', 'barst3', 'barst4', 'barst5', 'barst6', 'barst7', 'barst8', 'barst9']) tex(n);
 const MAXBLOK = 178;
 for (let i = 0; i < 256; i++) if (!BL[i]) BL[i] = null;
 // snelle tabellen voor de rekenhulpjes
 const DICHT = new Uint8Array(256), DEMP = new Uint8Array(256), LICHT = new Uint8Array(256), VAST = new Uint8Array(256), LAAG = new Uint8Array(256), VORM = new Uint8Array(256), VERVANG = new Uint8Array(256);
-const VORMEN = ['niets', 'kubus', 'kruis', 'fakkel', 'lantaarn', 'plaat', 'trap', 'deur', 'luik', 'ladder', 'hek', 'bed', 'kist', 'cactus', 'water', 'lelie', 'vlaai', 'tapijt', 'pot', 'kaars', 'tafel', 'stoel', 'spoor'];
+const VORMEN = ['niets', 'kubus', 'kruis', 'fakkel', 'lantaarn', 'plaat', 'trap', 'deur', 'luik', 'ladder', 'hek', 'bed', 'kist', 'cactus', 'water', 'lelie', 'taart', 'tapijt', 'pot', 'kaars', 'tafel', 'stoel', 'spoor'];
 const VN = {}; VORMEN.forEach((v, i) => VN[v] = i);
 for (let i = 0; i < 256; i++) { const d = BL[i]; if (!d) continue; DICHT[i] = d.dicht ? 1 : 0; DEMP[i] = d.demp; LICHT[i] = d.licht; VAST[i] = d.vast ? 1 : 0; LAAG[i] = d.laag; VORM[i] = VN[d.vorm] || 0; VERVANG[i] = d.vervang ? 1 : 0; }
 const W = B.water;

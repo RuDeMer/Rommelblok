@@ -6,8 +6,8 @@
 // 4. de gedeelde code uit de nieuwe pagina: dezelfde lijsten, en voor een paar zaadjes dezelfde stukken
 // 5. texturen (elke pixel) en, uit de wereldbaas, licht en 3D-vormen van een stuk wereld: byte voor byte gelijk
 const fs = require('fs'), path = require('path');
-const laadPagina = require('./oude_pagina');
-const NIEUW_PAD = process.argv[2] || path.join(__dirname, '..', 'dist', 'rommelblok.html');
+const laadPagina = require('../oude_pagina');
+const NIEUW_PAD = process.argv[2] || path.join(__dirname, '..', '..', 'dist', 'rommelblok.html');
 const OUD_PAD = process.argv[3] || laadPagina.REFERENTIE;
 const N = laadPagina(NIEUW_PAD), O = laadPagina(OUD_PAD);
 let fouten = 0;

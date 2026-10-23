@@ -54,12 +54,13 @@ const HART = ['..oo.oo..', '.orrorro.', 'orwrrrrro', 'orrrrrrro', 'orrrrrrdo', '
 const HART_HALF = HART.map(r => r.slice(0, 5).replace(/[rwd]/g, m => m) + r.slice(5).replace(/[rwd]/g, 'e'));
 const HART_LEEG = HART.map(r => r.replace(/[rwd]/g, 'e'));
 const kH = { o: '#2A1418', r: '#E03A46', w: '#FFC0C0', d: '#9A1E2A', e: '#4A2A30' };
-const VLAAI = ['...ooo...', '.oobbboo.', 'obkbkbkbo', 'okbkbkbko', 'obkbkbkbo', 'oddddddd o'.replace(' ', ''), '.ooooooo.'];
-const kV = { o: '#3A2412', b: '#D9A35A', k: '#B0182E', d: '#A8743A', e: '#4A3A2A' };
-const VLAAI_LEEG = VLAAI.map(r => r.replace(/[bkd]/g, 'e')), VLAAI_HALF = VLAAI.map(r => r.slice(0, 4).replace(/[bkd]/g, 'e') + r.slice(4));
+// honger: taartpuntjes (een punt met slagroom en een besje bovenop)
+const TAART = ['.....ooo.', '...oowrwo', '.oowwwwwo', 'owwwwwwwo', 'okkkkkkko', 'obbbbbbbo', '.ooooooo.'];
+const kV = { o: '#3A2412', w: '#FBF3E2', r: '#C8283A', k: '#B0182E', b: '#D9A35A', e: '#4A3A2A' };
+const TAART_LEEG = TAART.map(r => r.replace(/[wrkb]/g, 'e')), TAART_HALF = TAART.map(r => r.slice(0, 4).replace(/[wrkb]/g, 'e') + r.slice(4));
 const BEL = ['..ooo..', '.owbbo.', 'owbbbbo', 'obbbbbo', 'obbbbbo', '.obbbo.', '..ooo..'];
 const kB = { o: '#1E4A7A', w: '#FFFFFF', b: '#7FC8FF' };
-const PL = { hart: pix(HART, kH), hartHalf: pix(HART_HALF, kH), hartLeeg: pix(HART_LEEG, kH), vlaai: pix(VLAAI, kV), vlaaiHalf: pix(VLAAI_HALF, kV), vlaaiLeeg: pix(VLAAI_LEEG, kV), bel: pix(BEL, kB) };
+const PL = { hart: pix(HART, kH), hartHalf: pix(HART_HALF, kH), hartLeeg: pix(HART_LEEG, kH), taart: pix(TAART, kV), taartHalf: pix(TAART_HALF, kV), taartLeeg: pix(TAART_LEEG, kV), bel: pix(BEL, kB) };
 function rij(el, n, vol, half, leeg, waarde) {
   if (el.children.length !== n) { el.innerHTML = ''; for (let i = 0; i < n; i++) el.appendChild(document.createElement('i')); }
   for (let i = 0; i < n; i++) { const v = waarde - i * 2, u = v >= 2 ? vol : v >= 1 ? half : leeg; const c = el.children[i]; if (c.dataset.u !== u) { c.dataset.u = u; c.style.backgroundImage = u ? `url(${u})` : 'none'; } }
@@ -100,7 +101,7 @@ function hudTik(dt, L) {
   if (ov) {
     const s = WD.speler;
     rij($('rb-harten'), 10, PL.hart, PL.hartHalf, PL.hartLeeg, s.hp);
-    rij($('rb-vlaaien'), 10, PL.vlaai, PL.vlaaiHalf, PL.vlaaiLeeg, s.honger);
+    rij($('rb-honger'), 10, PL.taart, PL.taartHalf, PL.taartLeeg, s.honger);
     const ad = $('rb-adem'); const toon = sp.hoofdOnder || s.adem < 9.9; ad.style.visibility = toon ? 'visible' : 'hidden';
     if (toon) rij(ad, 10, PL.bel, PL.bel, '', Math.ceil(s.adem) * 2);
   }
