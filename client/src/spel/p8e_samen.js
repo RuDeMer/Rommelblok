@@ -135,7 +135,7 @@ function speelSamen(ws, wk, info, houd) {
     ws, jij: wk.jij, id: w.id, code: (wk.nieuw && wk.nieuw.code) || info.code, sleutel: (wk.nieuw && wk.nieuw.sleutel) || info.sleutel || null,
     eigenaar: !!wk.eigenaar, regels: { bouwen: w.bouwen, dicht: w.dicht }, naam: w.naam, stand: w.stand,
     spelers: new Map(), acties: new Map(), corr: 0, pT: 0, pSleutel: '', zwaaiN: 0, zwaaiVorig: 1, sprong: false,
-    open: null, slaapKlok: null, log: [], bewust: false, geweerd: 0,
+    open: null, slaapKlok: null, log: [], bewust: false, geweerd: 0, gegooid: [],
   };
   samen.mag = samen.eigenaar || samen.regels.bouwen === 'iedereen';
   for (const [sid, naam, pop, eig] of wk.spelers || []) samenErbij(sid, naam, pop, eig, true);
@@ -358,12 +358,18 @@ function openZinnen() {
 
 // ---------------- spullen op de grond (met een nummer van de server)
 function samenLos(l) {
+  const nu = performance.now();
   for (const [id, x, y, z, item, n, dur] of l) {
     if (!IT[item] || losse.some(d => d.sid === id)) continue;
     if (losse.length > 250) losse.shift();
-    losse.push({ sid: id, id: item, n, dur: dur || undefined, x, y, z, vx: (Math.random() - 0.5) * 2.2, vy: 2.5 + Math.random(), vz: (Math.random() - 0.5) * 2.2, leeftijd: 0, wacht: 0.4, draai: Math.random() * 6 });
+    const d = { sid: id, id: item, n, dur: dur || undefined, x, y, z, vx: (Math.random() - 0.5) * 2.2, vy: 2.5 + Math.random(), vz: (Math.random() - 0.5) * 2.2, leeftijd: 0, wacht: 0.4, draai: Math.random() * 6 };
+    // iets wat je net zelf weggooide: het vliegt weg zoals bij alleen spelen, en je pakt het niet meteen weer op
+    const g = samen.gegooid.findIndex(q => q.id === item && q.n === n && nu - q.t < 3000);
+    if (g >= 0) { const q = samen.gegooid.splice(g, 1)[0]; d.vx = q.v[0]; d.vy = q.v[1]; d.vz = q.v[2]; d.wacht = 1.5; d.draai = 0; }
+    losse.push(d);
   }
 }
+function samenGegooid(id, n, v) { samen.gegooid.push({ id, n, v, t: performance.now() }); if (samen.gegooid.length > 10) samen.gegooid.shift(); }
 // past dit (helemaal of een deel) in je rugzak?
 function samenPast(id, dur) { const max = stapelVan(id); return WD.inv.some(s => !s || (s.id === id && s.n < max && max > 1)); }
 // oppakken bij samen spelen: eerst de server vragen (zo krijgt maar één speler het)

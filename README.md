@@ -6,7 +6,7 @@ Dit project bevat drie delen, die dezelfde spelregels delen:
 
 - de **browserversie**, voor de site: één bestand, `rommelblok.html`;
 - de **desktop-app**, met Tauri (volgt in stap 8);
-- de **spelserver** om samen te spelen, op Rubens VPS in Docker (volgt in stap 5 tot en met 7).
+- de **spelserver** om samen te spelen (`server/`, zie [server/README.md](server/README.md)); op Rubens VPS in Docker volgt in stap 7.
 
 Alleen spelen werkt altijd, ook zonder server en zonder internet.
 
@@ -21,6 +21,7 @@ Alleen spelen werkt altijd, ook zonder server en zonder internet.
 | `client/src/stijl/` | `stijl.css` en de HTML van alle schermen (`lichaam.html`). |
 | `client/rommelblok-plugin.js` | De bouwsteen voor Vite en voor de site-pagina. `virtual:gedeeld` maakt van `shared/` één functie `RB_GEDEELD`. De pagina roept die aan en geeft zijn tekst mee aan de rekenhulpjes, die zo uit een Blob starten. `virtual:spel` zijn de spelbestanden samen. |
 | `site/` | Maakt de pagina voor de site: `pagina.html` (het geraamte), `kop.html` (de `<head>` met het veiligheidsbeleid) en `gedeeld/` (het scorebord-script en de grapjes, **letterlijk** van de site). |
+| `server/` | De spelserver: samen in een gedeelde wereld spelen en bouwen. Zie [server/README.md](server/README.md). |
 | `test/` | Alle tests. `test/alles.sh` draait ze allemaal. `test/referentie/` bevat de vorige versies van de site-pagina, voor de vergelijking. |
 
 ## Werken
@@ -51,6 +52,7 @@ node site/maak-pagina.js --gedeeld /pad/naar/mijn-website/rommelblok.html
   4. de grapjes, vlak voor `</body>`.
 - **Het veiligheidsbeleid** staat in `site/kop.html`.
 - **De pagina is niet verkleind**, zodat ze leesbaar blijft.
+- **`--samen wss://blok.rubensrommelhoekje.nl/samen`** zet de knop Samen spelen aan, met dat adres. Zonder deze optie staat de knop uit (zo blijft het tot de server echt draait, in stap 7). Om te testen kan het altijd met `?samen=lokaal` (de server op hetzelfde adres als de pagina).
 
 ## Bewijs dat de ombouw niets veranderde
 
@@ -65,9 +67,10 @@ node site/maak-pagina.js --gedeeld /pad/naar/mijn-website/rommelblok.html
 - **`test/oudewereld.js`:** een wereld die met een vorige versie is gemaakt (en geëxporteerd), opent in de nieuwe.
 - **`test/standen.js`:** elke blokwaarde past in de indeling met ruimte voor 1024 soorten (`shared/blokwaarde.js`). Er hoeft niets omgezet te worden.
 
-## Opslag (blijft gelijk)
+## Opslag
 
-- **localStorage `rommelblok-v3`:** instellingen, de laatste wereld en de bouwbalk. Klein, want het gaat mee met koppelen.
+- **localStorage `rommelblok-v3`:** instellingen, de laatste wereld, de bouwbalk, je poppetje, je naam bij samen spelen (`naam`: twee nummers) en de gedeelde werelden die je kent (`samen`: hooguit 10, met de sleutel als je de eigenaar bent). Klein, want het gaat mee met koppelen.
+- **localStorage `rommelblok-speler`:** het geheim van dit apparaat voor samen spelen (de server bewaart er alleen een hash van). Bewust niet in `SLEUTELS`: het hoort bij dit apparaat.
 - **IndexedDB `rommelblok` (versie 1):**
   - `werelden`;
   - `stukken`: veranderde stukken onder `wereld|cx|cz`, kaartjes onder `kaart|wereld|cx|cz`, en `oud|wereld`.

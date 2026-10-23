@@ -415,7 +415,8 @@ function laatVallen(x, y, z, idOfV, n, dur) {
 function gooi(slot, n) {
   const k = kijkVector(), o = oogPos();
   actieGevolg(['l', Math.round((o[0] + k[0] * 0.4) * 100) / 100, Math.round((o[1] - 0.3) * 100) / 100, Math.round((o[2] + k[2] * 0.4) * 100) / 100, slot.id, n, slot.dur || 0]);
-  if (samen && WD.samen) return;
+  // bij samen spelen legt de server het neer; dan vliegt het wel net zo weg (en pak je het niet meteen weer op)
+  if (samen && WD.samen) { samenGegooid(slot.id, n, [k[0] * 5, k[1] * 5 + 1.6, k[2] * 5]); return; }
   losse.push({ id: slot.id, n, dur: slot.dur, x: o[0] + k[0] * 0.4, y: o[1] - 0.3 + k[1] * 0.4, z: o[2] + k[2] * 0.4, vx: k[0] * 5, vy: k[1] * 5 + 1.6, vz: k[2] * 5, leeftijd: 0, wacht: 1.5, draai: 0 });
 }
 function losseTik(dt) {

@@ -35,8 +35,11 @@ export function leesInstellingen(env = process.env) {
     statisch: env.STATISCH || '',
     // hoe ver de server rond elke speler de wereld bijhoudt (in stukken van 16 blokken; water en groei)
     serverStraal: getal('SERVER_STRAAL', 4, 2, 8),
-    // hoeveel gedeelde werelden er tegelijk open mogen zijn
+    // hoeveel gedeelde werelden er tegelijk open mogen zijn, en hoeveel verbindingen er in totaal mogen zijn
     maxActief: getal('MAX_ACTIEF', 20, 1, 500),
+    maxVerbindingen: getal('MAX_VERBINDINGEN', 200, 1, 100000),
+    // foute uitnodigingscodes van alle adressen samen, per 10 minuten (tegen raden vanaf heel veel adressen tegelijk)
+    maxFouteCodesTotaal: getal('MAX_FOUTE_CODES_TOTAAL', 200, 1, 1e6),
     grens,
   };
   if (I.beheer && I.beheer.length < 12) throw new Error('BEHEER (het beheerwachtwoord) moet minstens 12 tekens zijn');

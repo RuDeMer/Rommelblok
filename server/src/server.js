@@ -23,6 +23,7 @@ export function maakServer(inst) {
   const nieuwPerAdres = new Map(); // ip -> [tijden van nieuwe werelden vandaag]
   const fouteCodes = new Map();   // ip -> [tijden van foute codes]
   const beheerFout = new Map();   // ip -> [tijden van een fout beheerwachtwoord]
+  let fouteTotaal = [];           // tijden van foute codes, van alle adressen samen
   let volgende = 0;
   const log = (...a) => { if (!inst.stil) console.log(new Date().toISOString(), ...a); };
   const recent = (map, ip, ms) => { const l = (map.get(ip) || []).filter(t => Date.now() - t < ms); map.set(ip, l); return l; };
@@ -122,7 +123,7 @@ export function maakServer(inst) {
     const herkomst = String(req.headers.origin || '').replace(/\/+$/, '');
     if (!inst.herkomst.includes(herkomst)) return weiger(403, 'Forbidden');
     const ip = adresVan(req);
-    if ((perAdres.get(ip) || 0) >= g.perAdres) return weiger(429, 'Too Many Requests');
+    if ((perAdres.get(ip) || 0) >= g.perAdres || verbindingen.size >= inst.maxVerbindingen) return weiger(429, 'Too Many Requests');
     wss.handleUpgrade(req, sock, kop, ws => verbonden(ws, ip));
   });
 
@@ -193,10 +194,12 @@ export function maakServer(inst) {
     } else {
       // meedoen met een code (na te veel foute codes even niet)
       const fouten = recent(fouteCodes, v.ip, 15 * 60e3);
+      fouteTotaal = fouteTotaal.filter(t => Date.now() - t < 10 * 60e3);
       if (fouten.length >= g.fouteCodes) return nee('te-veel-codes');
+      if (fouteTotaal.length >= inst.maxFouteCodesTotaal) return nee('druk');
       const code = S.schoonCode(m.code);
       wereld = code && db.wereldVanCode(hash('code', code));
-      if (!wereld) { fouten.push(Date.now()); return nee('code'); }
+      if (!wereld) { fouten.push(Date.now()); fouteTotaal.push(Date.now()); return nee('code'); }
     }
     const k = await kamerVoor(wereld.id);
     if (!k) return nee('druk');

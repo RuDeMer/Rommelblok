@@ -97,11 +97,13 @@ function geldigePlek(p) { return Array.isArray(p) && p.length >= 3 && R.getal(p[
 
 function erbij(m) {
   const eigenaar = !!m.sleutel && m.sleutel === W.eigenaar;
-  if (W.regels.geweerd.some(g => g.h === m.hash)) return sluit(m.sid, 'geweerd');
-  if (W.regels.dicht && !eigenaar) return sluit(m.sid, 'dicht');
+  // niet binnen: is er verder niemand, dan mag deze wereld weer dicht
+  const weiger = reden => { sluit(m.sid, reden); if (!spelers.size) post({ t: 'leeg' }); };
+  if (W.regels.geweerd.some(g => g.h === m.hash)) return weiger('geweerd');
+  if (W.regels.dicht && !eigenaar) return weiger('dicht');
   // dezelfde speler nog een keer (een tweede tabblad of apparaat met hetzelfde geheim): de oude verbinding gaat dicht
   for (const o of [...spelers.values()]) if (o.hash === m.hash) { weg(o.sid); sluit(o.sid, 'elders'); }
-  if (spelers.size >= inst.grens.spelersPerWereld) return sluit(m.sid, 'vol');
+  if (spelers.size >= inst.grens.spelersPerWereld) return weiger('vol');
   const oud = db.speler(wereldId, m.hash);
   const plek = oud && geldigePlek(oud.plek) ? oud.plek : null;
   const nu = Date.now();

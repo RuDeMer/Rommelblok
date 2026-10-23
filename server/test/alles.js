@@ -216,6 +216,13 @@ const fc = [];
 for (let i = 0; i < 9; i++) { const q = await doeMee(S3.url, 'rode-boot-trein-' + (10 + i)); fc.push(q.w.reden); }
 goed(fc.slice(0, 8).every(x2 => x2 === 'code') && fc[8] === 'te-veel-codes', 'na 8 foute codes even niet meer proberen');
 await S3.server.sluit();
+const S6 = await startServer({ MAX_VERBINDINGEN: '2', MAX_PER_ADRES: '40', MAX_FOUTE_CODES_TOTAAL: '3' });
+const v1 = speler(S6.url), v2 = speler(S6.url); await v1.open; await v2.open;
+const v3 = speler(S6.url); goed(await v3.open.then(() => false, e => /429/.test(e.message)), 'hooguit zoveel verbindingen in totaal');
+v1.hallo({ code: 'rode-boot-trein-10' }); await v1.gesloten; v2.hallo({ code: 'rode-boot-trein-11' }); await v2.gesloten;
+const f3 = await doeMee(S6.url, 'rode-boot-trein-12'), f4 = await doeMee(S6.url, 'rode-boot-trein-13');
+goed(f3.w.reden === 'code' && f4.w.reden === 'druk', 'te veel foute codes van alle adressen samen: even niet');
+await S6.server.sluit();
 const S4 = await startServer({ MAX_WERELDEN: '2', MAX_NIEUW_PER_DAG: '9', MAX_PER_ADRES: '40' });
 await maakWereld(S4.url); await maakWereld(S4.url);
 const W5 = speler(S4.url); await W5.open; W5.hallo({ maak: { zaad: 1, stand: 'bouwen', moeilijk: 'vredig' } });

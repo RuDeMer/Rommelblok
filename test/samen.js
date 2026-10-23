@@ -136,6 +136,17 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
   const bouwOk = !!bouw && await wacht(B, p => (window.__rommelblok.blokOp(p[0], p[1], p[2]) & 255) === window.__rommelblok.G.B.planken_eik, bouw);
   if (!bouwOk) console.log('bouwen:', JSON.stringify(bouw), JSON.stringify(await R(A, () => ({ ber: window.__ber.filter(m => m.t === 'ja' || m.t === 'nee').slice(-3), inv: window.__rommelblok.WD.inv.slice(0, 9), kies: window.__rommelblok.WD.kies, log: window.__rommelblok.ACTIES.log.slice(-2) }))));
   goed(bouwOk, 'A bouwt met planken, B ziet ze');
+  // iets weggooien: het vliegt weg en A pakt het niet meteen zelf weer op
+  const gooi = await R(A, async () => {
+    const R = window.__rommelblok, tel = () => R.WD.inv.reduce((n, s) => n + (s && s.id === R.G.B.planken_eik ? s.n : 0), 0), voor = tel();
+    R.kijk(R.sp.yaw, 0.2); R.gooiWeg(false);
+    for (let i = 0; i < 30 && !R.losse.some(d => d.sid > 0); i++) await new Promise(r => setTimeout(r, 100));
+    const d = R.losse.find(x => x.sid > 0); if (!d) return null;
+    for (let i = 0; i < 4; i++) R.sim(2, 0.05); // 0,4 seconde
+    return { voor, na: tel(), ligt: R.losse.some(x => x.sid === d.sid), v: Math.hypot(d.vx, d.vz) };
+  });
+  goed(!!gooi && gooi.na === gooi.voor - 1 && gooi.ligt, 'A gooit een plank weg: hij ligt op de grond en vliegt niet meteen terug in de rugzak' + (gooi ? ' (' + JSON.stringify(gooi) + ')' : ''));
+
   // B loopt een stukje weg, naar vrije grond (in een rechte lijn, niet door een heuvel): de server mag hem niet terugzetten
   const correcties = await R(B, () => window.__ber.filter(m => m.t === 'plek').length);
   const weg = await R(B, () => {

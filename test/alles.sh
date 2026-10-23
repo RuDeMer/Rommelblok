@@ -16,6 +16,7 @@ N=6 loop "pagina: veiligheidsbeleid en gedeelde blokken zoals op de site" node t
 N=4 loop "geen verwijzingen naar Limburg" node test/geen_limburg.js
 N=3 loop "de knop Samen spelen: uit zonder spelserver, aan met --samen" node test/samen_knop.js
 N=4 loop "spelserver: samen in een wereld, samen bouwen, valsspelen, de eigenaar en grenzen" node --disable-warning=ExperimentalWarning server/test/alles.js
+N=3 loop "browser: samen spelen zonder spelserver (een nette melding, en alleen spelen werkt gewoon)" node test/samen_zonder.js
 N=3 loop "browser: samen spelen met twee spelers" node test/samen.js
 N=3 loop "browser: samen spelen met drie spelers (één op een telefoon)" node test/samen.js 3
 N=2 loop "browser: bewoners uit een oudere wereld krijgen eenmalig hun nieuwe naam" node test/namen_omzetten.js
