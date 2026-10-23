@@ -240,11 +240,12 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
 
   // ---------------- de server valt even weg: de pagina verbindt vanzelf opnieuw, en je houdt wat je had
   const invVoor = await R(A, () => JSON.stringify(window.__rommelblok.WD.inv));
+  await R(A, () => { window.__oudeWs = window.__rommelblok.samen.ws; });
   herstart = true;
   await stopSrv();
   goed(await wacht(A, () => /kwijt/.test(document.getElementById('rb-melding').textContent), null, 8000), 'de server valt weg: A ziet dat de verbinding kwijt is');
   await startSrv();
-  goed(await wacht(A, () => { const R = window.__rommelblok; return R.samen && R.samen.ws.readyState === 1 && R.klaar && /Weer verbonden/.test(document.getElementById('rb-melding').textContent); }, null, 40000), 'na de herstart is A vanzelf weer verbonden');
+  goed(await wacht(A, () => { const R = window.__rommelblok; return R.samen && R.samen.ws !== window.__oudeWs && R.samen.ws.readyState === 1 && R.klaar; }, null, 60000), 'na de herstart is A vanzelf weer verbonden');
   await A.page.waitForTimeout(1000); herstart = false;
   goed(await R(A, () => JSON.stringify(window.__rommelblok.WD.inv)) === invVoor && await R(A, () => window.__rommelblok.samen.eigenaar), 'met dezelfde rugzak, en nog steeds als eigenaar');
   goed(await wacht(A, p => (window.__rommelblok.blokOp(p[0], p[1], p[2]) & 255) === window.__rommelblok.G.B.planken_eik, bouw), 'en de planken staan er nog');

@@ -173,11 +173,11 @@ async function samenVerbindingWeg(ws) {
   if (!samen || samen.ws !== ws || samen.bewust) return;
   const reden = samen.weg || null, info = { id: samen.id, code: samen.code, sleutel: samen.sleutel };
   if (reden && reden !== 'verbinding') { await naarWerelden(); openSamen(); const f = $('rb-samen-fout'); f.textContent = samenRedenTekst(reden); f.hidden = false; return; }
-  // eerst stil opnieuw proberen (een paar keer), en anders vragen wat je wilt
+  // eerst stil opnieuw proberen (ruim een halve minuut, bijvoorbeeld als de server even opnieuw start), en anders vragen wat je wilt
   melding(t('Verbinding met de server kwijt. Opnieuw verbinden…'));
   const houd = samenSpelerData();
-  for (let i = 0; i < 3; i++) {
-    await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+  for (const wacht of [1500, 3000, 4500, 6000, 8000, 10000]) {
+    await new Promise(r => setTimeout(r, wacht));
     if (!WD || !WD.samen) return;
     try { const { ws: w2, welkom } = await samenVerbind({ code: info.code, sleutel: info.sleutel || undefined }); samenStop(); speelSamen(w2, welkom, info, houd); samenOpnieuw++; melding(t('Weer verbonden!'), true); return; } catch (r) { if (r !== 'verbinding') { await naarWerelden(); openSamen(); const f = $('rb-samen-fout'); f.textContent = samenRedenTekst(r); f.hidden = false; return; } }
   }
