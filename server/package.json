@@ -1,0 +1,14 @@
+{
+  "name": "rommelblok-server",
+  "private": true,
+  "description": "De spelserver van Rommelblok: samen in een wereld spelen en bouwen",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/start.js",
+    "test": "node --disable-warning=ExperimentalWarning test/alles.js"
+  },
+  "dependencies": {
+    "ws": "8.18.2"
+  }
+}

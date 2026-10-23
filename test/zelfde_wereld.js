@@ -30,7 +30,7 @@ const TEXTUUR_ANDERS = new Set(Object.values(TEXTUUR));   // nieuwe tekeningen (
 // stap 3, je poppetje: twee nieuwe onderdelen achteraan in G, en de plaatjes voor het gezicht en de arm achteraan in de stapel
 // stap 4, dieren en griezels: WEZENS achteraan in G; 10 nieuwe voorwerpen (365 tot 374), 2 nieuwe blokken (178 en 179),
 // hun recepten en tekeningen, en de stofjes voor de lijven; alles achteraan, zodat alle oude nummers gelijk blijven
-const ERBIJ_G = ['POP', 'BLOKWAARDE', 'WEZENS'];
+const ERBIJ_G = ['POP', 'BLOKWAARDE', 'WEZENS', 'SAMEN', 'SPULLEN'];
 const ERBIJ_DTEX = /^(pop_(ogen|mond)_[a-z]+|pop_(sproetjes|blosjes)|arm_stof|i_(wol|schaar|ei|gebakken_ei|emmer_melk|pannenkoek|leer|boek|spooklicht|kwallengel)|dier_[a-z]+|spook_laken|kwal_lijf|braam_tak)$/;
 const ERBIJ_IT = [365, 366, 367, 368, 369, 370, 371, 372, 373, 374], ERBIJ_BL = [178, 179];
 // de nieuwe lijsten zonder wat er alleen bij is gekomen (dat moet dan wel precies achteraan staan)

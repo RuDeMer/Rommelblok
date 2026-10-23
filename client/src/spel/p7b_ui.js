@@ -8,27 +8,8 @@ function ding(x, y, z, soort) {
   if (!d || d.soort !== soort) { d = soort === 'kist' ? { soort, inhoud: new Array(27).fill(null) } : { soort, in: null, brand: null, uit: null, brandTijd: 0, brandMax: 0, kook: 0 }; WD.dingen[k] = d; }
   return d;
 }
-// een oude kist (in een ruïne of een mijn) vult zich de eerste keer met buit: vast per wereld en plek.
-// Per regel: wat, hoeveel (van, tot) en de kans.
-const BUIT = [
-  [['brood', 1, 3, 0.55], ['appel', 2, 4, 0.45], ['kersen', 2, 5, 0.3], ['walnoot', 2, 5, 0.25], ['linnendraad', 2, 5, 0.4], ['papier', 2, 4, 0.35], ['kaart', 1, 1, 0.15],
-    ['kolen', 3, 8, 0.4], ['ijzerstaaf', 1, 3, 0.4], ['goudstaaf', 1, 2, 0.18], ['tarwezaad', 2, 5, 0.3], ['pompoenpit', 1, 2, 0.2], ['bietenzaad', 1, 3, 0.2], ['kaars', 1, 3, 0.25],
-    ['bloempot', 1, 1, 0.12], ['robijn', 1, 1, 0.04], ['sterrensplinter', 1, 1, 0.1], ['kompas', 1, 1, 0.05]],
-  [['kolen', 4, 12, 0.7], ['ijzerstaaf', 2, 5, 0.5], ['koperstaaf', 2, 6, 0.4], ['goudstaaf', 1, 3, 0.28], ['fakkel', 4, 10, 0.5], ['mijnspoor', 4, 12, 0.4], ['brood', 1, 2, 0.35],
-    ['gepofte_aardappel', 2, 4, 0.3], ['robijn', 1, 2, 0.07], ['sterrensplinter', 1, 1, 0.12], ['houweel_ijzer', 1, 1, 0.08]],
-];
-function buitInhoud(x, y, z, v, zaad) {
-  const soort = ((v >> 10) & 3) === 1 ? 1 : 0, r = G.rng(G.hsh(zaad >>> 0, x, z, y * 31 + 9001));
-  const inhoud = new Array(27).fill(null), vrij = Array.from({ length: 27 }, (_, i) => i);
-  const leg = (s, n) => {
-    const id = I[s] !== undefined ? I[s] : B[s], j = vrij.splice(Math.floor(r() * vrij.length), 1)[0];
-    inhoud[j] = { id, n: Math.min(n, stapelVan(id)) };
-    if (IT[id].duur) inhoud[j].dur = Math.max(1, Math.floor(IT[id].duur * (0.3 + r() * 0.4))); // gereedschap is al gebruikt
-  };
-  for (const [s, a, b2, kans] of BUIT[soort]) if (r() < kans) leg(s, a + Math.floor(r() * (b2 - a + 1)));
-  if (vrij.length === 27) leg(soort ? 'kolen' : 'brood', 2 + Math.floor(r() * 3)); // nooit helemaal leeg
-  return inhoud;
-}
+// een oude kist (in een ruïne of een mijn) vult zich de eerste keer met buit: vast per wereld en plek (zie shared/spullen.js)
+const buitInhoud = (x, y, z, v, zaad) => G.SPULLEN.buitInhoud(x, y, z, v, zaad);
 function buitVullen(x, y, z, v) {
   const k = sleutelPlek(x, y, z); if (WD.dingen[k]) return;
   actieGevolg(['v', x, y, z, v]);
@@ -683,15 +664,10 @@ function ovenTik(dt) {
 function ovenTikNu(dt) {
   for (const [k, d] of Object.entries(WD.dingen)) {
     if (d.soort !== 'oven') continue;
-    const r = d.in ? G.ovenRecept(d.in.id) : null;
-    const kan = r && (!d.uit || (d.uit.id === r.uit && d.uit.n + r.aantal <= stapelVan(r.uit)));
-    const brandde = d.brandTijd > 0;
-    if (d.brandTijd > 0) d.brandTijd = Math.max(0, d.brandTijd - dt);
-    if (d.brandTijd <= 0 && kan && d.brand) { const b = IT[d.brand.id].brand || 0; if (b) { d.brandTijd = d.brandMax = b; d.brand.n--; if (d.brand.id === I.emmer_water) {} if (!d.brand.n) d.brand = null; if (huidigScherm() === 'rugzak') rugzakVeranderd(); } }
-    if (d.brandTijd > 0 && kan) {
-      d.kook += dt;
-      if (d.kook >= 8) { d.kook = 0; d.in.n--; if (!d.in.n) d.in = null; if (d.uit) d.uit.n += r.aantal; else d.uit = { id: r.uit, n: r.aantal }; rugzakVeranderd(); }
-    } else d.kook = Math.max(0, d.kook - dt * 2);
+    // het rekenen staat in de gedeelde code (shared/spullen.js), zodat de server bij samen spelen hetzelfde doet
+    const brandde = d.brandTijd > 0, wat = G.SPULLEN.ovenStap(d, dt);
+    if ((wat & 1) && huidigScherm() === 'rugzak') rugzakVeranderd();
+    if (wat & 2) rugzakVeranderd();
     // het blok laten gloeien als de oven brandt
     const brandt = d.brandTijd > 0;
     if (brandt !== brandde) {

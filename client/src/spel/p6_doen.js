@@ -108,10 +108,7 @@ function hakTijd(v, slot) {
   if (sp.hoofdOnder) t *= 2;
   return t;
 }
-function kanOogsten(v, slot) {
-  const b = BL[v & 255]; if (!b) return false; if (!b.klasse) return true;
-  const it = slot ? IT[slot.id] : null; return !!(it && it.gereed && it.gereed === b.gereed && it.klasse >= b.klasse);
-}
+const kanOogsten = (v, slot) => G.SPULLEN.kanOogsten(v, slot);
 function hakTik(dt) {
   if (hak.wacht > 0) hak.wacht -= dt;
   // dieren en griezels: een tik elke halve seconde zolang je de knop vasthoudt
@@ -139,49 +136,8 @@ function hakTik(dt) {
   if (hak.klop <= 0) { hak.klop = 0.24; klank('hak', mat(doel.v)); zwaai('hak'); brokjes(doel.x, doel.y, doel.z, doel.v, 2, doel); }
   if (hak.voortgang >= 1) { breek(doel, false); hak.voortgang = 0; hak.wacht = 0.12; uitput(0.005); }
 }
-// wat levert een blok op
-function opbrengst(v, slot) {
-  const id = v & 255, b = BL[id], st = v >> 8, r = Math.random;
-  if (!b || !kanOogsten(v, slot)) return [];
-  const uit = [];
-  if (b.sleutel.startsWith('blad_')) {
-    const soort = b.sleutel.slice(5).replace(/_oranje|_geel/, '');
-    if (r() < 0.06 && B['stekje_' + soort]) uit.push([B['stekje_' + soort], 1]);
-    if ((soort === 'eik' || soort === 'esdoorn') && r() < 0.045) uit.push([I.appel, 1]);
-    if (soort === 'kers' && r() < 0.09) uit.push([I.kersen, 1]);
-    if (soort === 'noten' && r() < 0.07) uit.push([I.walnoot, 1]);
-    if (r() < 0.03) uit.push([I.stok, 1]);
-    const z = slot && IT[slot.id] && IT[slot.id].gereed === 'zwaard'; if (z && r() < 0.4) uit.push([id, 1]); // met een zwaard krijg je soms de bladeren zelf
-    return uit;
-  }
-  if (id === B.hooggras || id === B.varen) { if (r() < 0.08) uit.push([B.vlas, 1]); if (id === B.hooggras && r() < 0.12) uit.push([I.tarwezaad, 1]); if (id === B.hooggras && r() < 0.03) uit.push([I.bietenzaad, 1]); return uit; }
-  if (b.kleur) { uit.push([G.itemVan(v), 1]); if (b.geeft === 0 && b.laag === 1 && b.vorm === 'kubus') uit.length = 0; return uit; }
-  if (id === B.bloempot) { uit.push([B.bloempot, 1]); const pl = G.POTPLANT[st]; if (pl) uit.push([pl, 1]); return uit; }
-  if (id >= B.gewas_tarwe && id <= B.gewas_pompoen) {
-    const rijp = (st & 3) === 3, n2 = (a, b2) => a + Math.floor(r() * (b2 - a + 1));
-    if (id === B.gewas_tarwe) { if (rijp) uit.push([I.tarwe, 1], [I.tarwezaad, n2(1, 3)]); else uit.push([I.tarwezaad, 1]); }
-    else if (id === B.gewas_aardappel) uit.push([I.aardappel, rijp ? n2(2, 4) : 1]);
-    else if (id === B.gewas_wortel) uit.push([I.wortel, rijp ? n2(2, 4) : 1]);
-    else if (id === B.gewas_biet) { if (rijp) uit.push([I.suikerbiet, n2(1, 2)], [I.bietenzaad, n2(1, 2)]); else uit.push([I.bietenzaad, 1]); }
-    else { if (rijp) { uit.push([B.pompoen, 1]); if (r() < 0.5) uit.push([I.pompoenpit, 1]); } else uit.push([I.pompoenpit, 1]); }
-    return uit;
-  }
-  if (id === B.grind) { uit.push([r() < 0.1 ? I.kolen : B.grind, 1]); return uit; }
-  if (id === B.bessenstruik) { uit.push([B.bessenstruik, 1]); if (st & 1) uit.push([I.bessen, 1 + Math.floor(r() * 2)]); return uit; }
-  if (b.vorm === 'plaat' && (st & 2)) { uit.push([id, 2]); return uit; }
-  if (b.vorm === 'deur' && (st & 8)) return uit; // de onderste helft geeft de deur
-  if (b.vorm === 'bed' && (st & 4)) return uit;
-  if (id === B.bessentaart) { if (!st) uit.push([B.bessentaart, 1]); return uit; }
-  if (id === B.wilgentak && slot && IT[slot.id] && IT[slot.id].gereed === 'zwaard') { uit.push([id, 1]); return uit; }
-  const g = b.geeft;
-  if (!g) return uit;
-  const gid = typeof g === 'string' ? (I[g] !== undefined ? I[g] : B[g]) : g;
-  let n = 1;
-  if (id === B.erts_kolen) n = 1 + (r() < 0.25 ? 1 : 0);
-  if (id === B.erts_koper) n = 1 + Math.floor(r() * 3);
-  if (IT[gid]) uit.push([gid, n]);
-  return uit;
-}
+// wat levert een blok op (staat in de gedeelde code, zodat de server bij samen spelen hetzelfde rekent)
+const opbrengst = (v, slot) => G.SPULLEN.opbrengst(v, slot);
 // blokken die van dit blok afhangen (staan erop, hangen eraan)
 function afhankelijk(x, y, z) {
   const uit = [];

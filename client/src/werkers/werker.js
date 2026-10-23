@@ -32,7 +32,18 @@ export function RB_WERELD(G, ctx) {
     const s = stukken.get(sk(cx, cz)); if (s && s.d) laatst = s; return s && s.d ? s : null;
   }
   let zaad = 0, wid = null, straal = 8, pcx = 0, pcz = 0, pX = 0, pY = 64, pZ = 0, wereld = null, actief = false;
+  // opties.server: de wereldbaas van een gedeelde wereld op de spelserver (geen 3D-vormen en geen kopieën, wel licht, water en groei);
+  //   de middelpunten zijn dan de stukken van alle spelers (centra).
+  // opties.samen: de pagina in een gedeelde wereld; water en groei doet de server, dus hier niet.
+  // In beide gevallen wordt er niets in IndexedDB bewaard, maar onthoudt de overlay per stuk elk veranderd blok
+  // (sleutel van het stuk -> Map(plek in het stuk -> waarde)): een stuk dat opnieuw geladen wordt, krijgt ze terug.
   const opties = { snelleBladeren: false, kopieStraal: 3 };
+  let centra = null;
+  const overlay = new Map(), overlayVies = new Set();
+  const houdBij = () => !!(opties.samen || opties.server);
+  function overlayZet(k, i, v) { let o = overlay.get(k); if (!o) overlay.set(k, o = new Map()); o.set(i, v); overlayVies.add(k); }
+  // ligt een stuk binnen r stukken van een middelpunt (de speler, of op de server een van de spelers)?
+  const naast = (cx, cz, r) => { if (!centra) return Math.abs(cx - pcx) <= r && Math.abs(cz - pcz) <= r; for (const c of centra) if (Math.abs(cx - c[0]) <= r && Math.abs(cz - c[1]) <= r) return true; return false; };
   const makers = []; let makerBeurt = 0;
   const geladen = new Set(); // stukken die op de pagina staan (kopie voor botsen en richten)
   let db = null, opgeslagen = new Set();
@@ -182,13 +193,14 @@ export function RB_WERELD(G, ctx) {
     const i = (y << 8) | ((z & 15) << 4) | (x & 15), oud = s.d[i];
     if (oud === v) return false;
     s.d[i] = v; s.gewijzigd = true; teBewaren.set(s.k, s);
+    if (houdBij()) overlayZet(s.k, i, v);
     markeer(x, y, z);
     const oi = oud & 255, ni = v & 255;
     if (s.l && (DICHT[oi] !== DICHT[ni] || DEMP[oi] !== DEMP[ni] || LICHT[oi] !== LICHT[ni])) lichtOm(x, y, z);
     // water in de buurt moet opnieuw kijken
     if (ni === W || oi === W) plan(x, y, z);
     for (let r = 0; r < 6; r++) { const ny = y + DY[r]; if (ny >= 0 && ny < HOOG && (get(x + DX[r], ny, z + DZ[r]) & 255) === W) plan(x + DX[r], ny, z + DZ[r]); }
-    if (!vanPagina && geladen.has(s.k)) naarPagina.push(x, y, z, v);
+    if (!vanPagina && (geladen.has(s.k) || opties.server)) naarPagina.push(x, y, z, v);
     return true;
   }
 
@@ -579,10 +591,15 @@ export function RB_WERELD(G, ctx) {
   // ============================================================================
   let nodig = [], nodigVoor = '';
   function bepaalNodig() {
-    const k = pcx + ',' + pcz + ',' + straal; if (k === nodigVoor) return; nodigVoor = k;
+    const k = (centra ? centra.join(';') : pcx + ',' + pcz) + ',' + straal; if (k === nodigVoor) return; nodigVoor = k;
     nodig = [];
     const R = straal + 2;
-    for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) { const d2 = dx * dx + dz * dz; if (d2 <= R * R + 2) nodig.push([d2, pcx + dx, pcz + dz]); }
+    if (!centra) { for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) { const d2 = dx * dx + dz * dz; if (d2 <= R * R + 2) nodig.push([d2, pcx + dx, pcz + dz]); } }
+    else {
+      // op de server: rond elke speler, en elk stuk één keer (met de kleinste afstand)
+      const al = new Map();
+      for (const [ccx, ccz] of centra) for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) { const d2 = dx * dx + dz * dz; if (d2 > R * R + 2) continue; const kk = sk(ccx + dx, ccz + dz), o = al.get(kk); if (!o) { const e = [d2, ccx + dx, ccz + dz]; al.set(kk, e); nodig.push(e); } else if (d2 < o[0]) o[0] = d2; }
+    }
     nodig.sort((a, b) => a[0] - b[0]);
   }
   function vraag(cx, cz) {
@@ -601,6 +618,8 @@ export function RB_WERELD(G, ctx) {
   }
   function ontvang(cx, cz, d, b, k) {
     const s = haal(cx, cz); if (!s || s.d) return;
+    // bij samen spelen: de veranderingen die al bekend zijn erin (vóór het licht en het water)
+    const o = overlay.get(s.k); if (o) for (const [i, v] of o) d[i] = v;
     s.d = d; s.b = b; s.kl = k; s.fase = 1; laatst = null;
     zonVul(s);
   }
@@ -631,10 +650,12 @@ export function RB_WERELD(G, ctx) {
       if (performance.now() - t0 > 14) break;
       if (d2 > R0) break;
       const s = haal(cx, cz); if (!s || s.fase < 2) continue;
+      // op de server geen 3D-vormen: een belicht stuk met belichte buren is meteen klaar
+      if (opties.server) { if (s.fase === 2 && rondBuren(s, 2)) s.fase = 3; continue; }
       if ((s.fase === 2 || s.vies) && rondBuren(s, 2)) meshStuk(s);
     }
     // 4. kopieën voor de pagina (botsen, richten, licht op de speler)
-    const KR = opties.kopieStraal;
+    const KR = opties.server ? -1 : opties.kopieStraal;
     for (let dz = -KR; dz <= KR; dz++) for (let dx = -KR; dx <= KR; dx++) {
       const s = haal(pcx + dx, pcz + dz); if (s && s.fase >= 2 && !geladen.has(s.k)) stuurKopie(s);
     }
@@ -642,7 +663,7 @@ export function RB_WERELD(G, ctx) {
     // 5. weggooien wat ver weg is
     const RW = straal + 4;
     for (const [k, s] of stukken) {
-      if (Math.abs(s.cx - pcx) <= RW && Math.abs(s.cz - pcz) <= RW) continue;
+      if (naast(s.cx, s.cz, RW)) continue;
       if (s.fase === 0) continue; // wacht op de maker
       stukken.delete(k); if (laatst === s) laatst = null;
       if (s.fase >= 3) post({ t: 'weg', cx: s.cx, cz: s.cz });
@@ -659,7 +680,7 @@ export function RB_WERELD(G, ctx) {
   function willekeurig() {
     const r = Math.random;
     for (const s of stukken.values()) {
-      if (s.fase < 3 || Math.abs(s.cx - pcx) > 6 || Math.abs(s.cz - pcz) > 6) continue;
+      if (s.fase < 3 || !naast(s.cx, s.cz, 6)) continue;
       for (let n = 0; n < 256; n++) {
         const i = Math.floor(r() * VOL), v = s.d[i], id = v & 255;
         if (!id) continue;
@@ -759,9 +780,9 @@ export function RB_WERELD(G, ctx) {
   function lus() {
     tik();
     const nu = performance.now();
-    if (nu - waterKlok > 250) { waterKlok = nu; waterTik(); }
-    if (nu - toevalKlok > 1000) { toevalKlok = nu; willekeurig(); }
-    if (actief && nu - bouwKlok > 150) { bouwKlok = nu; bouwTik(); }
+    if (!opties.samen && nu - waterKlok > 250) { waterKlok = nu; waterTik(); }
+    if (!opties.samen && nu - toevalKlok > 1000) { toevalKlok = nu; willekeurig(); }
+    if (actief && !opties.server && nu - bouwKlok > 150) { bouwKlok = nu; bouwTik(); }
     tikker = setTimeout(lus, 12);
   }
   ctx.onmessage = async (e) => {
@@ -770,7 +791,7 @@ export function RB_WERELD(G, ctx) {
       // eerst stilzetten: tot we weten welke stukken bewaard zijn, mag er niets gemaakt worden
       // (anders maakt de lus van de vorige wereld, zoals die van het beginscherm, al stukken uit het zaadje en zie je je bouwwerken niet)
       actief = false; clearTimeout(tikker); startNr = m.nr || 0;
-      zaad = m.zaad >>> 0; wid = m.wid; straal = m.straal || 8; Object.assign(opties, m.opties || {});
+      zaad = m.zaad >>> 0; wid = m.wid; straal = m.straal || 8; Object.assign(opties, { samen: false, server: false }, m.opties || {}); centra = m.centra || null; overlay.clear(); overlayVies.clear();
       wereld = G.maakWereld(zaad); bouwBekend.clear(); bouwRij.length = 0; bouwVakSpeler = '';
       stukken.clear(); laatst = null; geladen.clear(); opgeslagen = new Set(); teBewaren.clear(); plannen.clear(); volgende.clear();
       for (const mk of makers) mk.bezig = 0;
@@ -799,13 +820,27 @@ export function RB_WERELD(G, ctx) {
       for (const mk of makers) mk.poort.postMessage({ t: 'wereld', zaad, oud });
       actief = true; clearTimeout(tikker); lus();
       post({ t: 'gestart', opgeslagen: opgeslagen.size, oud: oud ? oud.length / 2 : 0, oudNieuw });
+    } else if (m.t === 'overlay') {
+      // bij samen spelen: de veranderingen van de server voor een paar stukken ([cx, cz, [plek, waarde, plek, waarde, ...]])
+      for (const [cx, cz, a] of m.lijst) {
+        const s = haal(cx, cz);
+        for (let i = 0; i < a.length; i += 2) {
+          const p = a[i], v = a[i + 1];
+          if (s && s.d) zet(cx * 16 + (p & 15), p >> 8, cz * 16 + ((p >> 4) & 15), v); else overlayZet(sk(cx, cz), p, v);
+        }
+      }
+      stuurVeranderingen();
+    } else if (m.t === 'spelers') {
+      // op de server: waar alle spelers zijn (de stukken daaromheen blijven geladen)
+      centra = m.lijst.map(([x, z]) => [Math.floor(x) >> 4, Math.floor(z) >> 4]); if (m.straal) straal = m.straal;
     } else if (m.t === 'speler') {
       pX = m.x; pY = m.y; pZ = m.z; pcx = Math.floor(m.x) >> 4; pcz = Math.floor(m.z) >> 4; if (m.straal) straal = m.straal;
     } else if (m.t === 'zet') {
       const a = m.a;
-      for (let i = 0; i < a.length; i += 4) zet(a[i], a[i + 1], a[i + 2], a[i + 3], true);
-      // meteen opnieuw vormen maken waar het blok veranderde, dan voelt het direct
-      for (let i = 0; i < a.length; i += 4) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const s = stukVan(a[i] + dx, a[i + 2] + dz); if (s && s.vies && s.fase >= 3 && rondBuren(s, 2)) meshStuk(s); }
+      // bij samen spelen: een blok in een stuk dat (nog) niet geladen is, komt in de overlay
+      for (let i = 0; i < a.length; i += 4) if (!zet(a[i], a[i + 1], a[i + 2], a[i + 3], true) && houdBij() && a[i + 1] >= 0 && a[i + 1] < HOOG && !stukVan(a[i], a[i + 2])) overlayZet(sk(a[i] >> 4, a[i + 2] >> 4), (a[i + 1] << 8) | ((a[i + 2] & 15) << 4) | (a[i] & 15), a[i + 3]);
+      // meteen opnieuw vormen maken waar het blok veranderde, dan voelt het direct (op de server zijn er geen vormen)
+      if (!opties.server) for (let i = 0; i < a.length; i += 4) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const s = stukVan(a[i] + dx, a[i + 2] + dz); if (s && s.vies && s.fase >= 3 && rondBuren(s, 2)) meshStuk(s); }
       stuurVeranderingen();
     } else if (m.t === 'bewaar') {
       const n = await bewaar(); post({ t: 'bewaard', n, id: m.id });
@@ -831,5 +866,5 @@ export function RB_WERELD(G, ctx) {
     }
   };
   // voor tests in Node
-  return { waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z) => { zaad = z; wereld = G.maakWereld(z); actief = true; }, meshStuk, rondBuren };
+  return { overlay, overlayVies, waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z) => { zaad = z; wereld = G.maakWereld(z); actief = true; }, meshStuk, rondBuren };
 }
