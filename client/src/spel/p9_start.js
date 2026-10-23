@@ -116,7 +116,10 @@ window.__rommelblok = {
   // je poppetje en de camera
   POP, get opslag() { return opslag; }, openPop, popZetVeld, verrasPop, popStudio, STUDIO: ST, popModel, popDelen, popHouding, popArm,
   // dieren en griezels
-  WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal, slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
+  WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal,
+  // alles wat als wezen getekend wordt (karretjes, bewoners, dieren, andere spelers en je poppetje), zoals in tekenExtra
+  tekenLijst: () => { const l = []; karrenTeken(l); bewonersTeken(l); wezensTeken(l); if (samen) samenTeken(l, 0); popTeken(l, [1, 1, 1], { id: 0, soort: '', zwaai: 1, eet: -1 }); return l; },
+  slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
   // samen spelen
   get samen() { return samen; }, samenAdres, samenNamen, samenTik, gooiWeg, openSamen, samenGaNaar, samenZeg, openZinnen, openSpelers, samenStop, samenStuur, samenOpScherm, samenSpelerData, spelerGeheim, mijnNaam,
   wisselCamera, camModus, camBeeld, maakCamera, camAchterVoor, get camPlek() { return camPlek; }, get oogVorige() { return oogVorige; }, get camSchouder() { return camSchouder && [sp.x + camSchouder[0], sp.y + sp.oog + camSchouder[1], sp.z + camSchouder[2]]; }, kijkVector, BEREIK, oogPos, get camVorige() { return camVorige; },

@@ -25,6 +25,7 @@ N=2 loop "browser: je poppetje en de drie camera's (telefoon, 360 punten breed)"
 N=12 loop "dieren en griezels: vaste kuddetjes, hekken, water, randen, vallen, pijn, buit" node test/wezens.js
 N=2 loop "browser: dieren en griezels (computer)" node test/dieren.js
 N=2 loop "browser: dieren en griezels (telefoon, 360 punten breed)" node test/dieren.js telefoon
+N=3 loop "browser: de kop zit vooraan (dieren, griezels, bewoners, je poppetje; vier richtingen, zwemmen, zweven, volgen)" node test/kop_voor.js
 N=4 loop "blokwaarden: ruimte voor 1024 soorten zonder iets om te zetten" node test/standen.js
 N=3 loop "zaadje: zelfde wereld" node test/gen1.js
 N=7 loop "landschap: land en zee, oceanen, rivieren, begin op land" node test/landschap.js

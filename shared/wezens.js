@@ -151,7 +151,9 @@ function denkGriezel(w, S, dt, W, uit) {
   }
 }
 function richt(w, p) { let ax = p.x - w.x, az = p.z - w.z; const l = Math.hypot(ax, az) || 1; w.dx = ax / l; w.dz = az / l; w.dy = Math.max(-1, Math.min(1, (p.y + 1 - (w.y + 0.5)) / 3)); }
-function kijk(w, p) { w.yaw = Math.atan2(-(p.x - w.x), -(p.z - w.z)); }
+// yaw: de kant waar de kop heen wijst, als (sin yaw, cos yaw) in x en z. De modellen hebben hun kop aan de +z-kant
+// (net als de bewoners en de poppetjes); de camera gebruikt juist -z als vooruit, en dat liet de dieren achteruit lopen.
+function kijk(w, p) { w.yaw = Math.atan2(p.x - w.x, p.z - w.z); }
 
 // ---------------- bewegen en botsen
 function beweeg(w, S, dt, W) {
@@ -169,7 +171,7 @@ function beweeg(w, S, dt, W) {
     if (!mag) { if (w.st === 'storm') { w.st = 'moe'; w.t = 2; } else { w.dx = -w.dx; w.dz = -w.dz; if (w.st === 'loop') w.t = Math.min(w.t, 1); } snel = 0; }
   }
   // de kant op kijken waar je heen gaat (zacht draaien)
-  if (snel > 0 && (w.dx || w.dz)) { const doelYaw = Math.atan2(-w.dx, -w.dz); let d = doelYaw - w.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); w.yaw += d * Math.min(1, dt * 8); }
+  if (snel > 0 && (w.dx || w.dz)) { const doelYaw = Math.atan2(w.dx, w.dz); let d = doelYaw - w.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); w.yaw += d * Math.min(1, dt * 8); }
   const tx = w.dx * snel, tz = w.dz * snel, k = Math.min(1, dt * (w.grond || S.zweeft || water ? 10 : 2));
   w.vx += (tx - w.vx) * k; w.vz += (tz - w.vz) * k;
   if (S.zweeft) {

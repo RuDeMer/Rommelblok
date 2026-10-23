@@ -163,10 +163,23 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
   goed(!!weg && await R(B, n => window.__ber.filter(m => m.t === 'plek').length === n, correcties), 'B loopt een stukje over vrije grond: de server laat dat toe (geen terugzetting)');
   // echt lopen en rennen (met springen over heuveltjes), in gewone tijd: 8 seconden, en de server zet B niet één keer terug
   const loopVan = await R(B, () => { const R = window.__rommelblok; return [R.sp.x, R.sp.z]; });
+  // onderweg: ziet A het poppetje van B met zijn gezicht naar voren (de ogen van het model in de richting waarin B kijkt en loopt)?
+  const kopVoor = yaw => {
+    const R = window.__rommelblok, o = [...R.samen.spelers.values()][0]; if (!o || !o.buf.length) return 'geen B';
+    const b = o.buf[o.buf.length - 1], voor = [-Math.sin(yaw), -Math.cos(yaw)];
+    const e = R.tekenLijst().filter(e => !/^(wz:|bw_|kar$)/.test(e.model)).sort((p, q) => Math.hypot(p.x - b[1], p.z - b[3]) - Math.hypot(q.x - b[1], q.z - b[3]))[0];
+    const og = e && (R.R.modelDelen(e.model) || []).find(d => d.naam === 'ogen'); if (!og) return 'model ' + (e && e.model);
+    let x = 0, z = 0; for (const q of og.dozen) { x += (q[0] + q[3]) / 2 / og.dozen.length; z += (q[2] + q[5]) / 2 / og.dozen.length; }
+    const wx = x * Math.cos(e.yaw) + z * Math.sin(e.yaw), wz = -x * Math.sin(e.yaw) + z * Math.cos(e.yaw);
+    return (wx * voor[0] + wz * voor[1]) / Math.hypot(wx, wz);
+  };
+  const koppen = [];
   for (let i = 0; i < 80; i++) {
     await R(B, i => { const R = window.__rommelblok; R.kijk(i < 40 ? 0.4 : 0.4 + Math.PI / 2, 0); R.sim(2, 0.05, { voor: 1, rent: i % 20 > 5, spring: i % 7 === 0 }); R.samenTik(0.1, R.camVorige); }, i);
     await B.page.waitForTimeout(100);
+    if (i === 30 || i === 70) koppen.push(await R(A, kopVoor, await R(B, () => window.__rommelblok.sp.yaw)));
   }
+  goed(koppen.every(k => k > 0.8), 'A ziet het poppetje van B met zijn gezicht naar voren lopen (' + koppen.map(k => typeof k === 'number' ? (k * 100).toFixed(0) + '%' : k).join(', ') + ')');
   const gelopen = await R(B, p => { const R = window.__rommelblok; return Math.hypot(R.sp.x - p[0], R.sp.z - p[1]); }, loopVan);
   await B.page.waitForTimeout(500);
   goed(gelopen > 15 && await R(B, n => window.__ber.filter(m => m.t === 'plek').length === n, correcties), 'B loopt en rent ' + gelopen.toFixed(0) + ' blokken over het land: de server zet hem nergens terug');

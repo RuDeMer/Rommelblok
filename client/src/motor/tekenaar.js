@@ -716,7 +716,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     return { vao, n: I.length, vb, ib };
   }
   function model(naam, delen) {
-    const m = delen.map(d => ({ naam: d.naam, ding: d.dtex !== undefined, vorm: dozenVorm(d.dozen, d.dtex !== undefined ? d.dtex : d.tex || 0), kleur: d.kleur || null, spil: d.spil || [0, 0, 0] }));
+    const m = delen.map(d => ({ naam: d.naam, ding: d.dtex !== undefined, vorm: dozenVorm(d.dozen, d.dtex !== undefined ? d.dtex : d.tex || 0), kleur: d.kleur || null, spil: d.spil || [0, 0, 0], dozen: d.dozen }));
     MODELLEN.set(naam, m); return m;
   }
   // een model weer weggooien (bijvoorbeeld een oud poppetje na het aanpassen)
@@ -726,6 +726,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     MODELLEN.delete(naam);
   }
   const heeftModel = naam => MODELLEN.has(naam);
+  // de dozen van een model (in zestienden, met de kop aan de +z-kant; een zevende waarde is de textuur per kant), voor tests
+  const modelDelen = naam => { const m = MODELLEN.get(naam); return m ? m.map(d => ({ naam: d.naam, dozen: d.dozen.map(b => b.slice()), spil: d.spil })) : null; };
   const MB = new Float32Array(16), MP = new Float32Array(16), MQ = new Float32Array(16), MR = new Float32Array(16);
   // lijst: [{ model, x, y, z, yaw, pitch, licht: [r,g,b], delen: { naam: [rx, ry, rz] }, kleuren: { naam: [r,g,b] } }]
   function tekenWezens(lijst, L, C) {
@@ -982,5 +984,5 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     const l = Math.hypot(q[0] / q[3], q[1] / q[3], q[2] / q[3]);
     return [q[0] / q[3] / l, q[1] / q[3] / l, q[2] / q[3] / l];
   }
-  return { gl, kijkMatrix, zetStuk, weg, allesWeg, zetKleur, teken, stats, kijkRichting, model, modelWeg, heeftModel, get gpuMB() { return gpuBytes / 1048576; }, stukken, dingVorm, maat: () => [W, H], verlies: () => gl.isContextLost() };
+  return { gl, kijkMatrix, zetStuk, weg, allesWeg, zetKleur, teken, stats, kijkRichting, model, modelWeg, heeftModel, get gpuMB() { return gpuBytes / 1048576; }, stukken, dingVorm, modelDelen, maat: () => [W, H], verlies: () => gl.isContextLost() };
 }
