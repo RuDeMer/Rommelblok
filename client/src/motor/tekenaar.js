@@ -62,7 +62,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       vLaag = w1 & 255u; vVl = vl; vN = n; vEx = ex;
       gl_Position = uVP * vec4(vRel, 1.0);
     }`;
-  const BLOK_FS = (snij) => `#version 300 es
+  // scherp: op de hoogste stand ook schuine vlakken (de grond in de verte) scherp, met een paar monsters langs de lange kant
+  const BLOK_FS = (snij, scherp) => `#version 300 es
     precision highp float; precision highp int; precision highp sampler2DArray;
     uniform sampler2DArray uTex, uTint;
     uniform vec3 uZonKleur, uFakKleur; uniform float uMin, uFlakker; uniform vec3 uPalet[12];
@@ -70,6 +71,12 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     flat in uint vLaag, vVl, vN, vEx;
     out vec4 o;
     const float SCHAD[8] = float[8](0.78, 0.78, 1.0, 0.52, 0.9, 0.9, 0.92, 0.92);
+    // een textuur op dit vlak: na monsters langs de lange kant as (bij na = 1 gewoon één monster op uv)
+    vec4 monster(float laag, vec2 uv, vec2 as, float na, float lod) {
+      vec4 t = vec4(0.0);
+      for (int i = 0; i < 4; i++) { if (float(i) >= na) break; vec2 q = uv + as * ((float(i) + 0.5) / na - 0.5); t += textureLod(uTex, vec3(fract(q.x), 1.0 - fract(q.y), laag), lod); }
+      return t / na;
+    }
     void main() {
       vec2 uv;
       if (vN == 0u) uv = vec2(-vLp.z, vLp.y); else if (vN == 1u) uv = vec2(vLp.z, vLp.y);
@@ -77,16 +84,20 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       else if (vN == 4u) uv = vec2(vLp.x, vLp.y); else if (vN == 5u) uv = vec2(-vLp.x, vLp.y);
       else uv = vec2(vLp.x, vLp.y);
       if ((vVl & 32u) != 0u) uv = vec2(uv.y, -uv.x);
-      vec2 st = vec2(fract(uv.x), 1.0 - fract(uv.y));
       // detailniveau zelf uitrekenen (16 pixels per blok): overal gelijk, ook waar de textuur zich herhaalt
       vec2 dx = dFdx(uv), dy = dFdy(uv);
-      float lod = max(0.0, 0.5 * log2(max(dot(dx, dx), dot(dy, dy)) * 256.0) - 0.35);
-      vec4 t = textureLod(uTex, vec3(st, float(vLaag)), lod);
+      float lx = dot(dx, dx), ly = dot(dy, dy), na = 1.0, lod; vec2 as = vec2(0.0);
+      ${scherp ? `// schuin bekeken: het detailniveau van de korte kant, en tot 4 monsters langs de lange kant (zoals anisotrope
+      // filtering, maar zelf gedaan, zodat het op elke grafische kaart even scherp is)
+      float pmax = sqrt(max(lx, ly)), pmin = sqrt(min(lx, ly));
+      na = clamp(ceil(pmax / max(pmin, 1e-6)), 1.0, 4.0); as = lx > ly ? dx : dy;
+      lod = max(0.0, log2(max(pmax / na, pmin) * 16.0) - 0.35);` : `lod = max(0.0, 0.5 * log2(max(lx, ly) * 256.0) - 0.35);`}
+      vec4 t = monster(float(vLaag), uv, as, na, lod);
       ${snij ? 'if (t.a < 0.5) discard;' : ''}
       vec3 c = t.rgb;
       uint ts = (vVl >> 2u) & 3u;
       if ((vVl & 2u) != 0u) {
-        vec4 ov = textureLod(uTex, vec3(st, float(vLaag + 1u)), lod);
+        vec4 ov = monster(float(vLaag + 1u), uv, as, na, lod);
         vec3 tk = texture(uTint, vec3(vTuv, float(ts - 1u))).rgb;
         c = mix(c, ov.rgb * tk * 1.15, ov.a);
       } else if (ts > 0u) c *= texture(uTint, vec3(vTuv, float(ts - 1u))).rgb * 1.15;
@@ -102,7 +113,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       // mist: kleur van de lucht in die richting, zodat de verte er naadloos in overgaat
       o = vec4(mix(c, vMist.rgb, vMist.a), 1.0);
     }`;
-  const WATER_VS = BLOK_VS.replace('out vec3 vLp;', 'out vec3 vLp; out vec3 vWave;').replace('vLp = lp; vRel', `
+  const WATER_VS = BLOK_VS.replace('out vec3 vLp;', 'out vec3 vLp; out vec3 vWave;').replace('vLp = lp; if (n < 6u && (ex & 128u) != 0u) vLp -= uTexOfs[ex & 7u] / 16.0;', 'vLp = lp;').replace('if (n < 6u && (ex & 132u) == 4u) lp +=', 'if (false) lp +=').replace('vLp = lp; vRel', `
       vWave = vec3(0.0);
       if (n == 2u && ((w1 >> 18u) & 12u) == 12u && (ex & 128u) == 0u) {
         float g = sin(uTijd * 1.3 + mp.x * 0.6136 + mp.y * 0.3682) * 0.5 + sin(uTijd * 1.7 - mp.x * 0.3682 + mp.y * 0.7363) * 0.5;
@@ -140,7 +151,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       vec2 wp = (vTuv * 512.0) - 0.5;
       float ang = float(rdir) * 0.785398;
       vec2 sd = stroomt ? vec2(cos(ang), sin(ang)) * 1.4 : vec2(0.18, 0.11);
-      vec3 N;
+      vec3 N; float val = 0.0;
       if (vN == 2u) {
         vec2 a = wp * 0.11 + uRuisOfs - sd * uTijd * 0.11, b = wp * 0.23 + uRuisOfs * 1.7 + vec2(0.37, 0.71) - sd.yx * uTijd * 0.17;
         float h0 = texture(uRuis, a).r + texture(uRuis, b).r * 0.5;
@@ -148,8 +159,19 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
         float hz = texture(uRuis, a + vec2(0.0, 0.02)).r + texture(uRuis, b + vec2(0.0, 0.02)).r * 0.5;
         N = normalize(vec3((h0 - hx) * 2.2, 1.0, (h0 - hz) * 2.2));
       } else {
-        float s = texture(uRuis, vec2(wp.x * 0.13 + vLp.z * 0.13, vLp.y * 0.08 + uTijd * 0.5)).r;
-        N = normalize(vec3(vN == 0u ? 1.0 : vN == 1u ? -1.0 : 0.0, (s - 0.5) * 0.4, vN == 4u ? 1.0 : vN == 5u ? -1.0 : 0.0));
+        // zijkanten (en de onderkant): de richting van het vlak, een beetje verstoord
+        vec3 n0 = vN == 0u ? vec3(1.0, 0.0, 0.0) : vN == 1u ? vec3(-1.0, 0.0, 0.0) : vN == 4u ? vec3(0.0, 0.0, 1.0) : vN == 5u ? vec3(0.0, 0.0, -1.0) : vec3(0.0, -1.0, 0.0);
+        float u = (vN == 0u || vN == 1u) ? wp.y : wp.x;
+        if (stroomt && vN != 3u) {
+          // vallend of stromend water: strepen die naar beneden vallen (twee lagen ruis, lang en smal), met wit schuim
+          float y = vLp.y;
+          float s1 = texture(uRuis, vec2(u * 0.55, y * 0.045 + uTijd * 0.2)).r, s2 = texture(uRuis, vec2(u * 1.1 + 0.31, y * 0.09 + uTijd * 0.46)).r;
+          val = smoothstep(0.5, 0.72, s1 * 0.6 + s2 * 0.5);
+          N = normalize(n0 + vec3(0.0, (s1 - 0.5) * 0.5, 0.0) + (vN < 2u ? vec3(0.0, 0.0, s2 - 0.5) : vec3(s2 - 0.5, 0.0, 0.0)) * 0.6);
+        } else {
+          float s = texture(uRuis, vec2(u * 0.13 + vLp.z * 0.13, vLp.y * 0.08 + uTijd * 0.5)).r;
+          N = normalize(n0 + vec3(0.0, (s - 0.5) * 0.4, 0.0));
+        }
       }
       if (uOnderWater > 0.5) N = -N;
       float fr = pow(1.0 - max(dot(-V, N), 0.0), 4.0) * 0.85 + 0.08;
@@ -161,6 +183,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       c = mix(c, refl, fr) + uZonGloed * glim;
       if (stroomt && vN == 2u) c += vec3(0.16) * smoothstep(0.62, 0.8, texture(uRuis, wp * 0.3 - sd * uTijd * 0.3).r) * L;
       float a = mix(0.42, 0.86, clamp(d / 6.0, 0.0, 1.0));
+      // een waterval is goed te zien: minder doorzichtig, en de strepen zijn wit schuim
+      if (stroomt && vN != 2u && vN != 3u) { c = mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, val * 0.85); a = max(a, 0.8) + val * 0.15; }
       a = clamp(a + fr * 0.4, 0.0, 0.95);
       if (uOnderWater > 0.5) { c = mix(wk * L * 0.7, refl * 0.5, 0.3); a = 0.55; }
       float m = uOnderWater > 0.5 ? clamp(1.0 - exp(-length(vRel) * 0.075), 0.0, 1.0) : smoothstep(uMist.x, uMist.y, length(vRel.xz));
@@ -278,7 +302,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   const PALET = new Float32Array(36); G.PALET.forEach((p, i) => { const n = parseInt(p[4].slice(1), 16); PALET[i * 3] = Math.min(1.2, ((n >> 16) & 255) / 255 * 1.1); PALET[i * 3 + 1] = Math.min(1.2, ((n >> 8) & 255) / 255 * 1.1); PALET[i * 3 + 2] = Math.min(1.2, (n & 255) / 255 * 1.1); });
   const paletKleur = k => [PALET[k * 3], PALET[k * 3 + 1], PALET[k * 3 + 2]];
   const TEXOFS = new Float32Array(24); G.TEXOFS.forEach((o, i) => { if (i < 8) TEXOFS.set(o, i * 3); });
-  const PB = maakProg(BLOK_VS, BLOK_FS(false), 'blok'), PU = maakProg(BLOK_VS, BLOK_FS(true), 'uitgesneden'), PW = maakProg(WATER_VS, WATER_FS, 'water');
+  const PB = maakProg(BLOK_VS, BLOK_FS(false, !!opt.aniso), 'blok'), PU = maakProg(BLOK_VS, BLOK_FS(true, !!opt.aniso), 'uitgesneden'), PW = maakProg(WATER_VS, WATER_FS, 'water');
   const PL = maakProg(LUCHT_VS, LUCHT_FS, 'lucht'), PWk = maakProg(WOLK_VS, WOLK_FS, 'wolken'), PLn = maakProg(LIJN_VS, LIJN_FS, 'lijn');
   const PD = maakProg(DING_VS, DING_FS, 'ding'), PDt = maakProg(DEELTJE_VS, DEELTJE_FS, 'deeltje');
 

@@ -56,16 +56,23 @@ let testVast = false, tekenUit = false;
 function bijsturen(dt) {
   // (niet bijsturen als er een scherm open is: dan zegt het aantal beeldjes niets over het spel)
   if (!spelBezig || !wereldKlaar || document.hidden || testVast || schermOpen()) return;
-  const doel = telefoon ? 30 : 55;
-  if (fps < doel - 4) { meet.traagSinds += dt; meet.snelSinds = 0; } else if (fps > doel + 12) { meet.snelSinds += dt; meet.traagSinds = 0; } else { meet.traagSinds = Math.max(0, meet.traagSinds - dt); }
-  if (meet.traagSinds > 3) {
+  const doel = telefoon ? 30 : 55, nu = performance.now();
+  // Terwijl er veel nieuwe stukken klaarliggen (net geladen, of snel vliegen), zegt een hapering weinig: dan niet omlaag.
+  // Weer soepel is 'dicht bij het doel': een gewoon scherm ververst 60 keer per seconde, dus meer dan 60 haal je dan nooit
+  // (vroeger moest het boven 67, en kwam de scherpte op zo'n scherm na één hapering nooit meer terug).
+  const druk = meshRij.size > 6;
+  if (fps < doel - 4 && !druk) { meet.traagSinds += dt; meet.snelSinds = 0; } else if (fps >= doel + 1) { meet.snelSinds += dt; meet.traagSinds = Math.max(0, meet.traagSinds - dt); } else { meet.traagSinds = Math.max(0, meet.traagSinds - dt); }
+  if (meet.traagSinds > 4) {
     meet.traagSinds = 0;
-    if (dynSchaal > 0.6) dynSchaal = Math.max(0.6, dynSchaal - 0.1);
-    else if (!inst.kijk && huidigeStraal > 3) { huidigeStraal--; vertelPlek(performance.now(), true); }
+    // onthouden waar het te traag was: daar gaan we de komende anderhalve minuut niet meteen weer naartoe (anders schommelt het)
+    meet.grens = { schaal: dynSchaal, straal: huidigeStraal, tot: nu + 90000 };
+    if (dynSchaal > 0.6) dynSchaal = Math.max(0.6, Math.round((dynSchaal - 0.1) * 10) / 10);
+    else if (!inst.kijk && huidigeStraal > 3) { huidigeStraal--; vertelPlek(nu, true); }
   } else if (meet.snelSinds > 8) {
     meet.snelSinds = 0;
-    if (!inst.kijk && huidigeStraal < straalNu()) { huidigeStraal++; vertelPlek(performance.now(), true); }
-    else if (dynSchaal < (KW.schaal || 1)) dynSchaal = Math.min(KW.schaal || 1, dynSchaal + 0.1);
+    const g = meet.grens && nu < meet.grens.tot ? meet.grens : null;
+    if (!inst.kijk && huidigeStraal < straalNu() && !(g && huidigeStraal + 1 >= g.straal && dynSchaal >= g.schaal)) { huidigeStraal++; vertelPlek(nu, true); }
+    else if (dynSchaal < (KW.schaal || 1) && !(g && dynSchaal + 0.1 >= g.schaal - 1e-6)) dynSchaal = Math.min(KW.schaal || 1, Math.round((dynSchaal + 0.1) * 10) / 10);
   }
 }
 // ---------------- opstarten

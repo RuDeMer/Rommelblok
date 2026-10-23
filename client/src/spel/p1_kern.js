@@ -27,7 +27,7 @@ const telefoon = aanraak && Math.min(screen.width, screen.height) < 820;
 const KWAL = {
   laag: { maxDpr: 1.25, straal: 4, wolken: false, aa: false, aniso: false, snelleBladeren: true, schaal: 0.9 },
   midden: { maxDpr: 1.75, straal: 6, wolken: true, aa: false, aniso: false, snelleBladeren: false, schaal: 1 },
-  hoog: { maxDpr: 1.5, straal: 10, wolken: true, aa: true, aniso: true, snelleBladeren: false, schaal: 1 },
+  hoog: { maxDpr: 2, straal: 10, wolken: true, aa: true, aniso: true, snelleBladeren: false, schaal: 1 },
 };
 function kwaliteitNu() {
   if (inst.kwaliteit !== 'auto') return inst.kwaliteit;
