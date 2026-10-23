@@ -2,13 +2,17 @@
   <canvas id="rb-doek" aria-label="De wereld van Rommelblok" data-t-label="De wereld van Rommelblok"></canvas>
   <div id="rb-rood" aria-hidden="true" hidden></div>
   <div id="rb-water" aria-hidden="true" hidden></div>
-  <div id="rb-slaap" aria-hidden="true" hidden></div>
+  <div id="rb-slaap" aria-hidden="true" hidden><p id="rb-slaap-tekst"></p></div>
   <div class="rb-kruis" aria-hidden="true"></div>
   <div id="rb-fps" hidden></div>
   <div id="rb-melding" role="status" aria-live="polite" hidden></div>
   <div id="rb-tip" role="tooltip" hidden></div>
   <div id="rb-wijzer" hidden><span class="pijl" aria-hidden="true">➤</span><span id="rb-wijzer-tekst"></span></div>
   <div id="rb-klok" hidden></div>
+  <!-- samen spelen: naamkaartjes boven de andere spelers, wat er gezegd wordt, en twee knoppen -->
+  <div id="rb-namen" aria-hidden="true"></div>
+  <div id="rb-praat" aria-live="polite"></div>
+  <div id="rb-samen-hud"><button type="button" class="rb-knop klein" id="rb-samen-praat" aria-label="Praten (T)" data-t-label="Praten (T)">💬</button><button type="button" class="rb-knop klein" id="rb-samen-wie" aria-label="Spelers (Tab)" data-t-label="Spelers (Tab)">👥 <span id="rb-samen-aantal">1</span></button></div>
   <canvas id="rb-minikaart" hidden aria-label="Kleine kaart. Tik om de grote kaart te openen." data-t-label="Kleine kaart. Tik om de grote kaart te openen."></canvas>
   <div class="rb-onder" id="rb-onder">
     <div class="rb-status" id="rb-status" hidden>
@@ -24,6 +28,8 @@
     <button type="button" class="rb-tk" id="tk-menu" aria-label="Menu" data-t-label="Menu">☰</button>
     <button type="button" class="rb-tk" id="tk-rugzak" aria-label="Rugzak" data-t-label="Rugzak">🎒</button>
     <button type="button" class="rb-tk" id="tk-camera" aria-label="Camera wisselen" data-t-label="Camera wisselen">🎥</button>
+    <button type="button" class="rb-tk" id="tk-praat" aria-label="Praten" data-t-label="Praten">💬</button>
+    <button type="button" class="rb-tk" id="tk-spelers" aria-label="Spelers" data-t-label="Spelers">👥<small id="tk-spelers-aantal">1</small></button>
     <button type="button" class="rb-tk groot" id="tk-spring" aria-label="Springen" data-t-label="Springen"><span data-t>Spring</span></button>
     <button type="button" class="rb-tk" id="tk-sluip" aria-label="Sluipen" data-t-label="Sluipen" aria-pressed="false"><span data-t>Sluip</span></button>
     <button type="button" class="rb-tk" id="tk-vlieg" aria-label="Vliegen" data-t-label="Vliegen" aria-pressed="false"><span data-t>Vlieg</span></button>
@@ -44,7 +50,7 @@
       <div class="rb-briefje" id="rb-nieuwtje" hidden></div>
       <div class="rb-paneel rb-werelden-paneel">
         <div class="rb-paneel-kop"><h2 class="rb-tape" data-t>Je werelden</h2>
-          <div class="rb-kop-knoppen"><button type="button" class="rb-knop" id="rb-import" data-t>Importeer</button><button type="button" class="rb-knop rood" id="rb-nieuw" data-t>Nieuwe wereld</button></div>
+          <div class="rb-kop-knoppen"><button type="button" class="rb-knop" id="rb-samen-knop" hidden data-t>Samen spelen</button><button type="button" class="rb-knop" id="rb-import" data-t>Importeer</button><button type="button" class="rb-knop rood" id="rb-nieuw" data-t>Nieuwe wereld</button></div>
         </div>
         <ul class="rb-werelden" id="rb-werelden"></ul>
         <input type="file" id="rb-bestand" accept=".rommelblok,.json,application/json" hidden>
@@ -60,8 +66,8 @@
 
   <div class="rb-scherm" id="rb-maak" hidden>
     <form class="rb-paneel rb-dialoog" id="rb-maak-vorm" autocomplete="off">
-      <h2 class="rb-tape" data-t>Nieuwe wereld</h2>
-      <label class="rb-veldje"><span data-t>Naam</span><input type="text" id="rb-maak-naam" maxlength="40" required></label>
+      <h2 class="rb-tape" id="rb-maak-titel" data-t>Nieuwe wereld</h2>
+      <label class="rb-veldje" id="rb-maak-naam-rij"><span data-t>Naam</span><input type="text" id="rb-maak-naam" maxlength="40" required></label>
       <div class="rb-standen" role="radiogroup" aria-label="Stand" data-t-label="Stand">
         <button type="button" class="rb-stand" data-stand="overleven" role="radio" aria-checked="true"><b data-t>Overleven</b><small data-t>Verzamel alles zelf. Pas op voor vallen, verdrinken en honger.</small></button>
         <button type="button" class="rb-stand" data-stand="bouwen" role="radio" aria-checked="false"><b data-t>Bouwen</b><small data-t>Alle blokken onbeperkt, vliegen, en niets kan je pijn doen.</small></button>
@@ -71,6 +77,39 @@
       <p class="rb-klein" data-t>Hetzelfde zaadje geeft altijd dezelfde wereld. Zo kun je een wereld met vrienden delen.</p>
       <div class="rb-knoppen"><button type="button" class="rb-knop" data-sluit data-t>Terug</button><button type="submit" class="rb-knop rood" data-t>Maak wereld</button></div>
     </form>
+  </div>
+
+  <div class="rb-scherm" id="rb-samen" hidden>
+    <div class="rb-paneel rb-dialoog rb-samen" role="dialog" aria-modal="true" aria-labelledby="rb-samen-titel">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" id="rb-samen-titel" data-t>Samen spelen</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <p class="rb-klein" data-t>Speel samen in één wereld. Alleen wie de uitnodigingscode heeft, kan erin, en praten gaat met vaste zinnetjes.</p>
+      <div class="rb-veldje"><span id="rb-samen-naam-kop" data-t>Jouw naam</span><span class="rb-rij-in rb-samen-naam"><select id="rb-samen-naam-a" aria-label="Eerste woord van je naam" data-t-label="Eerste woord van je naam"></select><select id="rb-samen-naam-b" aria-label="Tweede woord van je naam" data-t-label="Tweede woord van je naam"></select><button type="button" class="rb-knop" id="rb-samen-dobbel" aria-label="Willekeurige naam" data-t-label="Willekeurige naam">🎲</button></span></div>
+      <h3 class="rb-samen-kop"><span data-t>Je gedeelde werelden</span></h3>
+      <ul class="rb-werelden rb-samen-lijst" id="rb-samen-lijst"></ul>
+      <form class="rb-veldje" id="rb-samen-mee" autocomplete="off"><span data-t>Doe mee met een code</span><span class="rb-rij-in"><input type="text" id="rb-samen-code" maxlength="60" placeholder="blauwe-lantaarn-egel-42" autocapitalize="off" spellcheck="false" aria-label="Uitnodigingscode" data-t-label="Uitnodigingscode"><button type="submit" class="rb-knop rood" data-t>Doe mee</button></span></form>
+      <p class="rb-samen-fout" id="rb-samen-fout" role="alert" hidden></p>
+      <div class="rb-knoppen"><button type="button" class="rb-knop" data-sluit data-t>Terug</button><button type="button" class="rb-knop rood" id="rb-samen-maak" data-t>Maak een gedeelde wereld</button></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-zinnen" hidden>
+    <div class="rb-paneel rb-dialoog rb-zinnen" role="dialog" aria-modal="true" aria-labelledby="rb-zinnen-titel">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" id="rb-zinnen-titel" data-t>Zeg iets</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <div class="rb-zinnen-lijst" id="rb-zinnen-lijst"></div>
+    </div>
+  </div>
+
+  <div class="rb-scherm" id="rb-spelers" hidden>
+    <div class="rb-paneel rb-dialoog rb-spelers" role="dialog" aria-modal="true" aria-labelledby="rb-spelers-titel">
+      <div class="rb-paneel-kop"><h2 class="rb-tape" id="rb-spelers-titel" data-t>Spelers</h2><button type="button" class="rb-knop rb-sluit" data-sluit aria-label="Sluiten" data-t-label="Sluiten">✕</button></div>
+      <p class="rb-klein" id="rb-spelers-uitleg"></p>
+      <ul class="rb-werelden rb-spelers-lijst" id="rb-spelers-lijst"></ul>
+      <div class="rb-veldje"><span data-t>Uitnodigingscode</span><span class="rb-rij-in"><code id="rb-spelers-code"></code><button type="button" class="rb-knop klein" id="rb-spelers-kopie" data-t>Kopieer</button><button type="button" class="rb-knop klein" id="rb-spelers-nieuw" data-t>Nieuwe code</button></span></div>
+      <div id="rb-spelers-eigenaar">
+        <div class="rb-veldje"><span id="rb-spelers-bouwen-kop" data-t>Wie mag bouwen?</span><div class="rb-segment" role="group" aria-labelledby="rb-spelers-bouwen-kop"><button type="button" id="rb-spelers-bouwen-iedereen" aria-pressed="true" data-t>Iedereen</button><button type="button" id="rb-spelers-bouwen-ik" aria-pressed="false" data-t>Alleen ik</button></div></div>
+        <div class="rb-knoppen"><button type="button" class="rb-knop klein" id="rb-spelers-toelaten" data-t>Iedereen weer toelaten</button><button type="button" class="rb-knop klein" id="rb-spelers-dicht" data-t>Sluit de wereld</button><button type="button" class="rb-knop klein gevaar" id="rb-spelers-weg" data-t>Verwijder de wereld</button></div>
+      </div>
+    </div>
   </div>
 
   <div class="rb-scherm" id="rb-laden" hidden>

@@ -118,10 +118,10 @@ function erbij(m) {
     wereld: { id: wereldId, naam: W.naam, zaad: W.zaad >>> 0, stand: W.stand, moeilijk: W.moeilijk, tijd, dag, bouwen: W.regels.bouwen, dicht: W.regels.dicht },
     eigenaar, plek: plek || null, start: START, data: s.data,
     nieuw: m.nieuw || null,
-    spelers: [...spelers.values()].filter(o => o !== s).map(o => [o.sid, o.naam, o.pop]),
+    spelers: [...spelers.values()].filter(o => o !== s).map(o => [o.sid, o.naam, o.pop, o.eigenaar ? 1 : 0]),
   });
   if (los.size) stuur(s, { t: 'los', l: [...los.values()].map(losRij) });
-  stuurAlle({ t: 'erbij', sid: s.sid, naam: s.naam, pop: s.pop }, s);
+  stuurAlle({ t: 'erbij', sid: s.sid, naam: s.naam, pop: s.pop, eigenaar: eigenaar ? 1 : 0 }, s);
   centraBijwerken();
   stukkenTik(s);
 }
@@ -352,7 +352,7 @@ function nieuwLos(x, y, z, item, n, dur) {
 let nieuweLos = [];
 function raap(s, m) {
   const l = los.get(m.id);
-  if (!l) { stuur(s, { t: 'opgeraapt', id: m.id, wie: -1 }); return; }
+  if (!l) { stuur(s, { t: 'opgeraapt', id: m.id, wie: -1, weg: true }); return; }
   if (Math.hypot(l.x - s.pos[0], l.y - (s.pos[1] + 0.8), l.z - s.pos[2]) > 5) { stuur(s, { t: 'opgeraapt', id: m.id, wie: -1 }); return; }
   los.delete(l.id);
   stuurAlle({ t: 'opgeraapt', id: l.id, wie: s.sid });
@@ -380,6 +380,8 @@ function meld(s, m) {
   s.gemeld.set(o.hash, nu);
   db.melding(wereldId, s.hash, o.hash, o.naam, { zinnen: o.zinnen.map(z => z[0]), acties: o.recent.slice(-20), eigenaar: o.eigenaar });
   stuur(s, { t: 'gemeld', wie: o.sid });
+  // de eigenaar hoort het ook (niet wie het meldde)
+  for (const e of spelers.values()) if (e.eigenaar && e !== o && e !== s) stuur(e, { t: 'gemeld', over: o.sid });
 }
 function nieuweCode() {
   for (let i = 0; i < 20; i++) {

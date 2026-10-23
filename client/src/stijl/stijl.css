@@ -452,3 +452,44 @@ body.rb-cam-voor .rb-kruis { display: none; }
 .rb-maak-moeilijk { flex-wrap: wrap; border-radius: 18px; }
 .rb-maak-moeilijk button { flex: 1 1 auto; padding: .42rem .45rem; }
 @media (max-width: 420px) { .rb-maak-moeilijk button { font-size: .8rem; padding: .42rem .25rem; } }
+
+/* ---------------- samen spelen: naamkaartjes, praten, spelers, het scherm Samen spelen */
+#rb-slaap-tekst { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); margin: 0; color: rgba(255,255,255,.82); font-weight: 700; text-align: center; width: min(86vw, 26rem); }
+#rb-namen { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+body:not(.rb-samen) #rb-namen, body:not(.rb-samen) #rb-praat { display: none; }
+.rb-naamkaart { position: absolute; left: 0; top: 0; display: flex; flex-direction: column-reverse; align-items: center; gap: 5px; will-change: transform; }
+.rb-naamkaart[hidden] { display: none; }
+.rb-naamkaart b { background: rgba(14,17,28,.64); color: #fff; font-size: .78rem; font-weight: 800; padding: .12rem .55rem; border-radius: 999px; white-space: nowrap; border: 1px solid rgba(255,255,255,.18); }
+.rb-naamkaart .ballon { position: relative; background: #FBF6E9; color: var(--inkt); font-weight: 800; font-size: .92rem; padding: .3rem .7rem; border-radius: 12px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+.rb-naamkaart .ballon[hidden] { display: none; }
+.rb-naamkaart .ballon::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #FBF6E9; border-bottom: 0; }
+#rb-praat { position: absolute; left: calc(10px + var(--veilig-l)); bottom: calc(124px + var(--veilig-o)); display: flex; flex-direction: column; gap: 3px; pointer-events: none; z-index: 3; max-width: min(62vw, 22rem); }
+.rb-praat-regel { background: rgba(14,17,28,.62); color: #fff; padding: .22rem .6rem; border-radius: 10px; font-size: .85rem; overflow-wrap: anywhere; }
+.rb-praat-regel.weg { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) { .rb-praat-regel { transition: opacity .8s; } }
+#rb-samen-hud { position: absolute; left: calc(10px + var(--veilig-l)); top: calc(10px + var(--veilig-b)); display: none; gap: 6px; z-index: 4; }
+body.rb-samen.rb-speelt:not(.rb-aanraak) #rb-samen-hud { display: flex; }
+#tk-praat, #tk-spelers { display: none; }
+body.rb-samen #tk-praat, body.rb-samen #tk-spelers { display: grid; }
+#tk-praat { left: calc(118px + var(--veilig-l)); top: calc(10px + var(--veilig-b)); width: 46px; height: 46px; font-size: 1.15rem; }
+#tk-spelers { left: calc(172px + var(--veilig-l)); top: calc(10px + var(--veilig-b)); width: 46px; height: 46px; font-size: 1.05rem; }
+#tk-spelers small { position: absolute; right: -3px; bottom: -3px; background: var(--goud); color: var(--inkt); border-radius: 999px; font-size: .66rem; font-weight: 800; padding: 0 .32rem; line-height: 1.35; }
+body.rb-samen.rb-aanraak #rb-minikaart { top: calc(64px + var(--veilig-b)); }
+.rb-samen-kop { margin: .9rem 0 .2rem; font-size: 1rem; }
+.rb-samen-lijst .rb-wereld, .rb-spelers-lijst li { grid-template-columns: 1fr auto; }
+.rb-samen-lijst .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; color: var(--zacht); overflow-wrap: anywhere; }
+.rb-samen-naam select { flex: 1; min-width: 0; border: 1px solid var(--vakrand); border-radius: 12px; padding: .5rem .6rem; background: var(--veld); color: var(--tekst); font-weight: 700; font-size: .95rem; }
+.rb-samen-naam select:focus-visible { outline: 2px solid var(--goud); outline-offset: 1px; }
+.rb-samen-fout { margin: .6rem 0 0; background: rgba(200,50,60,.2); border: 1px solid rgba(200,50,60,.55); border-radius: 12px; padding: .5rem .75rem; font-weight: 700; color: var(--tekst); }
+.rb-samen-fout[hidden] { display: none; }
+#rb-samen.bezig .rb-knop, #rb-samen.bezig .rb-wereld-knoppen button { pointer-events: none; opacity: .55; }
+#rb-samen.bezig { cursor: progress; }
+.rb-zinnen-lijst { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 6px; margin-top: .4rem; }
+.rb-zinnen-lijst .rb-knop { justify-content: center; text-align: center; white-space: normal; }
+.rb-zinnen-lijst .plaatje { font-size: 1.35rem; }
+.rb-spelers-lijst li { display: grid; gap: .3rem .75rem; align-items: center; background: var(--vlak); border: 1px solid var(--vakrand); border-radius: 14px; padding: .5rem .7rem; }
+.rb-spelers-lijst li small { color: var(--stil); font-size: .78rem; grid-column: 1; }
+.rb-spelers-lijst li .rb-wereld-knoppen { grid-row: 1 / span 2; grid-column: 2; }
+#rb-spelers-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--veld); border-radius: 10px; padding: .45rem .6rem; flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--tekst); }
+#rb-spelers-eigenaar[hidden], #rb-spelers-nieuw[hidden], #rb-spelers-toelaten[hidden] { display: none; }
+@media (max-width: 560px) { .rb-spelers-lijst li { grid-template-columns: 1fr; } .rb-spelers-lijst li .rb-wereld-knoppen { grid-row: auto; grid-column: 1; justify-content: stretch; } .rb-spelers-lijst li .rb-knop { flex: 1; } }

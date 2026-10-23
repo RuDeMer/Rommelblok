@@ -5,6 +5,8 @@
 cd "$(dirname "$0")/.."
 RB_VORIGE="${RB_VORIGE:-$PWD/test/referentie/rommelblok-ronde3.html}"
 node site/maak-pagina.js || exit 1
+# de spelserver heeft één pakket nodig (ws)
+[ -d server/node_modules/ws ] || (cd server && npm ci --no-audit --no-fund >/dev/null) || exit 1
 fout=0
 # de volledige uitvoer van elke test staat in $RB_UIT/logs/ (genummerd), zodat je een fout achteraf kunt nalezen
 LOGS="${RB_UIT:-${TMPDIR:-/tmp}/rommelblok-uit}/logs"; mkdir -p "$LOGS"; nr=0
@@ -12,6 +14,10 @@ loop() { nr=$((nr+1)); local log="$LOGS/$(printf %02d $nr).log"; echo "=== $1"; 
 N=10 loop "zelfde zaadje, zelfde wereld (blok voor blok gelijk aan de site; alleen wat bewust veranderde mag anders)" node test/zelfde_wereld.js
 N=6 loop "pagina: veiligheidsbeleid en gedeelde blokken zoals op de site" node test/pagina.js
 N=4 loop "geen verwijzingen naar Limburg" node test/geen_limburg.js
+N=3 loop "de knop Samen spelen: uit zonder spelserver, aan met --samen" node test/samen_knop.js
+N=4 loop "spelserver: samen in een wereld, samen bouwen, valsspelen, de eigenaar en grenzen" node --disable-warning=ExperimentalWarning server/test/alles.js
+N=3 loop "browser: samen spelen met twee spelers" node test/samen.js
+N=3 loop "browser: samen spelen met drie spelers (één op een telefoon)" node test/samen.js 3
 N=2 loop "browser: bewoners uit een oudere wereld krijgen eenmalig hun nieuwe naam" node test/namen_omzetten.js
 N=2 loop "browser: je poppetje en de drie camera's (computer)" node test/poppetje.js
 N=2 loop "browser: je poppetje en de drie camera's (telefoon, 360 punten breed)" node test/poppetje.js telefoon

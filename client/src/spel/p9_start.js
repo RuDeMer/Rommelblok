@@ -46,6 +46,7 @@ function lus(nu) {
   if (!tekenUit && huidigScherm() !== 'kaart' && !achterGlas) R.teken(C, LT, extra); else R.kijkMatrix(C);
   if (spelBezig && wereldKlaar && WD && (!WD.plaatje || plaatjeVragen) && sinds > 2 && !schermOpen()) { maakPlaatje(); plaatjeVragen = false; }
   if (typeof hudTik === 'function') hudTik(dt, L);
+  if (samen) samenTik(dt, camVorige);
   frameMs = performance.now() - t0;
   bijsturen(dt);
 }
@@ -109,6 +110,8 @@ window.__rommelblok = {
   POP, get opslag() { return opslag; }, openPop, popZetVeld, verrasPop, popStudio, STUDIO: ST, popModel, popDelen, popHouding, popArm,
   // dieren en griezels
   WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal, slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
+  // samen spelen
+  get samen() { return samen; }, samenAdres, samenNamen, samenTik, openSamen, samenGaNaar, samenZeg, openZinnen, openSpelers, samenStop, samenStuur, samenOpScherm, samenSpelerData, spelerGeheim, mijnNaam,
   wisselCamera, camModus, camBeeld, maakCamera, camAchterVoor, get camPlek() { return camPlek; }, get oogVorige() { return oogVorige; }, get camSchouder() { return camSchouder && [sp.x + camSchouder[0], sp.y + sp.oog + camSchouder[1], sp.z + camSchouder[2]]; }, kijkVector, BEREIK, oogPos, get camVorige() { return camVorige; },
 };
 opstarten();

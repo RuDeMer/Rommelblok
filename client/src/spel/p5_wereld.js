@@ -6,6 +6,7 @@ let spelBezig = false;    // speelt de speler nu (wereld open en geladen)
 let wereldKlaar = false;  // is de grond onder de speler er al
 const wereldStand = () => (WD ? WD.stand : 'bouwen');
 let sinds = 0;            // tijd sinds de wereld open is (seconden, voor animaties)
+let samen = null;         // bij samen spelen: de gedeelde wereld op de spelserver (p8e_samen.js); null bij alleen spelen
 
 let wereldNr = 0;
 wb.onmessage = e => {
@@ -50,7 +51,7 @@ function startWereld(gegevens, alsMenu) {
   const s = W0.speler;
   sp.x = s.pos[0]; sp.y = s.pos[1]; sp.z = s.pos[2]; sp.yaw = s.kijk[0]; sp.pitch = s.kijk[1]; sp.vx = sp.vy = sp.vz = 0; sp.vliegt = !!s.vliegt && W0.stand === 'bouwen'; sp.valStart = null;
   huidigeStraal = alsMenu ? Math.min(straalNu(), telefoon ? 3 : 6) : straalNu();
-  const m = { t: 'start', nr: ++wereldNr, zaad: W0.zaad, wid: W0.id, gen: W0.gen || 2, plekken: [s.pos, s.start, s.bed].filter(Boolean).map(p => [p[0], p[2]]), straal: huidigeStraal, x: sp.x, y: sp.y, z: sp.z, opties: { snelleBladeren: KW.snelleBladeren } };
+  const m = { t: 'start', nr: ++wereldNr, zaad: W0.zaad, wid: W0.samen ? null : W0.id, gen: W0.gen || 2, plekken: [s.pos, s.start, s.bed].filter(Boolean).map(p => [p[0], p[2]]), straal: huidigeStraal, x: sp.x, y: sp.y, z: sp.z, opties: { snelleBladeren: KW.snelleBladeren, samen: !!W0.samen } };
   if (!poortenGegeven) { m.poorten = makerPoorten; poortenGegeven = true; wb.postMessage(m, makerPoorten); }
   else wb.postMessage(m);
   wereldKlaar = false; spelBezig = !alsMenu; sinds = 0;

@@ -136,6 +136,25 @@ plek(Bm.p, x + 5.5, st[1], zz + 0.5, { k: 1 });
 const dm = await Bm.p.op(m => m.t === 'plek' && m.k === 2, 3000).catch(() => null);
 goed(!!dm && Bm.p.berichten.filter(m => m.t === 'plek').length === vorig + 1, 'door een muur lopen: de server zet je terug');
 
+// na flauwvallen spring je naar je startplek (dat mag), maar niet zomaar ergens heen
+plek(Bm.p, st[0] + 0.3, st[1], st[2] + 0.3, { f: 16, k: 2 }); await wacht(250);
+goed(Bm.p.berichten.filter(m => m.t === 'plek').length === vorig + 1, 'na flauwvallen naar je startplek springen mag');
+plek(Bm.p, st[0] + 200, st[1], st[2], { f: 16, k: 2 });
+goed(!!(await Bm.p.op(m => m.t === 'plek' && m.k === 3, 3000).catch(() => null)), 'maar niet naar een plek ver weg');
+plek(Bm.p, st[0] + 0.3, st[1], st[2] + 0.3, { k: 3 }); await wacht(150);
+
+console.log('--- rommel: kapotte en vreemde berichten');
+const vreemd = [null, 1, 'x', [], {}, { t: 5 }, { t: 'p' }, { t: 'p', x: 'a', y: null, z: {} }, { t: 'p', x: 1e300, y: -1e300, z: NaN }, { t: 'actie' }, { t: 'actie', a: 7 }, { t: 'actie', a: { t: 'breek', gevolg: 'b' } },
+  { t: 'actie', a: { t: 'breek', gevolg: [['b', 'x', 1, 2, 3]] } }, { t: 'actie', a: { t: 'breek', gevolg: [['b', 1.5, 60, 2, 1]] } }, { t: 'actie', a: { t: 'kist', gevolg: [['k', 1, 2, 3, '__proto__', { id: 1, n: 1 }]] } },
+  { t: 'actie', a: { t: 'los', gevolg: [['l', 0, 0, 0, -1, 1, 0]] } }, { t: 'actie', a: { t: 'plaats', gevolg: new Array(500).fill(['b', 0, 60, 0, 1]) } }, { t: 'open', x: 'a' }, { t: 'open', x: 1e9, y: 1, z: 1 },
+  { t: 'raap', id: 'x' }, { t: 'raap', id: -5 }, { t: 'zeg', n: -1 }, { t: 'zeg', n: 1.5 }, { t: 'meld', wie: 'x' }, { t: 'meld', wie: 999999 }, { t: 'beheer', doe: 'verwijder' }, { t: 'beheer', doe: { x: 1 } },
+  { t: 'bewaar', d: [1, 2] }, { t: 'bewaar', d: 'x'.repeat(100) }, { t: 'slaap', x: 1 }, { t: 'hallo', v: 1 }, { t: 'onbekend' }, { t: '__proto__' }, { t: 'constructor' }];
+for (const m of vreemd) Bm.p.ws.send(JSON.stringify(m));
+Bm.p.ws.send('{kapot'); Bm.p.ws.send(Buffer.from([1, 2, 3]));
+await wacht(500);
+Bm.p.stuur({ t: 'zeg', n: 5 });
+goed(!!(await A.p.op(m => m.t === 'zeg' && m.n === 5, 4000).catch(() => null)), 'na een hoop rommel werkt alles gewoon nog (de wereld is niet gecrasht)');
+
 console.log('--- de eigenaar');
 A.p.stuur({ t: 'beheer', doe: 'bouwen', wie: 'eigenaar' });
 await Bm.p.op(m => m.t === 'regels' && m.bouwen === 'eigenaar' && !m.mag);
@@ -202,6 +221,26 @@ await maakWereld(S4.url); await maakWereld(S4.url);
 const W5 = speler(S4.url); await W5.open; W5.hallo({ maak: { zaad: 1, stand: 'bouwen', moeilijk: 'vredig' } });
 goed((await W5.soort('nee')).reden === 'vol-server', 'hooguit zoveel gedeelde werelden in totaal');
 await S4.server.sluit();
+
+console.log('--- slapen: alleen als iedereen slaapt');
+{
+  const S5 = await startServer({ LEEG_WACHT: '100', MAX_PER_ADRES: '40' });
+  const E1 = await maakWereld(S5.url); const id5 = E1.w.wereld.id; await E1.p.sluit();
+  await wacht(1200); // de kamer stopt en bewaart
+  const { DatabaseSync } = await import('node:sqlite');
+  const d = new DatabaseSync(S5.inst.dbPad); d.prepare('UPDATE werelden SET tijd = 0.9 WHERE id = ?').run(id5); d.close();
+  const E2 = await doeMee(S5.url, E1.code, { geheim: E1.p.geheim }), E3 = await doeMee(S5.url, E1.code);
+  goed(E2.w.wereld.tijd > 0.89, 'de tijd van de wereld wordt bewaard (het is nu nacht)');
+  E2.p.stuur({ t: 'slaap' });
+  const half = await E3.p.soort('slaap', 3000).catch(() => null);
+  goed(!!half && half.slapen === 1 && half.van === 2, 'één van de twee slaapt: de nacht gaat nog niet voorbij');
+  E3.p.stuur({ t: 'slaap' });
+  const och = await E2.p.op(m => m.t === 'tijd' && m.ochtend, 3000).catch(() => null);
+  goed(!!och && Math.abs(och.tijd - 0.255) < 0.01 && och.dag === 1, 'als iedereen slaapt, wordt het ochtend (een nieuwe dag)');
+  const tijd = await E3.p.op(m => m.t === 'tijd' && !m.ochtend, 7000).catch(() => null);
+  goed(!!tijd, 'de server laat iedereen geregeld weten hoe laat het is');
+  await S5.server.sluit();
+}
 
 console.log('--- bewaren en terugkomen');
 plek(A.p, st[0] + 0.5, st[1], st[2] + 0.5, { k: 0 }); await wacht(200);

@@ -1,6 +1,7 @@
 // alle code nalopen met eslint (namen die nergens bestaan, dubbele sleutels): node test/lint.js
 // 1. het script van de gebouwde pagina (RB_UIT/rommelblok.html), precies zoals het in de browser draait
 // 2. de gedeelde code in shared/ als modules, zonder browser (zo weten we dat hij ook op de server werkt)
+// 3. de spelserver in server/ (Node)
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const UIT = require('./uit'), WORTEL = path.join(__dirname, '..');
 const { spelScript } = require('./oude_pagina');
@@ -11,5 +12,6 @@ let uit = '';
 const loop = (cwd, doel) => { try { return execFileSync(eslint, ['--quiet', ...doel], { cwd, encoding: 'utf8' }); } catch (e) { return (e.stdout || '') + (e.stderr || ''); } };
 uit += loop(UIT, ['lint_spel.js']);
 uit += loop(WORTEL, ['shared']);
-console.log(uit.trim() || 'lint: geen fouten (pagina en shared/)');
+uit += loop(WORTEL, ['server/src', 'server/test']);
+console.log(uit.trim() || 'lint: geen fouten (pagina, shared/ en server/)');
 process.exit(/error/.test(uit) ? 1 : 0);

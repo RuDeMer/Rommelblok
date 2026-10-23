@@ -1,5 +1,5 @@
 // Maakt de ene rommelblok.html voor rubensrommelhoekje.nl:
-//   node site/maak-pagina.js [--gedeeld <rommelblok.html van de site>] [--uit <map>]
+//   node site/maak-pagina.js [--gedeeld <rommelblok.html van de site>] [--uit <map>] [--samen <wss://adres van de spelserver>]
 // De pagina bestaat uit:
 //   1. de <head> (site/kop.html, met het veiligheidsbeleid) en de stijl (client/src/stijl/stijl.css);
 //   2. de HTML van de schermen (client/src/stijl/lichaam.html);
@@ -45,8 +45,19 @@ const { output } = await bundel.generate({ format: 'iife', indent: false });
 await bundel.close();
 const code = output[0].code.trim();
 
+// ---------- het adres van de spelserver (zonder --samen staat de knop Samen spelen uit; zie stap 7)
+let spel = code;
+const samen = arg('--samen');
+if (samen) {
+  if (!/^wss:\/\/[a-z0-9.-]+(:\d+)?\/[a-z]*$/i.test(samen)) throw new Error('--samen moet een wss://-adres zijn, bijvoorbeeld wss://blok.rubensrommelhoekje.nl/samen');
+  const leeg = "const SAMEN_SERVER = '';";
+  if (spel.split(leeg).length !== 2) throw new Error('SAMEN_SERVER niet (precies één keer) gevonden');
+  spel = spel.replace(leeg, () => 'const SAMEN_SERVER = ' + JSON.stringify(samen) + ';');
+  console.log('spelserver:', samen);
+}
+
 // ---------- de pagina in elkaar zetten
-const html = maakHtml(code);
+const html = maakHtml(spel);
 // geen scripts van buiten, en de gedeelde blokken precies één keer
 if (/<script[^>]+src=/i.test(html)) throw new Error('een script van buiten in de pagina');
 const g = gedeeldeBlokken(html);

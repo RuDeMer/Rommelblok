@@ -42,6 +42,8 @@ function openBlok(soort, d) {
     buitVullen(d.x, d.y, d.z, d.v); zetBlok(d.x, d.y, d.z, B.kist | (((d.v >> 8) & 3) << 8)); stuurZetten();
     if (typeof logboek === 'function') logboek('buit');
   }
+  // bij samen spelen staat de inhoud op de server, en kan maar één speler tegelijk erin
+  if ((soort === 'oven' || soort === 'kist') && samen && WD.samen) { samenOpenDing(d, soort); zwaai(); return true; }
   if (soort === 'oven' || soort === 'kist') { ding(d.x, d.y, d.z, soort); openRugzak(soort, [d.x, d.y, d.z]); zwaai(); return true; }
   if (soort === 'bed') { slapen(d); return true; }
   if (soort === 'smidse') { openRugzak('smidse', [d.x, d.y, d.z]); zwaai(); klank('kist', true); return true; }
@@ -54,6 +56,7 @@ function openBlok(soort, d) {
 }
 function naRugzakDicht() {
   bakVergelijk(); bak = null;
+  if (samen && WD.samen && (RZ.modus === 'kist' || RZ.modus === 'oven')) samenStuur({ t: 'dicht' });
   // wat nog in het raster of aan de muis hangt, gaat terug in de rugzak (of valt)
   for (let i = 0; i < RZ.raster.length; i++) { const s = RZ.raster[i]; if (s) geefOfLaatVallen(s.id, s.n, s.dur); RZ.raster[i] = null; }
   if (RZ.vast) { geefOfLaatVallen(RZ.vast.id, RZ.vast.n, RZ.vast.dur); RZ.vast = null; }
@@ -662,7 +665,8 @@ function ovenTik(dt) {
   if (bak && bak.soort === 'oven') bakBegin('oven', [bak.x, bak.y, bak.z]);
 }
 function ovenTikNu(dt) {
-  for (const [k, d] of Object.entries(WD.dingen)) {
+  // bij samen spelen werkt de oven op de server (die stuurt de stand terug)
+  if (!(samen && WD.samen)) for (const [k, d] of Object.entries(WD.dingen)) {
     if (d.soort !== 'oven') continue;
     // het rekenen staat in de gedeelde code (shared/spullen.js), zodat de server bij samen spelen hetzelfde doet
     const brandde = d.brandTijd > 0, wat = G.SPULLEN.ovenStap(d, dt);
@@ -685,6 +689,7 @@ function inhoudEruit(x, y, z, bouwen) {
   const k = sleutelPlek(x, y, z), d = WD.dingen[k]; if (!d) return;
   delete WD.dingen[k]; actieGevolg(['w', x, y, z]); if (bak && bak.x === x && bak.y === y && bak.z === z) bak = null;
   if (bouwen) return;
+  if (samen && WD.samen) return; // de server laat vallen wat er bij hem in zat
   const lijst = d.soort === 'kist' ? d.inhoud : [d.in, d.brand, d.uit];
   for (const s of lijst) if (s) laatVallen(x + 0.5, y + 0.5, z + 0.5, s.id, s.n, s.dur);
 }
@@ -695,6 +700,7 @@ function slapen(d) {
   const voet = st & 4 ? [d.x - dx, d.y, d.z - dz] : [d.x, d.y, d.z];
   WD.speler.bed = [voet[0] + 0.5, voet[1] + 0.6, voet[2] + 0.5];
   if (!nacht) { melding(t('Je startplek is nu bij dit bed. Slapen kan alleen als het donker is.')); return; }
+  if (samen && WD.samen) { samenSlapen(); return; }
   const z = $('rb-slaap'); z.hidden = false; requestAnimationFrame(() => { z.style.opacity = 1; });
   klank('slaap');
   const nieuweDag = WD.tijd > 0.5 ? 1 : 0;

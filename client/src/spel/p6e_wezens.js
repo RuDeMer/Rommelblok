@@ -51,7 +51,8 @@ function wzKolom(x, z) {
 }
 // ---------------- elk beeldje
 function wezensTik(dt) {
-  if (!WD || !wereldKlaar || !WD.dieren) return;
+  // bij samen spelen nog geen dieren (die komen in stap 6 op de server)
+  if (!WD || !wereldKlaar || !WD.dieren || WD.samen) return;
   const overleven = wereldStand() !== 'bouwen', m = moeilijkNu();
   wzW.tijd = WD.tijd; wzW.moeilijk = m;
   wzW.spelers = overleven && WD.speler.hp > 0 ? [{ id: 'ik', x: sp.x, y: sp.y, z: sp.z }] : [];
@@ -301,7 +302,7 @@ function wezenModel(w) {
 }
 const ROOD = [1, 0.35, 0.35], ROOD_DELEN = 'lijf kop pootVL pootVR pootAL pootAR vleugelL vleugelR staart nek snuit rafel armL armR kraag oren vlek buik'.split(' ');
 function wezensTeken(lijst) {
-  if (!WD || !WD.dieren) return;
+  if (!WD || !WD.dieren || WD.samen) return;
   wezenModellen();
   const T = WZ_MAX.teken * WZ_MAX.teken, tijd = performance.now() / 1000, stil = minderBeweging;
   for (const groep of [actief, griezels]) for (const w of groep) {

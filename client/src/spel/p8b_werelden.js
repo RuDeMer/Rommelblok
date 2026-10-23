@@ -28,6 +28,14 @@ async function bewaarWereld(stil) {
   if (!WD || bewaarBezig || !wereldKlaar) return;
   bewaarBezig = true;
   try {
+    // een gedeelde wereld: de wereld bewaart de server; jouw plek en rugzak gaan naar de server, je kaart blijft hier
+    if (WD.samen) {
+      const s = WD.speler; s.pos = [sp.x, sp.y, sp.z]; s.kijk = [sp.yaw, sp.pitch]; s.vliegt = sp.vliegt;
+      WD.speeltijd = (WD.speeltijd || 0) + Math.round((performance.now() - (WD._sinds || performance.now())) / 1000); WD._sinds = performance.now();
+      samenStuur({ t: 'bewaar', d: samenSpelerData() });
+      if (typeof kaartBewaren === 'function') await kaartBewaren();
+      laatstBewaard = performance.now(); return;
+    }
     wereldNaarOpslag();
     const kopie = Object.assign({}, WD); delete kopie._sinds;
     if (WD.karren) kopie.karren = WD.karren.map(karData);
@@ -76,6 +84,7 @@ async function speelWereld(w) {
   rugzakkenLaden();
   tekenBalk(); lichaamKlassen();
   $('rb-laden').hidden = false; $('rb-laden-balk').style.width = '5%';
+  if (w.samen) return; // een gedeelde wereld staat niet bij je eigen werelden
   opslag.laatste = w.id; bewaarInst();
   await schrijfMeta(w);
 }
@@ -107,6 +116,7 @@ function naGeladen() {
 }
 async function naarWerelden() {
   if (WD) { await bewaarWereld(true); plaatjeVragen = false; }
+  if (samen) samenStop();
   await vraagWb({ t: 'stop' });
   spelBezig = false; wereldKlaar = false; WD = null; menuWereld = null;
   kopie.clear(); meshRij.clear(); kleurGezet.clear(); R.allesWeg(); losse.length = 0; dp.length = 0;
@@ -148,9 +158,10 @@ function beginScherm() {
     $('rb-nieuwtje-ok').onclick = () => { opslag.nieuwGezien = true; bewaarInst(); br.hidden = true; };
   } else br.hidden = true;
   openScherm('begin');
+  $('rb-samen-knop').hidden = !samenAdres();
   toonWerelden();
 }
-$('rb-nieuw').addEventListener('click', () => { $('rb-maak-naam').value = t('Mijn wereld'); $('rb-maak-zaad').value = ''; kiesStand('overleven'); openScherm('maak'); setTimeout(() => $('rb-maak-naam').select(), 30); });
+$('rb-nieuw').addEventListener('click', () => { maakGewoon(); $('rb-maak-naam').value = t('Mijn wereld'); $('rb-maak-zaad').value = ''; kiesStand('overleven'); openScherm('maak'); setTimeout(() => $('rb-maak-naam').select(), 30); });
 $('rb-begin-inst').addEventListener('click', () => openInstellingen());
 $('rb-taal').addEventListener('click', () => zetTaal(TAAL === 'en' ? 'nl' : 'en'));
 let gekozenStand = 'overleven', gekozenMoeilijk = 'makkelijk';
@@ -166,7 +177,7 @@ kiesMoeilijk('makkelijk');
 for (const b of document.querySelectorAll('.rb-stand')) b.addEventListener('click', () => kiesStand(b.dataset.stand));
 const ZAADWOORDEN = ['taart', 'rommel', 'molen', 'tulp', 'kraanvogel', 'zolder', 'schuurtje', 'hamer', 'knikker', 'kroket', 'polder', 'duin', 'klomp', 'drop', 'paling', 'heide'];
 $('rb-dobbel').addEventListener('click', () => { $('rb-maak-zaad').value = ZAADWOORDEN[Math.floor(Math.random() * ZAADWOORDEN.length)] + Math.floor(Math.random() * 1000); });
-$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); speelWereld(w); });
+$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); if (maakSamen) { samenMaak($('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); return; } const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); speelWereld(w); });
 
 // ---------------- verwijderen, exporteren en importeren
 async function verwijder(id) {

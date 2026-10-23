@@ -407,12 +407,15 @@ function laatVallen(x, y, z, idOfV, n, dur) {
   }
   if (!IT[id] || wereldStand() === 'bouwen') return;
   actieGevolg(['l', Math.round(x * 100) / 100, Math.round(y * 100) / 100, Math.round(z * 100) / 100, id, n, dur || 0]);
+  // bij samen spelen legt de server het neer (met een nummer), zodat maar één speler het kan oppakken
+  if (samen && WD.samen) return;
   if (losse.length > 250) losse.shift();
   losse.push({ id, n, dur, x, y, z, vx: (Math.random() - 0.5) * 2.2, vy: 2.5 + Math.random(), vz: (Math.random() - 0.5) * 2.2, leeftijd: 0, wacht: 0.4, draai: Math.random() * 6 });
 }
 function gooi(slot, n) {
   const k = kijkVector(), o = oogPos();
   actieGevolg(['l', Math.round((o[0] + k[0] * 0.4) * 100) / 100, Math.round((o[1] - 0.3) * 100) / 100, Math.round((o[2] + k[2] * 0.4) * 100) / 100, slot.id, n, slot.dur || 0]);
+  if (samen && WD.samen) return;
   losse.push({ id: slot.id, n, dur: slot.dur, x: o[0] + k[0] * 0.4, y: o[1] - 0.3 + k[1] * 0.4, z: o[2] + k[2] * 0.4, vx: k[0] * 5, vy: k[1] * 5 + 1.6, vz: k[2] * 5, leeftijd: 0, wacht: 1.5, draai: 0 });
 }
 function losseTik(dt) {
@@ -439,6 +442,8 @@ function losseTik(dt) {
   }
 }
 function pakOp(d) {
+  // een ding met een nummer van de server: eerst vragen of je het mag hebben
+  if (d.sid !== undefined && samen) return samenPakOp(d);
   if (d.rugzak) {
     let alles = true;
     for (let i = 0; i < d.inhoud.length; i++) { const s = d.inhoud[i]; if (!s) continue; const rest = geef(s.id, s.n, s.dur); if (rest) { s.n = rest; alles = false; } else d.inhoud[i] = null; }
@@ -517,6 +522,7 @@ function flauwvallen(reden) {
 function wakkerWorden() {
   const s = WD.speler; s.hp = 20; s.honger = 20; s.verzadiging = 5; s.adem = 10; s.uitputting = 0;
   const p = s.bed || s.start; sp.x = p[0]; sp.y = p[1]; sp.z = p[2]; sp.vx = sp.vy = sp.vz = 0; sp.valStart = null;
+  if (samen) samen.sprong = true; // de server laat je dan naar je bed of startplek springen
   wereldKlaar = false; vertelPlek(performance.now(), true);
 }
 
@@ -563,6 +569,7 @@ function tekenExtra(dt, C) {
   else if (doelKar && spelActief() && !(aanraak && !doelZichtbaar)) { const k = doelKar; kader = { dozen: [[k.x - 0.45, k.y, k.z - 0.45, k.x + 0.45, k.y + 0.65, k.z + 0.45]], barst: -1 }; }
   else if (doelWezen && spelActief() && !(aanraak && !doelZichtbaar)) { const w = doelWezen, S = G.WEZENS.WEZENS[w.s], r = S.maat[0]; kader = { dozen: [[w.x - r, w.y, w.z - r, w.x + r, w.y + S.maat[1], w.z + r]], barst: -1 }; }
   const wezens = []; karrenTeken(wezens); bewonersTeken(wezens); wezensTeken(wezens);
+  if (samen) samenTeken(wezens, dt);
   // de arm: altijd in beeld, met wat je in de snelbalk hebt gekozen (of een lege hand)
   const slot = inHand(), nuId = slot ? slot.id : 0;
   if (nuId !== vorigeHand) { if (vorigeHand !== -1) wisselT = 1; vorigeHand = nuId; }

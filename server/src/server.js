@@ -150,7 +150,7 @@ export function maakServer(inst) {
         if (v.actieEmmer < 1) { v.kamer.worker.postMessage({ t: 'bericht', sid: v.sid, m: { t: 'actie', a: m.a, teSnel: true } }); return; }
         v.actieEmmer -= 1;
       }
-      if (m.t === 'zeg') { if (t - v.zinT < g.zinElke * 1000) return; v.zinT = t; }
+      if (m.t === 'zeg') { if (!S.zinKlopt(m.n) || t - v.zinT < g.zinElke * 1000) return; v.zinT = t; }
       v.kamer.worker.postMessage({ t: 'bericht', sid: v.sid, m });
     });
     ws.on('close', () => {
