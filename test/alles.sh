@@ -32,6 +32,7 @@ N=5 loop "oude wereld: oud landschap blijft, zachte overgang" node test/oudland.
 N=2 loop "naden en licht (zaadje 777)" node test/naden.js 777
 N=2 loop "naden en licht (zaadje 4242)" node test/naden.js 4242
 N=13 loop "water" node test/water3.js
+N=7 loop "water op een trap: zijkanten, aansluitende hoeken, geen vlakken tussen water" node test/water_vorm.js
 N=14 loop "bouwwerken: hoe vaak, vast, zonder naden" node test/bouwwerken.js
 N=12 loop "dorpjes: hoe vaak, vast, zonder naden, deuren en bedden bereikbaar" node test/dorpen.js
 N=1 loop "ruilen: elke ruil eerlijk (iets duurder dan wat je krijgt)" node test/ruilen.js

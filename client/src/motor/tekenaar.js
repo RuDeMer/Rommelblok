@@ -145,6 +145,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
         o = vec4(mix(c, lucht(V), m), mix(t.a, 1.0, m));
         return;
       }
+      // Van buitenaf alleen de buitenkant van elk watervlak: anders zie je door een zijkant heen de binnenkant van het
+      // oppervlak erachter (donkere driehoekjes, dubbele lagen). Onder water ook de binnenkant: het oppervlak van onderen.
+      vec3 nv = vN == 0u ? vec3(1.0, 0.0, 0.0) : vN == 1u ? vec3(-1.0, 0.0, 0.0) : vN == 2u ? vec3(0.0, 1.0, 0.0) : vN == 3u ? vec3(0.0, -1.0, 0.0) : vN == 4u ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 0.0, -1.0);
+      if (uOnderWater < 0.5 && dot(vRel, nv) > 0.0) discard;
       vec3 wk = texture(uTint, vec3(vTuv, 2.0)).rgb;
       uint diep = vEx & 15u, rdir = (vEx >> 4u) & 7u; bool stroomt = (vEx & 128u) != 0u;
       // golfjes: twee lagen ruis die meedrijven met de stroming
@@ -185,6 +189,17 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       float a = mix(0.42, 0.86, clamp(d / 6.0, 0.0, 1.0));
       // een waterval is goed te zien: minder doorzichtig, en de strepen zijn wit schuim
       if (stroomt && vN != 2u && vN != 3u) { c = mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, val * 0.85); a = max(a, 0.8) + val * 0.15; }
+      // een schuin stromend bovenvlak, of stromend water boven op ander water (een trap of waterval): strepen in de
+      // stroomrichting, zoals bij vallend water, zodat het één stroom wordt in plaats van donkere vlakjes tussen de randen
+      uint steil = (vVl >> 4u) & 3u;
+      if (stroomt && vN == 2u && (steil > 0u || diep > 0u)) {
+        vec2 fd = vec2(cos(ang), sin(ang));
+        float langs = dot(wp, fd), dwars = dot(wp, vec2(-fd.y, fd.x));
+        float t1 = texture(uRuis, vec2(dwars * 0.55, langs * 0.09 - uTijd * 0.35)).r, t2 = texture(uRuis, vec2(dwars * 1.1 + 0.31, langs * 0.18 - uTijd * 0.6)).r;
+        float sv = smoothstep(0.5, 0.72, t1 * 0.6 + t2 * 0.5), k = max(float(steil) / 3.0, diep > 0u ? 0.75 : 0.0);
+        c = mix(c, mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, sv * 0.85), k * 0.85);
+        a = mix(a, max(a, 0.8) + sv * 0.15, k);
+      }
       a = clamp(a + fr * 0.4, 0.0, 0.95);
       if (uOnderWater > 0.5) { c = mix(wk * L * 0.7, refl * 0.5, 0.3); a = 0.55; }
       float m = uOnderWater > 0.5 ? clamp(1.0 - exp(-length(vRel) * 0.075), 0.0, 1.0) : smoothstep(uMist.x, uMist.y, length(vRel.xz));
@@ -643,7 +658,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       gl.bindVertexArray(leegVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.depthMask(true);
     }
-    // water en ijs: eerst het water (zonder diepte), dan het ijs (met diepte, zodat ijs nooit dubbel over ijs heen valt)
+    // water en ijs: eerst het water (zonder diepte), dan het ijs (met diepte, zodat ijs nooit dubbel over ijs heen valt).
+    // Water wordt van twee kanten getekend: de voorwerpen en wezens hierboven zetten het wegsnijden van achterkanten aan,
+    // en dan zag je de zijkanten van water (en vallend water) alleen van binnenuit, en het wateroppervlak niet van onderen.
+    gl.disable(gl.CULL_FACE);
     gl.depthMask(false);
     if (wereld) tekenLaag(PW, 2);
     gl.depthMask(true);
