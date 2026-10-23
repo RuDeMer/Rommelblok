@@ -164,6 +164,16 @@ function zoekRecept(raster, maat) {
 }
 const ovenRecept = id => OVEN.find(r => r.in === id) || null;
 
+// stap 4: wol, eieren, leer en wat griezels laten vallen
+vorm('linnen_wit', 1, ['WW', 'WW'], { W: 'wol' }, 'kleur');
+vorm('schaar', 1, [' I', 'I '], { I: 'ijzerstaaf' }, 'handig');
+smelt('ei', 'gebakken_ei');
+los('pannenkoek', 2, ['tarwe', 'ei', 'suiker'], 'eten');
+los('boek', 1, ['papier', 'papier', 'papier', 'leer'], 'handig');
+vorm('boekenkast', 1, ['PPP', 'BBB', 'PPP'], { P: '#planken', B: 'boek' }, 'bouwen');
+vorm('spooklamp', 1, ['GGG', 'GSG', 'GGG'], { G: 'glas', S: 'spooklicht' }, 'licht');
+vorm('stuiterblok', 1, ['KK', 'KK'], { K: 'kwallengel' }, 'bouwen');
+
 export {
   REC, OVEN, n, vorm, los, smelt, VERF, zoekRecept, ovenRecept,
 };

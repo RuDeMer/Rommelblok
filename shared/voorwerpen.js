@@ -108,6 +108,19 @@ for (const s2 of ['stam_kers', 'stam_noten', 'planken_kers', 'planken_noten', 't
 IT[B.stekje_kers].brand = 5; IT[B.stekje_noten].brand = 5; IT[B.veen].brand = 40; IT[I.papier].brand = 2;
 for (const id in IT) if (IT[id] && IT[id].blok) IT[id].tex = BL[IT[id].blok].tz;
 
+// stap 4: van dieren en griezels, en wat je ervan maakt
+ding(365, 'wol', 'Wol', 'Wool');
+ding(366, 'schaar', 'Schaar', 'Shears', { stapel: 1, duur: 160, groep: 'werk' });
+ding(367, 'ei', 'Ei', 'Egg', { stapel: 16 });
+ding(368, 'gebakken_ei', 'Gebakken ei', 'Fried egg', { eten: 5 });
+ding(369, 'emmer_melk', 'Emmer melk', 'Milk bucket', { stapel: 1, eten: 4, rest: 'emmer' });
+ding(370, 'pannenkoek', 'Pannenkoek', 'Pancake', { eten: 6 });
+ding(371, 'leer', 'Leer', 'Leather');
+ding(372, 'boek', 'Boek', 'Book');
+ding(373, 'spooklicht', 'Spooklicht', 'Ghost light');
+ding(374, 'kwallengel', 'Kwallengel', 'Jelly');
+IT[I.boek].brand = 4;
+
 // tags
 const TAG = { '#planken': [36, 37, 38, 39, 40, 41, B.planken_kers, B.planken_noten], '#stam': [24, 25, 26, 27, 28, 29, B.stam_kers, B.stam_noten], '#kolen': [I.kolen, I.houtskool] };
 const past = (sleutel, id) => (typeof sleutel === 'string' && sleutel[0] === '#' ? TAG[sleutel].includes(id) : sleutel === id);

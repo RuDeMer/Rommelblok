@@ -28,11 +28,26 @@ const VERANDERD = [
 ];
 const TEXTUUR_ANDERS = new Set(Object.values(TEXTUUR));   // nieuwe tekeningen (stap 2)
 // stap 3, je poppetje: twee nieuwe onderdelen achteraan in G, en de plaatjes voor het gezicht en de arm achteraan in de stapel
-const ERBIJ_G = ['POP', 'BLOKWAARDE'];
-const ERBIJ_DTEX = /^(pop_(ogen|mond)_[a-z]+|pop_(sproetjes|blosjes)|arm_stof)$/;
+// stap 4, dieren en griezels: WEZENS achteraan in G; 10 nieuwe voorwerpen (365 tot 374), 2 nieuwe blokken (178 en 179),
+// hun recepten en tekeningen, en de stofjes voor de lijven; alles achteraan, zodat alle oude nummers gelijk blijven
+const ERBIJ_G = ['POP', 'BLOKWAARDE', 'WEZENS'];
+const ERBIJ_DTEX = /^(pop_(ogen|mond)_[a-z]+|pop_(sproetjes|blosjes)|arm_stof|i_(wol|schaar|ei|gebakken_ei|emmer_melk|pannenkoek|leer|boek|spooklicht|kwallengel)|dier_[a-z]+|spook_laken|kwal_lijf|braam_tak)$/;
+const ERBIJ_IT = [365, 366, 367, 368, 369, 370, 371, 372, 373, 374], ERBIJ_BL = [178, 179];
 // de nieuwe lijsten zonder wat er alleen bij is gekomen (dat moet dan wel precies achteraan staan)
-function zonderErbij(G, oudAantalDtex) {
+function zonderErbij(G, oudAantalDtex, GO) {
   const kopie = Object.assign({}, G), erbij = [];
+  // stap 4: nieuwe voorwerpen en blokken weg, en de lijsten op hun oude lengte
+  const it = G.IT.slice(); for (const id of ERBIJ_IT.concat(ERBIJ_BL)) { if (!G.IT[id] || GO.IT[id]) fout('voorwerp ' + id + ' is niet nieuw'); delete it[id]; } kopie.IT = it;
+  const bl = G.BL.slice(); for (const id of ERBIJ_BL) { if (!G.BL[id] || GO.BL[id]) fout('blok ' + id + ' is niet nieuw'); bl[id] = null; } kopie.BL = bl;
+  const nieuweNamen = new Set([...ERBIJ_IT.map(id => G.IT[id].sleutel), ...ERBIJ_BL.map(id => G.BL[id].sleutel)]);
+  kopie.I = Object.fromEntries(Object.entries(G.I).filter(([k]) => !nieuweNamen.has(k)));
+  kopie.B = Object.fromEntries(Object.entries(G.B).filter(([k]) => !nieuweNamen.has(k)));
+  for (const k of ['DICHT', 'DEMP', 'LICHT', 'VAST', 'LAAG', 'VORM', 'VERVANG']) { const a = G[k].slice(); for (const id of ERBIJ_BL) a[id] = 0; kopie[k] = a; }
+  kopie.MAXBLOK = GO.MAXBLOK;
+  const nTex = GO.TEXNAMEN.length; kopie.TEXNAMEN = G.TEXNAMEN.slice(0, nTex); kopie.TEXNR = Object.fromEntries(Object.entries(G.TEXNR).filter(([, v]) => v < nTex));
+  for (const n of G.TEXNAMEN.slice(nTex)) if (!nieuweNamen.has(n)) fout('nieuwe textuur die er niet bij hoort:', n);
+  kopie.REC = G.REC.slice(0, GO.REC.length); kopie.OVEN = G.OVEN.slice(0, GO.OVEN.length);
+  erbij.push(ERBIJ_IT.length + ' voorwerpen (' + ERBIJ_IT.map(id => G.IT[id].sleutel).join(', ') + ')', ERBIJ_BL.length + ' blokken (' + ERBIJ_BL.map(id => G.BL[id].sleutel).join(', ') + ')', (G.REC.length - GO.REC.length) + ' recepten', (G.OVEN.length - GO.OVEN.length) + ' ovenrecept');
   const namen = Object.keys(G), staart = namen.slice(namen.length - ERBIJ_G.length);
   if (staart.join() !== ERBIJ_G.join()) fout('de nieuwe onderdelen staan niet achteraan in G:', staart.join());
   for (const k of ERBIJ_G) delete kopie[k];
@@ -73,12 +88,12 @@ function zelfde(a, b, pad, gezien, ouder) {
   for (const k of ka) zelfde(a[k], b[k], pad + '.' + k, gezien, a);
 }
 // maakWereld is over losse bestanden in shared/wereld/ verdeeld: die vergelijken we op wat hij maakt (deel 1)
-const { kopie: NIEUW_ZONDER, erbij: ERBIJ } = zonderErbij(NIEUW, GO.DTEXNAMEN.length);
+const { kopie: NIEUW_ZONDER, erbij: ERBIJ } = zonderErbij(NIEUW, GO.DTEXNAMEN.length, GO);
 const { maakWereld: mo, ...restO } = oudHernoemd(GO), { maakWereld: mn, ...restN } = NIEUW_ZONDER;
 zelfde(restO, restN, 'G', new Set(), null);
 console.log('lijsten en functies:', fouten ? fouten + ' verschillen' : 'gelijk', '(' + Object.keys(NIEUW_ZONDER).length + ' namen)');
 for (const r of gebruikt) console.log('  bewust anders:', r);
-console.log('  erbij gekomen (stap 3, je poppetje):', ERBIJ.join(', '));
+console.log('  erbij gekomen (stap 3, je poppetje; stap 4, dieren en griezels):', ERBIJ.join(', '));
 
 // ---------- 1. werelden
 const gelijk = (a, b) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength));
@@ -137,13 +152,14 @@ for (const zaad of [777, 4242]) {
 const TO = OUD.RB_TEXTUREN(GO), TN = RB_TEXTUREN(NIEUW);
 let lagenAnders = 0;
 const vergelijkLagen = (namen, a, b, n) => { for (let l = 0; l < n; l++) { const x = a.subarray(l * 1024, (l + 1) * 1024), y = b.subarray(l * 1024, (l + 1) * 1024); if (!gelijk(x, y)) { if (TEXTUUR_ANDERS.has(namen[l])) lagenAnders++; else fout('textuur anders:', namen[l]); } } };
-if (TO.N !== TN.N || TO.ND > TN.ND) fout('aantal texturen anders', TO.N, TN.N, TO.ND, TN.ND);
+if (TO.N > TN.N || TO.ND > TN.ND) fout('aantal texturen anders', TO.N, TN.N, TO.ND, TN.ND);
 else {
-  vergelijkLagen(NIEUW.TEXNAMEN, TO.data, TN.data, TN.N); vergelijkLagen(NIEUW.DTEXNAMEN, TO.ddata, TN.ddata, TO.ND);
+  vergelijkLagen(NIEUW.TEXNAMEN, TO.data, TN.data, TO.N); vergelijkLagen(NIEUW.DTEXNAMEN, TO.ddata, TN.ddata, TO.ND);
+  for (let l = TO.N; l < TN.N; l++) { const x = TN.data.subarray(l * 1024, (l + 1) * 1024); let vol = 0; for (let i = 3; i < x.length; i += 4) if (x[i] > 0) vol++; if (!vol) fout('nieuwe textuur is leeg:', NIEUW.TEXNAMEN[l]); else lagenAnders++; }
   // de nieuwe plaatjes achteraan zijn echt getekend (niet leeg)
   for (let l = TO.ND; l < TN.ND; l++) { const x = TN.ddata.subarray(l * 1024, (l + 1) * 1024); let vol = 0; for (let i = 3; i < x.length; i += 4) if (x[i] > 0) vol++; if (!vol) fout('nieuw plaatje is leeg:', NIEUW.DTEXNAMEN[l]); else lagenAnders++; }
 }
-console.log('texturen:', TN.N + TN.ND, 'lagen,', lagenAnders, 'bewust nieuw getekend (' + [...TEXTUUR_ANDERS].join(', ') + ', en ' + (TN.ND - TO.ND) + ' nieuwe voor je poppetje), de rest elke pixel gelijk');
+console.log('texturen:', TN.N + TN.ND, 'lagen,', lagenAnders, 'bewust nieuw getekend (' + [...TEXTUUR_ANDERS].join(', ') + ', en ' + (TN.ND - TO.ND + TN.N - TO.N) + ' nieuwe voor je poppetje, de dieren en de nieuwe voorwerpen), de rest elke pixel gelijk');
 
 console.log(fouten ? 'MISLUKT: ' + fouten + ' verschillen' : 'zelfde zaadje, zelfde wereld: alles gelijk, op de bewuste veranderingen na');
 process.exit(fouten ? 1 : 0);

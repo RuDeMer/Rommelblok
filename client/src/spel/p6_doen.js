@@ -87,7 +87,10 @@ function werkDoel() {
   const kk = karOpStraal(o, d, max); doelKar = kk ? kk.kar : null;
   const kb = bewonerOpStraal(o, d, kk ? kk.t : max), was = doelBewoner; doelBewoner = kb ? kb.bewoner : null;
   if (doelBewoner) { doelKar = null; if (doelBewoner !== was) toonNaam(doelBewoner.naam + ' · ' + (TAAL === 'en' ? BEROEP[doelBewoner.beroep].en : BEROEP[doelBewoner.beroep].nl)); }
-  if (doelKar || doelBewoner) doel = null;
+  // een dier of griezel dat dichterbij is dan al het andere, gaat voor
+  const kw = wezenOpStraal(o, d, kb ? kb.t : kk ? kk.t : max), wasW = doelWezen; doelWezen = kw ? kw.wezen : null;
+  if (doelWezen) { doelKar = null; doelBewoner = null; if (doelWezen !== wasW) { const S = G.WEZENS.WEZENS[doelWezen.s]; toonNaam(TAAL === 'en' ? S.en : S.nl); } }
+  if (doelKar || doelBewoner || doelWezen) doel = null;
 }
 
 // ---------------- hakken
@@ -111,6 +114,8 @@ function kanOogsten(v, slot) {
 }
 function hakTik(dt) {
   if (hak.wacht > 0) hak.wacht -= dt;
+  // dieren en griezels: een tik elke halve seconde zolang je de knop vasthoudt
+  if (hak.bezig && doelWezen && spelActief()) { if (hak.wacht <= 0) { slaWezen(doelWezen); hak.wacht = 0.45; } return; }
   // een bewoner slaan doet geen pijn, maar ze vinden het niet leuk
   if (hak.bezig && doelBewoner && spelActief()) { if (hak.wacht <= 0) { bewonerGetikt(doelBewoner); zwaai('hak'); hak.wacht = 0.8; } return; }
   // een karretje: een paar tikken en het valt los (bij bouwen meteen weg)
@@ -337,6 +342,8 @@ function gebruikNu() {
   if (!spelActief() || !wereldKlaar) return;
   const slot = inHand(), it = slot ? IT[slot.id] : null;
   if (doelBewoner) { openRuilen(doelBewoner); return; }
+  // een dier: melken of scheren; op een telefoon (tikken) is tikken op een dier ook slaan
+  if (doelWezen) { if (wezenGebruik(doelWezen, slot)) return; if (!(it && it.eten)) { if (aanraak && inst.richtModus !== 'kruis') slaWezen(doelWezen); return; } }
   if (doelKar && !sp.sluipt) { instappen(doelKar); zwaai(); return; }
   if (slot && slot.id === I.karretje) {
     if (doel && G.isSpoor(doel.v & 255) && !(WD.karren || []).some(k => k.bx === doel.x && k.by === doel.y && k.bz === doel.z)) { if (karNieuw(doel.x, doel.y, doel.z)) { neemUitHand(); klank('plaats', 'metaal'); zwaai(); } }
@@ -504,6 +511,10 @@ function schade(n, reden) {
 }
 let schud = 0;
 function landen(afstand, snelheid) {
+  // op een stuiterblok: terug omhoog (iets minder hoog dan je viel), en geen valschade; sluipen stopt het stuiteren
+  const st = blokOp(Math.floor(sp.x), Math.floor(sp.y - 0.2), Math.floor(sp.z)) & 255;
+  if (BL[st] && BL[st].stuiter && !sp.sluipt) { const v = Math.abs(snelheid || 0); if (v > 3) { sp.vy = Math.min(22, v * 0.82); sp.opGrond = false; sp.valStart = sp.y; klank('wezen', 'stuiter', Math.min(1, v / 18)); } return; }
+  if (BL[st] && BL[st].stuiter) return;
   if (afstand > 0.6) klank('land', Math.min(1, afstand / 8));
   if (sp.inWater) { if (afstand > 2) klank('plons', afstand > 6); return; }
   const onder = blokOp(Math.floor(sp.x), Math.floor(sp.y - 0.2), Math.floor(sp.z)) & 255;
@@ -566,7 +577,7 @@ function spelTik(dt, nu) {
   if (bouwKnop && !eet.bezig && nu > bouwHerhaal) { bouwHerhaal = nu + 210; gebruik(); }
   overleefTik(dt);
   losseTik(dt);
-  karTik(dt); karDuwen(); bewonersTik(dt);
+  karTik(dt); karDuwen(); bewonersTik(dt); wezensTik(dt);
   zwaaiT = Math.min(1, zwaaiT + dt * 3.2);
   rood = Math.max(0, rood - dt * 2.5); schud = Math.max(0, schud - dt);
   // stappen
@@ -594,7 +605,8 @@ function tekenExtra(dt, C) {
   let kader = null;
   if (doel && spelActief() && !(aanraak && !doelZichtbaar)) kader = { dozen: doel.dozen, barst: hak.bezig && hak.voortgang > 0 && wereldStand() !== 'bouwen' ? Math.floor(hak.voortgang * 10) : -1 };
   else if (doelKar && spelActief() && !(aanraak && !doelZichtbaar)) { const k = doelKar; kader = { dozen: [[k.x - 0.45, k.y, k.z - 0.45, k.x + 0.45, k.y + 0.65, k.z + 0.45]], barst: -1 }; }
-  const wezens = []; karrenTeken(wezens); bewonersTeken(wezens);
+  else if (doelWezen && spelActief() && !(aanraak && !doelZichtbaar)) { const w = doelWezen, S = G.WEZENS.WEZENS[w.s], r = S.maat[0]; kader = { dozen: [[w.x - r, w.y, w.z - r, w.x + r, w.y + S.maat[1], w.z + r]], barst: -1 }; }
+  const wezens = []; karrenTeken(wezens); bewonersTeken(wezens); wezensTeken(wezens);
   // de arm: altijd in beeld, met wat je in de snelbalk hebt gekozen (of een lege hand)
   const slot = inHand(), nuId = slot ? slot.id : 0;
   if (nuId !== vorigeHand) { if (vorigeHand !== -1) wisselT = 1; vorigeHand = nuId; }

@@ -14,15 +14,16 @@ import { maakWereld } from './wereld/index.js';
 // nieuw sinds de ombouw (achteraan, zodat de oude namen en hun volgorde gelijk blijven)
 import * as POP from './poppetje.js';
 import * as BLOKWAARDE from './blokwaarde.js';
+import * as WEZENS from './wezens.js';
 
 export {
   isSpoor, spoorEinden, spoorOp, spoorKies, eindHoogte, heeftEind, CH, HOOG, ZEE, SECTIES, VOL, idx, rng, hsh, kans, zaadVan, ruis, glad, mix, RICHTING, vormDozen, botsDozen, kijkDozen, TEXOFS, BL, B, IT, I, TEXNAMEN, TEXNR, tex, DTEXNAMEN, DTEXNR, dtex, DICHT, DEMP, LICHT, VAST, LAAG, VORM, VN, VERVANG, W, isWater, MAXBLOK, HOUT, KLEUREN, KLASSE, GEREED, STEENSOORT, TAG, past, REC, OVEN, zoekRecept, ovenRecept, bouwGroep, PALET, KLEURITEM, itemVan, HOUT2, GEWAS, POTPLANT, BIOMEN, BI, maakWereld, rgb565,
-  POP, BLOKWAARDE,
+  POP, BLOKWAARDE, WEZENS,
 };
 
 export const G = {
   isSpoor, spoorEinden, spoorOp, spoorKies, eindHoogte, heeftEind, CH, HOOG, ZEE, SECTIES, VOL, idx, rng, hsh, kans, zaadVan, ruis, glad, mix, RICHTING, vormDozen, botsDozen, kijkDozen, TEXOFS, BL, B, IT, I, TEXNAMEN, TEXNR, tex, DTEXNAMEN, DTEXNR, dtex, DICHT, DEMP, LICHT, VAST, LAAG, VORM, VN, VERVANG, W, isWater, MAXBLOK, HOUT, KLEUREN, KLASSE, GEREED, STEENSOORT, TAG, past, REC, OVEN, zoekRecept, ovenRecept, bouwGroep, PALET, KLEURITEM, itemVan, HOUT2, GEWAS, POTPLANT, BIOMEN, BI, maakWereld, rgb565,
-  POP, BLOKWAARDE,
+  POP, BLOKWAARDE, WEZENS,
 };
 
 export function maakGedeeld() { return G; }

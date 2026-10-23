@@ -275,6 +275,27 @@ export function RB_GELUID(opt) {
     },
     // een stuwspoor dat een karretje wegduwt: een zacht aanzwellend gezoem
     stuw: () => klank(v => { ruis(v, { type: 'bandpass', freq: 260, freqEind: 1000, Q: 1.1, aanval: 0.05, verval: 0.35, piek: 0.06 }); toon(v, { vorm: 'triangle', freq: 165, freqEind: 330, glij: 0.3, aanval: 0.03, verval: 0.3, piek: 0.03 }); }),
+    // dieren en griezels (stap 4): een kort, zacht geluidje per soort; au = geraakt (iets hoger en korter)
+    wezen(soort, au) {
+      const h = au ? 1.25 : 1, k = au ? 0.6 : 1;
+      klank(v => {
+        switch (soort) {
+          case 'koe': toon(v, { vorm: 'sawtooth', freq: r(110, 130) * h, freqEind: r(82, 92) * h, glij: 0.7 * k, aanval: 0.12, verval: 0.75 * k, piek: 0.03, fm: 4, fmDiep: 6 }); ruis(v, { bruin: true, type: 'lowpass', freq: 380, aanval: 0.1, verval: 0.6 * k, piek: 0.05 }); break;
+          case 'schaap': toon(v, { vorm: 'sawtooth', freq: r(330, 380) * h, freqEind: r(300, 330) * h, glij: 0.5 * k, aanval: 0.04, verval: 0.5 * k, piek: 0.018, fm: 22, fmDiep: 40 }); break;
+          case 'kip': for (let i = 0; i < (au ? 2 : 3); i++) toon(v, { na: i * 0.11, vorm: 'triangle', freq: r(620, 760) * h, freqEind: r(480, 560), aanval: 0.006, verval: 0.07, piek: 0.035 }); break;
+          case 'eend': for (let i = 0; i < 2; i++) ruis(v, { na: i * 0.16, type: 'bandpass', freq: r(900, 1100) * h, freqEind: 600, Q: 6, aanval: 0.01, verval: 0.12, piek: 0.12 }); break;
+          case 'konijn': case 'hagedis': korrels(v, 3, 0.08, { type: 'bandpass', freq: 3200 * h, Q: 2, aanval: 0.002, verval: 0.03, piek: 0.03 }); break;
+          case 'hert': toon(v, { vorm: 'triangle', freq: r(520, 600) * h, freqEind: r(380, 420), aanval: 0.02, verval: 0.25 * k, piek: 0.03 }); break;
+          case 'zeehond': toon(v, { vorm: 'square', freq: r(260, 300) * h, freqEind: r(200, 220), aanval: 0.02, verval: 0.3 * k, piek: 0.012 }); ruis(v, { type: 'bandpass', freq: 700, Q: 2, aanval: 0.02, verval: 0.25, piek: 0.04 }); break;
+          case 'spook': toon(v, { freq: r(440, 520) * h, freqEind: r(300, 340), glij: 0.9 * k, aanval: 0.25 * k, verval: 0.9 * k, piek: 0.03, fm: 5, fmDiep: 18 }); break;
+          case 'kwal': for (let i = 0; i < 3; i++) bel(v, i * 0.09, 0.03); toon(v, { freq: r(180, 220) * h, freqEind: 140, aanval: 0.05, verval: 0.3, piek: 0.03 }); break;
+          case 'braam': korrels(v, 6, 0.25, { type: 'bandpass', freq: 1800 * h, Q: 1.1, aanval: 0.003, verval: 0.05, piek: 0.05 }); break;
+          case 'sla': ruis(v, { bruin: true, type: 'lowpass', freq: 520, aanval: 0.002, verval: 0.09, piek: 0.22 }); break;
+          case 'poef': ruis(v, { type: 'lowpass', freq: 2200, freqEind: 300, aanval: 0.01, verval: 0.35, piek: 0.12 }); toon(v, { freq: 660, freqEind: 990, aanval: 0.005, verval: 0.18, piek: 0.03 }); break;
+          case 'stuiter': { const s2 = Math.max(0.2, au || 0.5); toon(v, { vorm: 'triangle', freq: 180, freqEind: 520, glij: 0.16, aanval: 0.005, verval: 0.2, piek: 0.05 * s2 }); ruis(v, { bruin: true, type: 'lowpass', freq: 400, aanval: 0.003, verval: 0.08, piek: 0.1 * s2 }); break; }
+        }
+      });
+    },
     omgeving,
   };
   return API;

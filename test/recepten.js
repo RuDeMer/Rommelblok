@@ -27,6 +27,9 @@ for (const k of ['appel', 'stok', 'bessen', 'vlas', 'bessenstruik', 'kolen', 'gr
   'kersen', 'walnoot', 'stekje_kers', 'stekje_noten', 'tarwezaad', 'bietenzaad', 'aardappel', 'wortel', 'suikerbiet', 'pompoen', 'pompoenpit', 'tarwe', 'zonnebloem', 'klaproos', 'lavendel', 'madelief', 'vergeetmenietje', 'mos', 'klimop', 'graniet', 'basalt', 'marmer', 'veen', 'stam_kers', 'stam_noten', 'linnendraad', 'sterrensplinter'].filter(k => k !== 'ijs')) bereik.add(I[k] !== undefined ? I[k] : B[k]);
 // bladeren krijg je met een zwaard
 for (const s of ['blad_eik', 'blad_berk', 'blad_spar', 'blad_esdoorn', 'blad_baobab', 'blad_wilg', 'blad_esdoorn_oranje', 'blad_esdoorn_geel', 'blad_kers', 'blad_noten']) bereik.add(B[s]);
+// stap 4: wat dieren en griezels laten vallen (shared/wezens.js), en eieren van kippen
+for (const w of G.WEZENS.WEZENS) for (const [k] of w.buit) bereik.add(I[k] !== undefined ? I[k] : B[k]);
+bereik.add(I.ei);
 let meer = true;
 const heeft = s => (typeof s === 'string' && s[0] === '#' ? TAG[s].some(id => bereik.has(id)) : bereik.has(s));
 while (meer) {
@@ -34,6 +37,8 @@ while (meer) {
   for (const r of REC) { if (bereik.has(r.uit)) continue; const ing = r.los ? r.los : Object.values(r.sleutels); if (ing.every(heeft)) { bereik.add(r.uit); meer = true; } }
   for (const o of OVEN) if (!bereik.has(o.uit) && bereik.has(o.in)) { bereik.add(o.uit); meer = true; }
   if (bereik.has(I.emmer) && !bereik.has(I.emmer_water)) { bereik.add(I.emmer_water); meer = true; }
+  // melken: een lege emmer bij een koe
+  if (bereik.has(I.emmer) && !bereik.has(I.emmer_melk)) { bereik.add(I.emmer_melk); meer = true; }
   // de smidse: gereedschap met een sterrensplinter krijgt sterrenglans
   IT.forEach((it, id) => { if (it && it.ster && !bereik.has(id) && bereik.has(it.basis) && bereik.has(I.sterrensplinter) && bereik.has(B.smidse)) { bereik.add(id); meer = true; } });
 }

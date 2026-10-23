@@ -19,6 +19,9 @@ const LOGBOEK = [
   ['hutspot', 'Echte hutspot', 'Maak hutspot met aardappels en wortels.', 'leven'],
   ['taart', 'Een hele taart', 'Bak een taart.', 'leven'],
   ['emmer', 'Water in een emmer', 'Schep water met een emmer.', 'leven'],
+  ['melk', 'Verse melk', 'Melk een koe met een emmer.', 'leven'],
+  ['wol', 'Zachte wol', 'Scheer een schaap met een schaar.', 'leven'],
+  ['pannenkoek', 'Pannenkoeken!', 'Bak een pannenkoek van tarwe, een ei en suiker.', 'leven'],
   ['grot', 'Onder de grond', 'Ga een grot in.', 'verkennen'],
   ['diep', 'Heel diep', 'Kom lager dan 16 blokken boven de bodem van de wereld.', 'verkennen'],
   ['berg', 'Op de top', 'Klim hoger dan 108 blokken.', 'verkennen'],
@@ -30,6 +33,7 @@ const LOGBOEK = [
   ['buit', 'Een schat gevonden', 'Open een oude kist.', 'verkennen'],
   ['dorp', 'Een dorpje', 'Vind een dorpje met bewoners.', 'verkennen'],
   ['karretje', 'Instappen!', 'Rijd in een karretje over het spoor.', 'verkennen'],
+  ['griezel', 'Niet bang!', 'Versla een griezel in het donker.', 'verkennen'],
   ['koper', 'Koper gevonden', 'Hak kopererts.', 'mijnbouw'],
   ['ijzer', 'IJzer gesmolten', 'Smelt ijzer in een oven.', 'mijnbouw'],
   ['goud', 'Goud gevonden', 'Hak gouderts.', 'mijnbouw'],
@@ -53,7 +57,7 @@ const LB_DING = {
   hout: G.TAG['#stam'], werkbank: [B.werkbank], houweel: [I.houweel_hout], steen: [B.kei], oven: [B.oven], fakkel: [B.fakkel],
   brood: [I.brood], hutspot: [I.hutspot], taart: [B.bessentaart, B.kersentaart, B.appeltaart], emmer: [I.emmer_water], kaart: [I.kaart],
   koper: [I.koperbrok], ijzer: [I.ijzerstaaf], goud: [I.goudbrok], robijn: [I.robijn], ijzerhouweel: [I.houweel_ijzer, I.houweel_ijzer_ster], robijnhouweel: [I.houweel_robijn, I.houweel_robijn_ster],
-  splinter: [I.sterrensplinter], smidse: [B.smidse],
+  splinter: [I.sterrensplinter], smidse: [B.smidse], pannenkoek: [I.pannenkoek],
 };
 const LB_VAN = new Map();
 for (const [m, ids] of Object.entries(LB_DING)) for (const id of ids || []) if (id !== undefined) LB_VAN.set(id, m);

@@ -6,13 +6,18 @@ cd "$(dirname "$0")/.."
 RB_VORIGE="${RB_VORIGE:-$PWD/test/referentie/rommelblok-ronde3.html}"
 node site/maak-pagina.js || exit 1
 fout=0
-loop() { echo "=== $1"; shift; "$@" 2>&1 | tail -${N:-3}; [ ${PIPESTATUS[0]} -eq 0 ] || { echo "!!! MISLUKT"; fout=$((fout+1)); }; }
+# de volledige uitvoer van elke test staat in $RB_UIT/logs/ (genummerd), zodat je een fout achteraf kunt nalezen
+LOGS="${RB_UIT:-${TMPDIR:-/tmp}/rommelblok-uit}/logs"; mkdir -p "$LOGS"; nr=0
+loop() { nr=$((nr+1)); local log="$LOGS/$(printf %02d $nr).log"; echo "=== $1"; shift; "$@" > "$log" 2>&1; local code=$?; tail -${N:-3} "$log"; [ $code -eq 0 ] || { echo "!!! MISLUKT (volledige uitvoer: $log)"; fout=$((fout+1)); }; }
 N=10 loop "zelfde zaadje, zelfde wereld (blok voor blok gelijk aan de site; alleen wat bewust veranderde mag anders)" node test/zelfde_wereld.js
 N=6 loop "pagina: veiligheidsbeleid en gedeelde blokken zoals op de site" node test/pagina.js
 N=4 loop "geen verwijzingen naar Limburg" node test/geen_limburg.js
 N=2 loop "browser: bewoners uit een oudere wereld krijgen eenmalig hun nieuwe naam" node test/namen_omzetten.js
 N=2 loop "browser: je poppetje en de drie camera's (computer)" node test/poppetje.js
 N=2 loop "browser: je poppetje en de drie camera's (telefoon, 360 punten breed)" node test/poppetje.js telefoon
+N=12 loop "dieren en griezels: vaste kuddetjes, hekken, water, randen, vallen, pijn, buit" node test/wezens.js
+N=2 loop "browser: dieren en griezels (computer)" node test/dieren.js
+N=2 loop "browser: dieren en griezels (telefoon, 360 punten breed)" node test/dieren.js telefoon
 N=4 loop "blokwaarden: ruimte voor 1024 soorten zonder iets om te zetten" node test/standen.js
 N=3 loop "zaadje: zelfde wereld" node test/gen1.js
 N=7 loop "landschap: land en zee, oceanen, rivieren, begin op land" node test/landschap.js

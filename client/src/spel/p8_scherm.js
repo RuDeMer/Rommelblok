@@ -190,6 +190,7 @@ const INST_RIJEN = [
   ['schommel', 'Schommelen bij het lopen', 'Hoe sterk je hoofd meedeint met je stappen.', 'niveau', ['Uit', 'Zacht', 'Rustig', 'Normaal', 'Sterk']],
   ['opstappen', 'Vanzelf opstappen', 'Loop vanzelf een blok omhoog, zonder te springen. Halve blokken gaan altijd vanzelf.', 'aanuit'],
   ['pop', 'Mijn poppetje', 'Kies hoe je eruitziet: je huid, je haar, je gezicht, je kleren en je spullen. Je arm in beeld past erbij.', 'knop', 'Aanpassen'],
+  ['moeilijk', 'Griezels in deze wereld', 'Vredig: geen griezels. Makkelijk, normaal of moeilijk: hoeveel er in het donker komen en hoeveel pijn ze doen.', 'keuze', G.WEZENS.MOEILIJK_NAMEN.map(([k, nl]) => [k, nl])],
   ['camera', 'Camera', 'Door je eigen ogen, van achteren of van voren. Wisselen kan ook met de toets V, of op een telefoon met de cameraknop.', 'keuze', [[0, 'Door je ogen'], [1, 'Van achteren'], [2, 'Van voren']]],
   ['fps', 'Beelden per seconde tonen', '', 'aanuit'],
   ['taal', 'Taal', '', 'keuze', [['nl', 'Nederlands'], ['en', 'English']]],
@@ -199,11 +200,12 @@ function openInstellingen() {
   for (const [k, titel, uitleg, soort, extra] of INST_RIJEN) {
     if ((k === 'aanraak' || k === 'richtModus') && !aanraak) continue;
     if (k === 'muis' && aanraak && !matchMedia('(pointer: fine)').matches) continue;
+    if (k === 'moeilijk' && !(spelBezig && WD && WD.stand !== 'bouwen')) continue;
     const r = document.createElement('div'); r.className = 'rb-inst-rij';
     const id = 'inst-' + k;
     r.innerHTML = `<label for="${id}">${t(titel)}${uitleg ? `<small>${t(uitleg)}</small>` : ''}</label><div></div>`;
     const plek = r.lastChild;
-    const waarde = k === 'taal' ? TAAL : inst[k];
+    const waarde = k === 'taal' ? TAAL : k === 'moeilijk' ? WD.moeilijk : inst[k];
     if (soort === 'knop') {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'rb-knop klein'; b.id = id; b.textContent = t(extra); b.onclick = () => openPop();
       plek.className = 'rb-inst-knop'; plek.appendChild(b);
@@ -239,6 +241,7 @@ function openInstellingen() {
 }
 function zetInst(k, v) {
   if (k === 'taal') { zetTaal(v); return; }
+  if (k === 'moeilijk') { if (WD) WD.moeilijk = v; return; }
   const oud = inst[k]; inst[k] = v; bewaarInst();
   if (k === 'kwaliteit' && v !== oud) { KW = KWAL[kwaliteitNu()]; dynSchaal = KW.schaal || 1; huidigeStraal = straalNu(); vertelPlek(performance.now(), true); wb.postMessage({ t: 'opties', opties: { snelleBladeren: KW.snelleBladeren }, straal: huidigeStraal, opnieuw: true }); melding(t('Sommige veranderingen zie je pas na opnieuw laden.'), true); }
   if (k === 'kijk') { huidigeStraal = straalNu(); vertelPlek(performance.now(), true); }
@@ -265,7 +268,8 @@ function openHulp() {
 }
 // ---------------- flauwgevallen
 function toonDood(reden, spullen) {
-  const zinnen = { val: 'Je viel van te hoog.', water: 'Je had geen adem meer.', honger: 'Je had te lang niets gegeten.', cactus: 'Een cactus prikte te vaak.' };
+  const zinnen = { val: 'Je viel van te hoog.', water: 'Je had geen adem meer.', honger: 'Je had te lang niets gegeten.', cactus: 'Een cactus prikte te vaak.',
+    spookje: 'Een spookje liet je te vaak schrikken.', grotkwal: 'Een grotkwal prikte te vaak.', braambol: 'Een braambol rolde over je heen.' };
   $('rb-dood-tekst').textContent = t(zinnen[reden] || 'Het werd even zwart voor je ogen.');
   $('rb-dood-spullen').textContent = spullen ? t('Je spullen liggen in je rugzak op de plek waar je viel. Een pijltje bovenaan wijst je de weg.') : t('Je had niets bij je.');
   openScherm('dood');

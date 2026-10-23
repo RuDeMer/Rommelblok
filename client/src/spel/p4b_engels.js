@@ -247,4 +247,14 @@ Object.assign(EN_ZIN, {
   'Bovenkant': 'Top', 'Kleur van je bovenkant': 'Colour of your top', 'Onderkant': 'Bottoms', 'Kleur van je onderkant': 'Colour of your bottoms', 'Schoenen': 'Shoes', 'Iets extra': 'Something extra',
   'Bij een jurk of een overall zie je dit niet.': 'You can\'t see this with a dress or dungarees.', '🎲 Verras me': '🎲 Surprise me',
   'Je poppetje. Sleep om het rond te draaien.': 'Your character. Drag to turn it around.', 'Draai naar links': 'Turn left', 'Draai naar rechts': 'Turn right',
+  // dieren en griezels
+  'Dit schaap is al geschoren. Zijn wol groeit weer aan.': 'This sheep has already been sheared. Its wool will grow back.',
+  'Griezels in het donker': 'Spooks in the dark', 'Griezels in deze wereld': 'Spooks in this world',
+  'Vredig: geen griezels. Makkelijk, normaal of moeilijk: hoeveel er in het donker komen en hoeveel pijn ze doen.': 'Peaceful: no spooks. Easy, normal or hard: how many come out in the dark and how much they hurt.',
+  'Vredig': 'Peaceful', 'Makkelijk': 'Easy', 'Moeilijk': 'Hard',
+  'Geen griezels: alleen vriendelijke dieren.': 'No spooks: only friendly animals.', 'Een paar griezels, en ze doen weinig pijn.': 'A few spooks, and they hardly hurt.',
+  'Griezels in het donker. Een lamp of fakkel houdt spookjes op afstand.': 'Spooks in the dark. A lamp or torch keeps little ghosts away.', 'Meer griezels, en ze doen meer pijn.': 'More spooks, and they hurt more.',
+  'Een spookje liet je te vaak schrikken.': 'A little ghost scared you once too often.', 'Een grotkwal prikte te vaak.': 'A cave jelly stung you too often.', 'Een braambol rolde over je heen.': 'A bramble ball rolled over you.',
+  'Verse melk': 'Fresh milk', 'Melk een koe met een emmer.': 'Milk a cow with a bucket.', 'Zachte wol': 'Soft wool', 'Scheer een schaap met een schaar.': 'Shear a sheep with shears.',
+  'Pannenkoeken!': 'Pancakes!', 'Bak een pannenkoek van tarwe, een ei en suiker.': 'Make a pancake from wheat, an egg and sugar.', 'Niet bang!': 'Not scared!', 'Versla een griezel in het donker.': 'Beat a spook in the dark.',
 });

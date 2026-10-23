@@ -448,3 +448,7 @@ body.rb-cam-voor .rb-kruis { display: none; }
 }
 .rb-inst-knop { display: flex; justify-content: flex-end; }
 @media (max-width: 520px) { .rb-inst-knop { justify-content: flex-start; } }
+/* ---------------- stap 4: de keuze voor griezels bij een nieuwe wereld (vier knoppen, altijd binnen het vak) */
+.rb-maak-moeilijk { flex-wrap: wrap; border-radius: 18px; }
+.rb-maak-moeilijk button { flex: 1 1 auto; padding: .42rem .45rem; }
+@media (max-width: 420px) { .rb-maak-moeilijk button { font-size: .8rem; padding: .42rem .25rem; } }

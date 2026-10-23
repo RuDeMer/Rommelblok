@@ -32,6 +32,7 @@ async function bewaarWereld(stil) {
     const kopie = Object.assign({}, WD); delete kopie._sinds;
     if (WD.karren) kopie.karren = WD.karren.map(karData);
     if (WD.bewoners) kopie.bewoners = WD.bewoners.map(bewonerData);
+    if (WD.dieren) kopie.dieren = WD.dieren.map(dierData);
     const ok = await schrijfMeta(kopie);
     await vraagWb({ t: 'bewaar' });
     if (typeof kaartBewaren === 'function') await kaartBewaren();
@@ -44,7 +45,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && spe
 addEventListener('pagehide', () => { if (spelBezig) bewaarWereld(true); });
 
 // ---------------- een nieuwe wereld
-function nieuweWereldGegevens(naam, zaadTekst, stand) {
+function nieuweWereldGegevens(naam, zaadTekst, stand, moeilijk) {
   const tekst = (zaadTekst || '').trim() || String(Math.floor(Math.random() * 2147483647));
   const zaad = G.zaadVan(tekst);
   const st = G.maakWereld(zaad).startPlek();
@@ -54,6 +55,7 @@ function nieuweWereldGegevens(naam, zaadTekst, stand) {
     gemaakt: Date.now(), gespeeld: Date.now(), speeltijd: 0, tijd: 0.3, dag: 0,
     speler: { pos: [st.x, st.y, st.z], kijk: [Math.PI * 0.25, -0.15], vliegt: false, hp: 20, honger: 20, verzadiging: 5, adem: 10, uitputting: 0, start: [st.x, st.y, st.z], bed: null },
     inv: beginRugzak(stand), kies: 0, rugzakken: [], dingen: {}, plaatje: null, grotten: 2, gen: 3,
+    moeilijk: G.WEZENS.MOEILIJK[moeilijk] ? moeilijk : 'makkelijk', dieren: [], dierVak: {},
   };
 }
 async function speelWereld(w) {
@@ -62,6 +64,7 @@ async function speelWereld(w) {
   WD = w; WD._sinds = performance.now();
   WD.dingen = WD.dingen || {}; WD.rugzakken = WD.rugzakken || []; WD.markers = WD.markers || []; WD.gevonden = WD.gevonden || [];
   bewonersLaden(); WD.bewoners = WD.bewoners || []; WD.dorpen = WD.dorpen || [];
+  wezensLaden();
   // uit een wereld van vóór de nieuwe namen: de mijlpaal van de taart heette anders, en de bewoners krijgen eenmalig hun nieuwe naam
   if (WD.logboek && WD.logboek.vlaai !== undefined) { if (WD.logboek.taart === undefined) WD.logboek.taart = WD.logboek.vlaai; delete WD.logboek.vlaai; }
   bewonerNamenOmzetten();
@@ -150,12 +153,20 @@ function beginScherm() {
 $('rb-nieuw').addEventListener('click', () => { $('rb-maak-naam').value = t('Mijn wereld'); $('rb-maak-zaad').value = ''; kiesStand('overleven'); openScherm('maak'); setTimeout(() => $('rb-maak-naam').select(), 30); });
 $('rb-begin-inst').addEventListener('click', () => openInstellingen());
 $('rb-taal').addEventListener('click', () => zetTaal(TAAL === 'en' ? 'nl' : 'en'));
-let gekozenStand = 'overleven';
-function kiesStand(s) { gekozenStand = s; for (const b of document.querySelectorAll('.rb-stand')) b.setAttribute('aria-checked', String(b.dataset.stand === s)); }
+let gekozenStand = 'overleven', gekozenMoeilijk = 'makkelijk';
+function kiesStand(s) { gekozenStand = s; for (const b of document.querySelectorAll('.rb-stand')) b.setAttribute('aria-checked', String(b.dataset.stand === s)); $('rb-maak-moeilijk-rij').hidden = s === 'bouwen'; }
+// hoeveel griezels er 's nachts en in grotten komen (alleen bij overleven)
+const MOEILIJK_UITLEG = { vredig: 'Geen griezels: alleen vriendelijke dieren.', makkelijk: 'Een paar griezels, en ze doen weinig pijn.', normaal: 'Griezels in het donker. Een lamp of fakkel houdt spookjes op afstand.', moeilijk: 'Meer griezels, en ze doen meer pijn.' };
+function kiesMoeilijk(m) {
+  gekozenMoeilijk = m; const g = $('rb-maak-moeilijk'); g.innerHTML = '';
+  for (const [k, nl, en] of G.WEZENS.MOEILIJK_NAMEN) { const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(k === m)); b.setAttribute('aria-pressed', String(k === m)); b.textContent = TAAL === 'en' ? en : nl; b.onclick = () => kiesMoeilijk(k); g.appendChild(b); }
+  $('rb-maak-moeilijk-uitleg').textContent = t(MOEILIJK_UITLEG[m]);
+}
+kiesMoeilijk('makkelijk');
 for (const b of document.querySelectorAll('.rb-stand')) b.addEventListener('click', () => kiesStand(b.dataset.stand));
 const ZAADWOORDEN = ['taart', 'rommel', 'molen', 'tulp', 'kraanvogel', 'zolder', 'schuurtje', 'hamer', 'knikker', 'kroket', 'polder', 'duin', 'klomp', 'drop', 'paling', 'heide'];
 $('rb-dobbel').addEventListener('click', () => { $('rb-maak-zaad').value = ZAADWOORDEN[Math.floor(Math.random() * ZAADWOORDEN.length)] + Math.floor(Math.random() * 1000); });
-$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand); speelWereld(w); });
+$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); speelWereld(w); });
 
 // ---------------- verwijderen, exporteren en importeren
 async function verwijder(id) {
@@ -229,6 +240,9 @@ function schoonWereld(w) {
     karNr: Math.max(0, Math.floor(getal(w.karNr, 0))), karBronnen: (Array.isArray(w.karBronnen) ? w.karBronnen : []).filter(b => typeof b === 'string' && /^-?\d+,-?\d+,-?\d+$/.test(b)).slice(-400),
     gevonden: (Array.isArray(w.gevonden) ? w.gevonden : []).slice(0, 300).filter(g => Array.isArray(g) && /^(ruine|mijn|krater|dorp)$/.test(g[0]) && g.slice(1, 4).every(v => typeof v === 'number' && isFinite(v))).map(g => g.slice(0, 4)),
     logboek: w.logboek && typeof w.logboek === 'object' ? Object.fromEntries(Object.entries(w.logboek).map(([k, v]) => [k === 'vlaai' ? 'taart' : k, v]).filter(([k, v]) => LB[k] && Number.isInteger(v) && v > 0)) : undefined,
+    dieren: (Array.isArray(w.dieren) ? w.dieren : []).slice(0, 6000).map(schoonDier).filter(Boolean).map(dierData),
+    dierVak: Object.fromEntries(Object.entries(w.dierVak && typeof w.dierVak === 'object' ? w.dierVak : {}).filter(([k, v]) => /^-?\d+,-?\d+$/.test(k) && Array.isArray(v) && v.length === 2 && v.every(n => Number.isInteger(n) && n >= 0 && n < 4294967296)).slice(0, 20000)),
+    moeilijk: G.WEZENS.MOEILIJK[w.moeilijk] ? w.moeilijk : 'makkelijk',
     stats: { geplaatst: Math.max(0, Math.floor(getal(w.stats && w.stats.geplaatst, 0))) }, plaatje: typeof w.plaatje === 'string' && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(w.plaatje) && w.plaatje.length < 60000 ? w.plaatje : null,
   };
 }

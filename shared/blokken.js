@@ -218,7 +218,11 @@ blok(177, 'plaat_dakpannen', 'Dakpannenplaat', 'Roof tile slab', { vorm: 'plaat'
 
 // texturen die alleen in vormen gebruikt worden, vooraf vastleggen (dan is de volgorde overal gelijk)
 for (const n of ['fakkel_houder', 'lantaarn_top', 'lantaarn_ketting', 'taart_binnen', 'barst0', 'barst1', 'barst2', 'barst3', 'barst4', 'barst5', 'barst6', 'barst7', 'barst8', 'barst9']) tex(n);
-const MAXBLOK = 178;
+// stap 4: van wat griezels laten vallen: een lamp met een spooklicht erin, en een stuiterblok van kwallengel
+blok(178, 'spooklamp', 'Spooklamp', 'Ghost lamp', { hard: 0.5, licht: 13, geluid: 'glas', gloed: true });
+blok(179, 'stuiterblok', 'Stuiterblok', 'Bounce block', { hard: 0.6, geluid: 'stof' });
+BL[179].stuiter = true; // wie erop valt, stuitert terug (en krijgt geen valschade)
+const MAXBLOK = 180;
 for (let i = 0; i < 256; i++) if (!BL[i]) BL[i] = null;
 // snelle tabellen voor de rekenhulpjes
 const DICHT = new Uint8Array(256), DEMP = new Uint8Array(256), LICHT = new Uint8Array(256), VAST = new Uint8Array(256), LAAG = new Uint8Array(256), VORM = new Uint8Array(256), VERVANG = new Uint8Array(256);
