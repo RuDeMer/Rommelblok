@@ -19,7 +19,7 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
     await new Promise(r => setTimeout(r, 800));
     return [X, Y, Z];
   });
-  const r = await page.evaluate(([X, Y, Z]) => {
+  const r = await page.evaluate(async ([X, Y, Z]) => {
     const R = window.__rommelblok, WZ = R.WZ, uit = [];
     // waar de voorkant van een model zit (in zestienden, ten opzichte van het lijf): de ogen, anders de kant van het hoofd
     // met een gezicht, anders de kop; null als het model rond is (geen voor- of achterkant)
@@ -106,6 +106,8 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
       R.zet(X + 0.5, Y, Z + 0.5); R.kijk(yaw, 0);
       R.sim(20, 0.02, { voor: 1 }); const x0 = R.sp.x, z0 = R.sp.z; R.sim(10, 0.02, { voor: 1 });
       R.maakCamera(0, 0);
+      // het lijf draait zacht mee met waar je heen kijkt (binnen zo'n 0,3 s, per getekend beeldje): eerst een paar beeldjes
+      for (let k = 0; k < 8; k++) { R.tekenLijst(); await new Promise(r => setTimeout(r, 60)); }
       const e = zoek(R.tekenLijst(), R.sp.x, R.sp.z, m => !m.startsWith('wz:') && !m.startsWith('bw_') && m !== 'kar');
       uit.push({ wie: 'je eigen poppetje (van achteren) loopt ' + naam, d: e ? hoek(inWereld(voorVan(e.model), e.yaw), [R.sp.x - x0, R.sp.z - z0]) : NaN, l: Math.hypot(R.sp.x - x0, R.sp.z - z0) });
     }

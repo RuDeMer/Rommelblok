@@ -168,6 +168,8 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
   const kopVoor = yaw => {
     const R = window.__rommelblok, o = [...R.samen.spelers.values()][0]; if (!o || !o.buf.length) return 'geen B';
     const b = o.buf[o.buf.length - 1], voor = [-Math.sin(yaw), -Math.cos(yaw)];
+    // het lijf draait zacht mee (binnen zo'n 0,3 s, per getekend beeldje); in deze trage testbrowser komen er weinig beeldjes
+    for (let k = 0; k < 10; k++) R.samenTeken([], 0.1);
     const e = R.tekenLijst().filter(e => !/^(wz:|bw_|kar$)/.test(e.model)).sort((p, q) => Math.hypot(p.x - b[1], p.z - b[3]) - Math.hypot(q.x - b[1], q.z - b[3]))[0];
     const og = e && (R.R.modelDelen(e.model) || []).find(d => d.naam === 'ogen'); if (!og) return 'model ' + (e && e.model);
     let x = 0, z = 0; for (const q of og.dozen) { x += (q[0] + q[3]) / 2 / og.dozen.length; z += (q[2] + q[5]) / 2 / og.dozen.length; }
