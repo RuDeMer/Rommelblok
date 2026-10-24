@@ -608,7 +608,7 @@ function tekenExtra(dt, C) {
   let kader = null;
   if (doel && spelActief() && !(aanraak && !doelZichtbaar)) kader = { dozen: doel.dozen, barst: hak.bezig && hak.voortgang > 0 && wereldStand() !== 'bouwen' ? Math.floor(hak.voortgang * 10) : -1 };
   else if (doelKar && spelActief() && !(aanraak && !doelZichtbaar)) { const k = doelKar; kader = { dozen: [[k.x - 0.45, k.y, k.z - 0.45, k.x + 0.45, k.y + 0.65, k.z + 0.45]], barst: -1 }; }
-  else if (doelWezen && spelActief() && !(aanraak && !doelZichtbaar)) { const w = doelWezen, S = G.WEZENS.WEZENS[w.s], r = S.maat[0]; kader = { dozen: [[w.x - r, w.y, w.z - r, w.x + r, w.y + S.maat[1], w.z + r]], barst: -1 }; }
+  else if (doelWezen && spelActief() && !(aanraak && !doelZichtbaar)) { const h = wezenHoeken(doelWezen), a = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9]; for (const p of h) for (let i = 0; i < 3; i++) { a[i] = Math.min(a[i], p[i]); a[i + 3] = Math.max(a[i + 3], p[i]); } kader = { dozen: [a], hoeken: h, barst: -1 }; }
   const wezens = []; karrenTeken(wezens); bewonersTeken(wezens); wezensTeken(wezens);
   if (samen) samenTeken(wezens, dt);
   // de arm: altijd in beeld, met wat je in de snelbalk hebt gekozen (of een lege hand)

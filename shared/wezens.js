@@ -33,15 +33,21 @@ export const WEZENS = [
   { sleutel: 'zeehond', nl: 'Zeehond', en: 'Seal', vriend: true, biomen: b('strand', 'bevroren_oceaan', 'sneeuwvlakte'), maat: [0.38, 0.6], hp: 10, snel: 0.7, vlucht: 1.6, kudde: [1, 3], buit: [], geluid: 'zeehond', zwemt: true, strand: true },
   { sleutel: 'hagedis', nl: 'Hagedis', en: 'Lizard', vriend: true, biomen: b('woestijn', 'savanne'), maat: [0.18, 0.3], hp: 3, snel: 1.8, vlucht: 5, kudde: [1, 2], buit: [], geluid: 'hagedis', schuw: 4 },
   // griezels (eigen ontwerpen): alleen in overleven, en niet bij 'vredig'
-  { sleutel: 'spookje', nl: 'Spookje', en: 'Little ghost', vriend: false, maat: [0.32, 1.0], hp: 8, snel: 1.6, schade: 2, bereik: 16, buit: [['spooklicht', 0, 1]], geluid: 'spook', zweeft: true, nacht: true, lichtSchuw: 10 },
+  // spookje (oktober 2026: minder, maar sterker en enger): cirkelt om je heen, waarschuwt (rode ogen en een stijgende
+  // toon), en duikt dan in een rechte lijn op je af. Wie opzij springt, ontwijkt het; daarna is het even verdwaasd.
+  // Licht houdt het op afstand: een lamp of fakkel bij je, of een fakkel in je hand.
+  { sleutel: 'spookje', nl: 'Spookje', en: 'Little ghost', vriend: false, maat: [0.32, 1.0], hp: 20, snel: 1.6, schade: 4, bereik: 18, buit: [['spooklicht', 0, 1]], geluid: 'spook', zweeft: true, nacht: true, lichtSchuw: 10, duikt: true },
   { sleutel: 'grotkwal', nl: 'Grotkwal', en: 'Cave jelly', vriend: false, maat: [0.38, 0.9], hp: 10, snel: 0.9, schade: 3, bereik: 10, buit: [['kwallengel', 0, 2]], geluid: 'kwal', zweeft: true, grot: true },
   { sleutel: 'braambol', nl: 'Braambol', en: 'Bramble ball', vriend: false, biomen: b('bos', 'berkenbos', 'herfstbos', 'taiga', 'heide', 'moeras'), maat: [0.42, 0.85], hp: 12, snel: 1.2, schade: 3, bereik: 12, buit: [['bessen', 1, 2]], geluid: 'braam', nacht: true, stormt: true },
 ];
 export const WI = {}; WEZENS.forEach((w, i) => { w.id = i; WI[w.sleutel] = i; });
 export const MOEILIJK = {
-  // griezels: hoeveel er hooguit tegelijk zijn (keer het maximum); schade: keer de schade van een griezel
-  vredig: { griezels: 0, schade: 0 }, makkelijk: { griezels: 0.5, schade: 0.5 }, normaal: { griezels: 1, schade: 1 }, moeilijk: { griezels: 1.5, schade: 1.5 },
+  // griezels: hoeveel er hooguit tegelijk zijn (keer het maximum); schade: keer de schade van een griezel; spoken: hoeveel
+  // spookjes er hooguit tegelijk zijn
+  vredig: { griezels: 0, schade: 0, spoken: 0 }, makkelijk: { griezels: 0.5, schade: 0.5, spoken: 1 }, normaal: { griezels: 1, schade: 1, spoken: 2 }, moeilijk: { griezels: 1.5, schade: 1.5, spoken: 3 },
 };
+// een wezen is na een klap even onkwetsbaar (seconden), en een spookje dat verdwaasd is, krijgt dubbele schade
+export const ONKWETSBAAR = 0.5;
 export const MOEILIJK_NAMEN = [['vredig', 'Vredig', 'Peaceful'], ['makkelijk', 'Makkelijk', 'Easy'], ['normaal', 'Normaal', 'Normal'], ['moeilijk', 'Moeilijk', 'Hard']];
 // wanneer is het nacht (dan komen spookjes en braambollen tevoorschijn)?
 export const isNacht = t => t < 0.22 || t > 0.79;
@@ -99,7 +105,7 @@ function grondOnder(W, x, y, z) {
 let teller = 1;
 export function nieuwWezen(s, x, y, z, yaw, nummer) {
   const S = WEZENS[s];
-  return { n: nummer || teller++, s, x, y, z, yaw: yaw || 0, hp: S.hp, vx: 0, vy: 0, vz: 0, st: 'rust', t: 1 + (nummer || 0) % 3, dx: 0, dz: 0, fase: 0, grond: false, wacht: 0, rood: 0 };
+  return { n: nummer || teller++, s, x, y, z, yaw: yaw || 0, hp: S.hp, vx: 0, vy: 0, vz: 0, st: 'rust', t: 1 + (nummer || 0) % 3, dx: 0, dz: 0, fase: 0, grond: false, wacht: 0, rood: 0, onkw: 0, leeftijd: 0 };
 }
 // de nummers van nieuwe wezens doorlopen na het laden (zodat een nummer nooit dubbel is)
 export function zetTeller(n) { if (n >= teller) teller = n + 1; }
@@ -107,7 +113,7 @@ export function zetTeller(n) { if (n >= teller) teller = n + 1; }
 // ---------------- elk stapje: denken en bewegen. Geeft gebeurtenissen terug: [{ soort: 'raak', speler, schade }, { soort: 'ei' }]
 export function stap(w, dt, W) {
   const S = WEZENS[w.s], uit = [];
-  w.rood = Math.max(0, w.rood - dt); w.wacht = Math.max(0, w.wacht - dt); w.t -= dt;
+  w.rood = Math.max(0, w.rood - dt); w.wacht = Math.max(0, w.wacht - dt); w.onkw = Math.max(0, (w.onkw || 0) - dt); w.leeftijd = (w.leeftijd || 0) + dt; w.t -= dt;
   if (S.vriend) denkDier(w, S, dt, W, uit); else denkGriezel(w, S, dt, W, uit);
   if (S.legt) { if (w.ei === undefined) w.ei = S.legt[0] + W.r() * (S.legt[1] - S.legt[0]); w.ei -= dt; if (w.ei <= 0) { w.ei = S.legt[0] + W.r() * (S.legt[1] - S.legt[0]); uit.push({ soort: 'ei' }); } }
   if (w.kaal > 0) w.kaal = Math.max(0, w.kaal - dt);
@@ -147,6 +153,7 @@ function denkGriezel(w, S, dt, W, uit) {
     else if (w.st === 'aanloop') { if (w.t <= 0) { w.st = 'storm'; w.t = 1.4; if (doel) richt(w, doel); } }
     else if (doel && best < 100) { w.st = 'aanloop'; w.t = 0.8; w.dx = w.dz = 0; if (doel) kijk(w, doel); }
     else if (w.t <= 0) { const h = W.r() * Math.PI * 2; w.dx = -Math.sin(h) * 0.5; w.dz = -Math.cos(h) * 0.5; w.st = 'rust'; w.t = 2 + W.r() * 3; }
+  } else if (S.duikt) { duikGriezel(w, S, doel, best, W, uit); return;
   } else if (doel) {
     // spookje: blijft op afstand van een speler die bij een lamp staat
     let weg = false;
@@ -167,6 +174,55 @@ function denkGriezel(w, S, dt, W, uit) {
     }
   }
 }
+// Het spookje. Standen: rust (zweeft rond), cirkel (draait om je heen en komt langzaam dichterbij), aanloop (staat stil,
+// rode ogen en een stijgende toon: de waarschuwing), duik (recht op de plek waar je stond), verdwaasd (na een gemiste
+// duik: traag, en het krijgt dubbele schade), terug (na een tik even weg), afstand (je staat in het licht).
+function duikGriezel(w, S, doel, best, W, uit) {
+  w.kijkNaar = doel ? [doel.x, doel.z] : null;
+  const inLicht = doel && (doel.fakkel || (() => { const l = W.licht(Math.floor(doel.x), Math.floor(doel.y + 1), Math.floor(doel.z)); return l >= 0 && (l & 15) >= S.lichtSchuw; })());
+  const afst = doel ? Math.hypot(doel.x - w.x, doel.z - w.z) : 99;
+  if (w.st === 'duik') {
+    // recht door naar het doelpunt; raakt het je onderweg, dan een tik
+    const ax = w.doelX - w.x, ay = w.doelY - w.y, az = w.doelZ - w.z, l = Math.hypot(ax, ay, az);
+    if (doel && w.wacht <= 0 && afst < S.maat[0] + 0.55 && doel.y < w.y + S.maat[1] + 0.2 && doel.y + 1.8 > w.y - 0.2) {
+      const m = (MOEILIJK[W.moeilijk] || MOEILIJK.normaal).schade;
+      if (m > 0) uit.push({ soort: 'raak', speler: doel.id, schade: Math.max(1, Math.round(S.schade * m)), wx: w.x, wz: w.z });
+      w.wacht = 1.5; w.st = 'terug'; w.t = 2.2 + W.r(); weg(w, doel); return;
+    }
+    if (l < 0.5 || w.t <= 0) { w.st = 'verdwaasd'; w.t = 2; w.dx = w.dz = w.dy = 0; uit.push({ soort: 'gemist' }); return; }
+    w.dx = ax / l; w.dz = az / l; w.dy = ay / l; return;
+  }
+  if (w.st === 'aanloop') {
+    w.dx = w.dz = w.dy = 0; if (doel) kijk(w, doel);
+    if (inLicht) { w.st = 'afstand'; w.t = 1; return; }
+    if (w.t <= 0 && doel) { w.st = 'duik'; w.t = 1.6; w.doelX = doel.x; w.doelY = doel.y + 0.4; w.doelZ = doel.z; uit.push({ soort: 'duik' }); }
+    else if (w.t <= 0) { w.st = 'rust'; w.t = 2; }
+    return;
+  }
+  if (w.st === 'verdwaasd' || w.st === 'terug') {
+    if (w.st === 'terug' && doel) weg(w, doel); else { w.dx *= 0.9; w.dz *= 0.9; }
+    if (w.t <= 0) { w.st = doel ? 'cirkel' : 'rust'; w.t = 3 + W.r() * 3; }
+    return;
+  }
+  if (!doel) {
+    if (w.st !== 'rust' || w.t <= 0) { const h = W.r() * Math.PI * 2; w.dx = -Math.sin(h) * 0.5; w.dz = -Math.cos(h) * 0.5; w.dy = 0; w.st = 'rust'; w.t = 2 + W.r() * 4; }
+    return;
+  }
+  if (inLicht) {
+    // in het licht: op afstand blijven, en wegdrijven als je dichtbij komt
+    w.st = 'afstand'; richt(w, doel);
+    if (afst < 7) { w.dx = -w.dx; w.dz = -w.dz; } else { w.dx *= 0.1; w.dz *= 0.1; }
+    return;
+  }
+  if (w.st !== 'cirkel') { w.st = 'cirkel'; w.t = 3 + W.r() * 3; w.kant = W.r() < 0.5 ? -1 : 1; if (!(w.leeftijd - (w.zietT || -99) < 8)) { w.zietT = w.leeftijd; uit.push({ soort: 'ziet' }); } }
+  // cirkelen: opzij om je heen, en langzaam dichterbij tot een straal van een blok of vijf
+  const ax = doel.x - w.x, az = doel.z - w.z, l = Math.hypot(ax, az) || 1, nx = ax / l, nz = az / l, k = w.kant || 1;
+  const naar = afst > 6 ? 0.7 : afst < 4 ? -0.5 : 0.1;
+  w.dx = -nz * k * 0.9 + nx * naar; w.dz = nx * k * 0.9 + nz * naar;
+  w.dy = Math.max(-1, Math.min(1, (doel.y + 1.2 - (w.y + 0.5)) / 3));
+  if (w.t <= 0 && w.wacht <= 0 && afst < 9) { w.st = 'aanloop'; w.t = 0.9; uit.push({ soort: 'dreig' }); }
+}
+function weg(w, p) { let ax = w.x - p.x, az = w.z - p.z; const l = Math.hypot(ax, az) || 1; w.dx = ax / l; w.dz = az / l; w.dy = 0.3; }
 function richt(w, p) { let ax = p.x - w.x, az = p.z - w.z; const l = Math.hypot(ax, az) || 1; w.dx = ax / l; w.dz = az / l; w.dy = Math.max(-1, Math.min(1, (p.y + 1 - (w.y + 0.5)) / 3)); }
 // yaw: de kant waar de kop heen wijst, als (sin yaw, cos yaw) in x en z. De modellen hebben hun kop aan de +z-kant
 // (net als de bewoners en de poppetjes); de camera gebruikt juist -z als vooruit, en dat liet de dieren achteruit lopen.
@@ -179,6 +235,8 @@ function beweeg(w, S, dt, W) {
   if (w.st === 'loop') snel = S.snel; else if (w.st === 'vlucht') snel = S.vlucht;
   else if (w.st === 'jaag') snel = S.snel; else if (w.st === 'afstand') snel = S.snel * 0.6;
   else if (w.st === 'storm') snel = S.snel * 5.5; else if (w.st === 'rust' && !S.vriend) snel = S.snel * 0.4;
+  else if (w.st === 'cirkel') snel = S.snel * 1.6; else if (w.st === 'duik') snel = 7.5; else if (w.st === 'terug') snel = S.snel * 1.8;
+  else if (w.st === 'verdwaasd') snel = S.snel * 0.25;
   const water = inWater(W, w.x, w.y, w.z);
   if (water && !S.zwemt && !S.zweeft) snel *= 0.6;
   // niet het water in (behalve wie zwemt) en niet van een rand af: dan omdraaien
@@ -187,8 +245,9 @@ function beweeg(w, S, dt, W) {
     const mag = !g.onbekend && (g.water ? (S.zwemt || water) : g.diep <= (w.st === 'vlucht' ? 3 : 1));
     if (!mag) { if (w.st === 'storm') { w.st = 'moe'; w.t = 2; } else { w.dx = -w.dx; w.dz = -w.dz; if (w.st === 'loop') w.t = Math.min(w.t, 1); } snel = 0; }
   }
-  // de kant op kijken waar je heen gaat (zacht draaien)
-  if (snel > 0 && (w.dx || w.dz)) { const doelYaw = Math.atan2(w.dx, w.dz); let d = doelYaw - w.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); w.yaw += d * Math.min(1, dt * 8); }
+  // de kant op kijken waar je heen gaat (zacht draaien); een spookje dat om je heen draait, kijkt jou aan
+  const kijkNaar = S.duikt && (w.st === 'cirkel' || w.st === 'aanloop' || w.st === 'verdwaasd' || w.st === 'afstand') && w.kijkNaar ? Math.atan2(w.kijkNaar[0] - w.x, w.kijkNaar[1] - w.z) : null;
+  if (kijkNaar !== null || (snel > 0 && (w.dx || w.dz))) { const doelYaw = kijkNaar !== null ? kijkNaar : Math.atan2(w.dx, w.dz); let d = doelYaw - w.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); w.yaw += d * Math.min(1, dt * 8); }
   let tx = w.dx * snel, tz = w.dz * snel;
   // stromend water neemt je mee (wie zweeft niet)
   if (water && !S.zweeft) { const [fx, fz] = stroming(W.blok, Math.floor(w.x), Math.floor(w.y + 0.2), Math.floor(w.z)); tx += fx * STROOM; tz += fz * STROOM; }
@@ -196,7 +255,7 @@ function beweeg(w, S, dt, W) {
   w.vx += (tx - w.vx) * k; w.vz += (tz - w.vz) * k;
   if (S.zweeft) {
     // zweven: zacht op en neer, en naar de hoogte van de speler die het zoekt
-    const op = (w.st === 'jaag' || w.st === 'afstand') && w.dy !== undefined ? w.dy * snel * 0.8 : 0;
+    const op = (w.st === 'jaag' || w.st === 'afstand' || w.st === 'cirkel' || w.st === 'duik' || w.st === 'terug') && w.dy !== undefined ? w.dy * snel * (w.st === 'duik' ? 1 : 0.8) : 0;
     w.vy += ((op + Math.sin((w.n * 1.7 + w.fase) * 1.3) * 0.25) - w.vy) * Math.min(1, dt * 3);
     w.fase += dt;
   } else if (water && S.zwemt) {
@@ -253,11 +312,14 @@ function inWeb(W, x, y, z, r, h) {
 // ---------------- geraakt worden door een speler: geeft true als het wezen geen levens meer heeft
 export function geraakt(w, schade, vanX, vanZ) {
   const S = WEZENS[w.s];
-  w.hp = Math.max(0, w.hp - schade); w.rood = 0.35;
+  if (w.onkw > 0) return false; // vlak na een klap: even onkwetsbaar
+  if (w.st === 'verdwaasd') schade *= 2;
+  w.hp = Math.max(0, w.hp - schade); w.rood = 0.35; w.onkw = ONKWETSBAAR;
   let ax = w.x - vanX, az = w.z - vanZ; const l = Math.hypot(ax, az) || 1; ax /= l; az /= l;
   w.vx = ax * 6; w.vz = az * 6; if (!S.zweeft) w.vy = 4.5; else w.vy = 1.5;
   if (S.vriend) vlucht(w, vanX, vanZ, 5);
   else if (S.stormt) { w.st = 'moe'; w.t = 1.2; }
+  else if (S.duikt && w.st !== 'verdwaasd') { w.st = 'terug'; w.t = 1.6; }
   return w.hp <= 0;
 }
 // wat het laat vallen: [[voorwerp, aantal], ...]

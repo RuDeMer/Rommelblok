@@ -60,14 +60,14 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
         uit.push({ wie: S.sleutel + ' (' + waar + ', ' + (w.st === 'vlucht' ? 'vlucht' : 'loopt') + ' ' + naam + ')', rond: e && !v, d: v ? hoek(inWereld(v, e.yaw), loop) : NaN, l: Math.hypot(loop[0], loop[1]) });
       }
     });
-    // ---- een spookje volgt je, en de braambol kijkt je aan voor hij aanstormt
+    // ---- een spookje kijkt je aan terwijl het om je heen draait, en de braambol kijkt je aan voor hij aanstormt
     for (const [dx, dz, naam] of RICHT) {
       const p = { id: 'ik', x: X + 0.5 + dx * 6, y: Y, z: Z + 0.5 + dz * 6 }; W.spelers = [p];
       const sp = WZ.nieuwWezen(WZ.WI.spookje, X + 0.5, Y + 0.5, Z + 0.5, 0, 9500);
       for (let k = 0; k < 30; k++) WZ.stap(sp, 0.02, W);
       const x0 = sp.x, z0 = sp.z; for (let k = 0; k < 10; k++) WZ.stap(sp, 0.02, W);
       R.actief.push(sp); let e = zoek(R.tekenLijst(), sp.x, sp.z, m => m === 'wz:spookje'); R.actief.splice(R.actief.indexOf(sp), 1);
-      uit.push({ wie: 'spookje volgt je ' + naam + ' (' + sp.st + ')', d: hoek(inWereld(voorVan(e.model), e.yaw), [sp.x - x0, sp.z - z0]), l: Math.hypot(sp.x - x0, sp.z - z0) });
+      uit.push({ wie: 'spookje kijkt je aan ' + naam + ' (' + sp.st + ')', d: hoek(inWereld(voorVan(e.model), e.yaw), [p.x - sp.x, p.z - sp.z]), l: 1 });
       const br = WZ.nieuwWezen(WZ.WI.braambol, X + 0.5, Y, Z + 0.5, 0, 9501); br.st = 'rust'; br.t = 0;
       WZ.stap(br, 0.02, W);
       R.actief.push(br); e = zoek(R.tekenLijst(), br.x, br.z, m => m === 'wz:braambol'); R.actief.splice(R.actief.indexOf(br), 1);

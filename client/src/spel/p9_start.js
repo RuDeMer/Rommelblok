@@ -122,7 +122,7 @@ window.__rommelblok = {
   WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal,
   // alles wat als wezen getekend wordt (karretjes, bewoners, dieren, andere spelers en je poppetje), zoals in tekenExtra
   tekenLijst: () => { const l = []; karrenTeken(l); bewonersTeken(l); wezensTeken(l); if (samen) samenTeken(l, 0); popTeken(l, [1, 1, 1], { id: 0, soort: '', zwaai: 1, eet: -1 }); return l; },
-  spookLichten, brokjes, deeltjesTik, get deeltjes() { return dp; }, tekenExtra,
+  wezenDoos, wezenHoeken, get stervend() { return stervend; }, spookLichten, brokjes, deeltjesTik, get deeltjes() { return dp; }, tekenExtra,
   slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
   // samen spelen
   get samen() { return samen; }, samenAdres, samenNamen, samenTik, gooiWeg, openSamen, samenGaNaar, samenZeg, openZinnen, openSpelers, samenStop, samenStuur, samenOpScherm, samenSpelerData, spelerGeheim, mijnNaam,

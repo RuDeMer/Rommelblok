@@ -790,7 +790,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   function tekenKader(K, C, L) {
     // K.dozen: [x0,y0,z0,x1,y1,z1] in blokken (wereld); K.barst: 0..9 of -1
     let o = 0; const e = 0.002;
-    for (const d of K.dozen) {
+    // een gedraaide doos (een wezen): de acht hoeken in de wereld, in dezelfde volgorde als hieronder
+    // (0 x0y0z0, 1 x1y0z0, 2 x1y1z0, 3 x0y1z0, 4 x0y0z1, 5 x1y0z1, 6 x1y1z1, 7 x0y1z1)
+    if (K.hoeken) { const h = K.hoeken.map(p => [p[0] - C.x, p[1] - C.y, p[2] - C.z]); for (const [a, b] of [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]) { kaderData.set(h[a], o); kaderData.set(h[b], o + 3); o += 6; } }
+    else for (const d of K.dozen) {
       const x0 = d[0] - e - C.x, y0 = d[1] - e - C.y, z0 = d[2] - e - C.z, x1 = d[3] + e - C.x, y1 = d[4] + e - C.y, z1 = d[5] + e - C.z;
       const r = [[x0, y0, z0, x1, y0, z0], [x0, y1, z0, x1, y1, z0], [x0, y0, z1, x1, y0, z1], [x0, y1, z1, x1, y1, z1], [x0, y0, z0, x0, y1, z0], [x1, y0, z0, x1, y1, z0], [x0, y0, z1, x0, y1, z1], [x1, y0, z1, x1, y1, z1], [x0, y0, z0, x0, y0, z1], [x1, y0, z0, x1, y0, z1], [x0, y1, z0, x0, y1, z1], [x1, y1, z0, x1, y1, z1]];
       for (const l of r) for (let i = 0; i < 6; i++) kaderData[o++] = l[i];
@@ -805,9 +808,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.uniform4f(PLn.u.uKleur, hel, hel, hel * 0.97, 0.12 + 0.18 * kl); gl.uniform3f(PLn.u.uOfs, 0, 0.004, 0); gl.drawArrays(gl.LINES, 0, o / 3);
     // een zacht licht waas over het blok, zodat je goed ziet waar je naar kijkt
     let f = 0; const e2 = 0.004;
-    for (const d of K.dozen) {
-      const x0 = d[0] - e2 - C.x, y0 = d[1] - e2 - C.y, z0 = d[2] - e2 - C.z, x1 = d[3] + e2 - C.x, y1 = d[4] + e2 - C.y, z1 = d[5] + e2 - C.z;
-      const v = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+    for (const d of K.hoeken ? [null] : K.dozen) {
+      let v;
+      if (d) { const x0 = d[0] - e2 - C.x, y0 = d[1] - e2 - C.y, z0 = d[2] - e2 - C.z, x1 = d[3] + e2 - C.x, y1 = d[4] + e2 - C.y, z1 = d[5] + e2 - C.z; v = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]; }
+      else v = K.hoeken.map(p => [p[0] - C.x, p[1] - C.y, p[2] - C.z]);
       for (const q of [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]]) for (const i of [q[0], q[1], q[2], q[0], q[2], q[3]]) { kaderData[f++] = v[i][0]; kaderData[f++] = v[i][1]; kaderData[f++] = v[i][2]; }
     }
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, kaderData, 0, f); gl.uniform3f(PLn.u.uOfs, 0, 0, 0);

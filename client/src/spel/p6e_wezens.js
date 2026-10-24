@@ -9,7 +9,7 @@
 // ============================================================================
 const WZ = G.WEZENS, SOORT = WZ.WEZENS;
 const WZ_MAX = telefoon ? { griezels: 4, teken: 28, actief: 40, stukken: 2 } : { griezels: 8, teken: 44, actief: 56, stukken: 3 };
-let griezels = [], actief = [], doelWezen = null, wzKlok = 0, wzSpawnKlok = 0;
+let griezels = [], actief = [], doelWezen = null, wzKlok = 0, wzSpawnKlok = 0, spelerOnkwTot = 0;
 const wzLicht = (x, y, z) => (kopie.has(sk(x >> 4, z >> 4)) ? lichtOp(x, y, z) : -1);
 const wzW = { blok: blokOp, licht: wzLicht, biome: biomeOp, tijd: 0.5, spelers: [], r: Math.random, moeilijk: 'makkelijk' };
 const moeilijkNu = () => (WD && WZ.MOEILIJK[WD.moeilijk] ? WD.moeilijk : 'makkelijk');
@@ -29,7 +29,7 @@ function schoonDier(d) {
 }
 // bij het openen van een wereld
 function wezensLaden() {
-  griezels = []; actief = []; doelWezen = null; wzKlok = 0; wzSpawnKlok = 0;
+  griezels = []; actief = []; doelWezen = null; wzKlok = 0; wzSpawnKlok = 0; stervend.length = 0; spelerOnkwTot = 0; slagWacht = 0;
   WD.dieren = (Array.isArray(WD.dieren) ? WD.dieren : []).map(schoonDier).filter(Boolean);
   WD.dierVak = WD.dierVak && typeof WD.dierVak === 'object' ? WD.dierVak : {};
   if (!WZ.MOEILIJK[WD.moeilijk]) WD.moeilijk = 'makkelijk';
@@ -51,11 +51,15 @@ function wzKolom(x, z) {
 }
 // ---------------- elk beeldje
 function wezensTik(dt) {
+  slagWacht = Math.max(0, slagWacht - dt);
   // bij samen spelen nog geen dieren (die komen in stap 6 op de server)
   if (!WD || !wereldKlaar || !WD.dieren || WD.samen) return;
   const overleven = wereldStand() !== 'bouwen', m = moeilijkNu();
   wzW.tijd = WD.tijd; wzW.moeilijk = m;
-  wzW.spelers = overleven && WD.speler.hp > 0 ? [{ id: 'ik', x: sp.x, y: sp.y, z: sp.z }] : [];
+  // een fakkel, lantaarn of kaars in je hand houdt spookjes ook op afstand
+  const hand = inHand(), hb = hand && IT[hand.id] && IT[hand.id].blok ? BL[IT[hand.id].blok] : null, fakkel = !!(hb && hb.licht >= 10);
+  wzW.spelers = overleven && WD.speler.hp > 0 ? [{ id: 'ik', x: sp.x, y: sp.y, z: sp.z, fakkel }] : [];
+  stervendTik(dt);
   // een paar keer per seconde: nieuwe kuddetjes, wie er meedoet, en griezels erbij of eraf
   wzKlok -= dt;
   if (wzKlok <= 0) {
@@ -86,20 +90,26 @@ function wezensTik(dt) {
       if (!overleven || m === 'vredig' || ax * ax + az * az > 64 * 64 || blokOp(Math.floor(w.x), Math.floor(w.y), Math.floor(w.z)) < 0) { griezels.splice(i, 1); continue; }
       if (WZ.verdwijnt(w, wzW)) { poef(w); griezels.splice(i, 1); }
     }
-    // griezels erbij
+    // griezels erbij (spookjes maar een paar tegelijk: makkelijk 1, normaal 2, moeilijk 3)
     wzSpawnKlok -= 0.5;
     const max = Math.round(WZ_MAX.griezels * WZ.MOEILIJK[m].griezels);
-    if (overleven && wzSpawnKlok <= 0 && griezels.length < max) { wzSpawnKlok = 1.5; griezelErbij(); }
+    if (overleven && wzSpawnKlok <= 0 && griezels.length < max) { wzSpawnKlok = 1.5; griezelErbij(WZ.MOEILIJK[m].spoken - griezels.filter(w => SOORT[w.s].duikt).length); }
   }
   // denken en bewegen
   for (const lijst of [actief, griezels]) for (const w of lijst) {
     for (const e of WZ.stap(w, dt, wzW)) {
       if (e.soort === 'raak' && e.speler === 'ik') {
-        const S = SOORT[w.s];
+        const S = SOORT[w.s], nu = performance.now();
+        // na een tik ben je even onkwetsbaar: twee griezels tegelijk doen niet meteen dubbele schade
+        if (nu < spelerOnkwTot) continue;
+        spelerOnkwTot = nu + 800;
         schade(e.schade, S.sleutel);
         // een duwtje weg van de griezel
         let ax = sp.x - e.wx, az = sp.z - e.wz; const l = Math.hypot(ax, az) || 1; sp.vx += ax / l * 5; sp.vz += az / l * 5; if (sp.opGrond) sp.vy = Math.max(sp.vy, 4);
         klank('wezen', S.geluid, true);
+      } else if (e.soort === 'ziet' || e.soort === 'dreig' || e.soort === 'duik' || e.soort === 'gemist') {
+        // een spookje: het jammert als het je ziet, waarschuwt met een stijgende toon, en suist bij de duik
+        const ax = w.x - sp.x, az = w.z - sp.z; if (ax * ax + az * az < 30 * 30) klank('wezen', 'spook_' + e.soort, Math.max(0.25, 1 - Math.sqrt(ax * ax + az * az) / 30));
       } else if (e.soort === 'ei') { laatVallen(w.x, w.y + 0.3, w.z, I.ei, 1); klank('wezen', 'kip'); }
       else if (e.soort === 'geluid') { const ax = w.x - sp.x, az = w.z - sp.z; if (ax * ax + az * az < 400) klank('wezen', SOORT[w.s].geluid); }
     }
@@ -108,7 +118,7 @@ function wezensTik(dt) {
   if (doelWezen && doelWezen.hp <= 0) doelWezen = null;
 }
 // een griezel op een plek in het donker, niet te dichtbij
-function griezelErbij() {
+function griezelErbij(spokenVrij) {
   for (let poging = 0; poging < 6; poging++) {
     const h = Math.random() * Math.PI * 2, d = 18 + Math.random() * 18, x = Math.floor(sp.x + Math.sin(h) * d), z = Math.floor(sp.z + Math.cos(h) * d);
     // buiten op de grond, of ergens in een grot in de buurt van je hoogte
@@ -118,6 +128,7 @@ function griezelErbij() {
     const v0 = blokOp(x, y, z), v1 = blokOp(x, y + 1, z), v2 = blokOp(x, y - 1, z);
     if (v0 < 0 || v1 < 0 || (v0 & 255) || (v1 & 255)) continue;
     const s = WZ.griezelVoor(wzW, x, y, z); if (s < 0) continue;
+    if (SOORT[s].duikt && !(spokenVrij > 0)) continue;
     const S = SOORT[s];
     // wie niet zweeft, moet op iets vasts staan
     if (!S.zweeft && !(v2 > 0 && G.VAST[v2 & 255])) continue;
@@ -143,29 +154,59 @@ function poef(w) {
   klank('wezen', 'poef');
 }
 // ---------------- richten: welk wezen raakt je kijkstraal het eerst?
+// De raakdoos draait mee met het dier: de straal gaat naar het assenstelsel van het dier (kop aan de +z-kant).
 function wezenOpStraal(o, d, max) {
   let best = null, bt = max;
   for (const lijst of [actief, griezels]) for (const w of lijst) {
-    const S = SOORT[w.s], r = S.maat[0] + 0.08, h = S.maat[1];
-    const t = straalDoos(o, d, w.x - r, w.y, w.z - r, w.x + r, w.y + h, w.z + r);
+    const b = wezenDoos(w), c = Math.cos(w.yaw), s = Math.sin(w.yaw), e = 0.06;
+    const ox = o[0] - w.x, oz = o[2] - w.z;
+    const lo = [ox * c - oz * s, o[1] - w.y, ox * s + oz * c], ld = [d[0] * c - d[2] * s, d[1], d[0] * s + d[2] * c];
+    const t = straalDoos(lo, ld, b[0] - e, b[1], b[2] - e, b[3] + e, b[4] + e, b[5] + e);
     if (t && t[0] < bt) { bt = t[0]; best = w; }
   }
   return best ? { wezen: best, t: bt } : null;
 }
+// de acht hoeken van de raakdoos in de wereld (voor het kader om een wezen)
+function wezenHoeken(w) {
+  const b = wezenDoos(w), c = Math.cos(w.yaw), s = Math.sin(w.yaw), uit = [];
+  for (const [x, y, z] of [[b[0], b[1], b[2]], [b[3], b[1], b[2]], [b[3], b[4], b[2]], [b[0], b[4], b[2]], [b[0], b[1], b[5]], [b[3], b[1], b[5]], [b[3], b[4], b[5]], [b[0], b[4], b[5]]]) uit.push([w.x + x * c + z * s, w.y + y, w.z - x * s + z * c]);
+  return uit;
+}
 // ---------------- slaan (linkermuisknop, of tikken op een telefoon)
+// Tussen twee slagen zit minstens SLAG_WACHT seconden (ook als je snel klikt of tikt), en een wezen is na een klap even
+// onkwetsbaar (WZ.ONKWETSBAAR). Een klap: rood oplichten, terugduwen en een geluidje. Wie geen levens meer heeft,
+// valt om en verdwijnt daarna in een wolkje (stervend).
+const SLAG_WACHT = 0.45;
+let slagWacht = 0; // speltijd tot je weer kunt slaan
+const stervend = [];
 function slaWezen(w) {
-  if (!w || w.hp <= 0) return;
+  if (!w || w.hp <= 0) return false;
+  if (slagWacht > 0) return false;
+  slagWacht = SLAG_WACHT; zwaai('hak');
+  if (w.onkw > 0) { klank('wezen', 'sla', 0.3); return false; }
   const slot = inHand(), it = slot ? IT[slot.id] : null, S = SOORT[w.s];
-  zwaai('hak'); klank('wezen', 'sla');
+  klank('wezen', 'sla');
   const dood = WZ.geraakt(w, WZ.slagSchade(it), sp.x, sp.z);
   if (it && it.duur) slijt(it.gereed === 'zwaard' ? 1 : 2);
   klank('wezen', S.geluid, true);
-  if (!dood) return;
-  poef(w);
-  for (const [k, n] of WZ.buitVan(w, Math.random)) laatVallen(w.x, w.y + 0.4, w.z, I[k] !== undefined ? I[k] : B[k], n);
+  if (!dood) return true;
   if (S.vriend) { const i = WD.dieren.indexOf(w); if (i >= 0) WD.dieren.splice(i, 1); actief = actief.filter(x => x !== w); }
   else { griezels = griezels.filter(x => x !== w); logboek('griezel'); }
   if (doelWezen === w) doelWezen = null;
+  // omvallen, weg van de speler (naar links of rechts van het dier, wat het verst van je af ligt)
+  const ax = w.x - sp.x, az = w.z - sp.z, rechts = ax * Math.cos(w.yaw) - az * Math.sin(w.yaw);
+  stervend.push({ w, t: 0, kant: rechts >= 0 ? -1 : 1 });
+  return true;
+}
+// elk beeldje: wie stervend is, valt om, en verdwijnt na 0,8 s in een wolkje (dan valt de buit)
+function stervendTik(dt) {
+  for (let i = stervend.length - 1; i >= 0; i--) {
+    const s = stervend[i]; s.t += dt; s.w.vx *= Math.exp(-6 * dt); s.w.vz *= Math.exp(-6 * dt); s.w.x += s.w.vx * dt; s.w.z += s.w.vz * dt;
+    if (s.t < 0.8) continue;
+    stervend.splice(i, 1);
+    const w = s.w; poef(w);
+    for (const [k, n] of WZ.buitVan(w, Math.random)) laatVallen(w.x, w.y + 0.4, w.z, I[k] !== undefined ? I[k] : B[k], n);
+  }
 }
 // ---------------- gebruiken: een koe melken met een emmer, een schaap scheren met een schaar. Geeft true als dat lukte.
 function wezenGebruik(w, slot) {
@@ -282,12 +323,16 @@ function wezenModellen() {
     ...twee('pootA', SC, '#5a9830', [-3.2, 0, -3, -1.6, 1, -1.8], [-1.6, 0.6, -2.4]),
   ];
   // spookje: een laken met een rafelrand, grote ogen, een o-mondje en zwaaiende armpjes
+  // (oktober 2026 enger gemaakt: een kap met diepe oogkassen en lichtgevende pupillen, die rood worden als het waarschuwt,
+  // een lange open mond, een gescheurde sleep en lange armen met vingers)
   M.spookje = [
-    d('lijf', D.spook_laken, '#eef2ff', [[-5, 3, -5, 5, 14.5, 5], [-4, 14.5, -4, 4, 16.5, 4]]),
-    d('rafel', D.spook_laken, '#dfe6ff', [[-5, 0.5, -5, -2.5, 3, -2.5], [2.5, 0, -5, 5, 3, -2.5], [-5, 0, 2.5, -2.5, 3, 5], [2.5, 0.5, 2.5, 5, 3, 5], [-1.2, 1, -1.2, 1.2, 3, 1.2]]),
-    d('ogen', GL, '#1a1830', [[-3.4, 9.5, 5, -1.4, 12.6, 5.2], [1.4, 9.5, 5, 3.4, 12.6, 5.2]]),
-    d('mond', GL, '#1a1830', [[-0.9, 6.4, 5, 0.9, 8.4, 5.2]]),
-    ...twee('arm', D.spook_laken, '#eef2ff', [-6.6, 6, -1, -5, 9.5, 1], [-5, 9.5, 0]),
+    d('lijf', D.spook_laken, '#e8eeff', [[-5.5, 3, -5, 5.5, 10, 5], [-4.6, 10, -4.4, 4.6, 15.5, 4.6], [-3.4, 15.5, -3.2, 3.4, 17.6, 3.4]]),
+    d('rafel', D.spook_laken, '#d6def6', [[-5.5, -1.5, -5, -3, 3, -2.6], [2.6, 0.5, -5, 5.5, 3, -2.4], [-5.5, 1, 2.4, -2.8, 3, 5], [2.8, -2.5, 2.6, 5.5, 3, 5], [-1.6, -3.5, -1.6, 1.4, 3, 1.4], [-1, 0, 3, 1.2, 3, 5], [-0.6, -1, -5, 1.6, 3, -3]]),
+    d('ogen', GL, '#0c0a18', [[-3.8, 10.2, 4.55, -1.0, 13.8, 4.75], [1.0, 10.2, 4.55, 3.8, 13.8, 4.75]]),
+    d('pupil', GL, '#bfe6ff', [[-2.8, 11.3, 4.7, -1.9, 12.4, 4.85], [1.9, 11.3, 4.7, 2.8, 12.4, 4.85]]),
+    d('mond', GL, '#0c0a18', [[-1.2, 5.2, 4.95, 1.2, 9.2, 5.15], [-0.6, 4.4, 4.95, 0.6, 5.2, 5.15]]),
+    ...twee('arm', D.spook_laken, '#e8eeff', [-7.6, 4.5, -0.9, -5.4, 11, 0.9], [-5.5, 10.5, 0]),
+    ...twee('vinger', D.spook_laken, '#d6def6', [-7.6, 2.4, -0.7, -7, 4.6, 0.7], [-5.5, 10.5, 0]),
   ];
   // grotkwal: een paarse stolp met lichtpuntjes en slingerende draden
   const draden = []; for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, x = Math.sin(a) * 3.6, z = Math.cos(a) * 3.6; draden.push(d('draad' + i, D.kwal_lijf, '#c890f0', [[x - 0.5, 0, z - 0.5, x + 0.5, 8.5, z + 0.5]], [x, 8.5, z])); }
@@ -302,7 +347,19 @@ function wezenModellen() {
     d('bes', GL, '#4a1a5a', [[2, 10, 6, 3.4, 11.4, 6.6], [-6.6, 9, -3, -6, 10.4, -1.6], [4, 3, -6.6, 5.4, 4.4, -6], [6, 2, 3, 6.6, 3.4, 4.4]], [0, 7, 0]),
     d('ogen', GL, '#ffd84a', [[-3.4, 7.6, 6, -1.4, 9, 6.6], [1.4, 7.6, 6, 3.4, 9, 6.6]], [0, 7, 0]),
   ];
-  for (const k in M) R.model('wz:' + k, M[k]);
+  for (const k in M) { R.model('wz:' + k, M[k]); WZ_DOOS['wz:' + k] = doosVan(M[k]); }
+}
+// de raakdoos van een model (in blokken, met de kop aan de +z-kant): alle onderdelen samen, zodat raken klopt met wat je ziet
+const WZ_DOOS = {};
+function doosVan(delen) {
+  const a = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
+  for (const d of delen) for (const b of d.dozen) for (let i = 0; i < 3; i++) { a[i] = Math.min(a[i], b[i] / 16); a[i + 3] = Math.max(a[i + 3], b[i + 3] / 16); }
+  return a;
+}
+// de raakdoos van een wezen: uit het model, anders (nog geen model) een vierkant uit de maat
+function wezenDoos(w) {
+  const d = WZ_DOOS[wezenModel(w)]; if (d) return d;
+  const S = SOORT[w.s], r = S.maat[0]; return [-r, 0, -r, r, S.maat[1], r];
 }
 function wezenModel(w) {
   const k = SOORT[w.s].sleutel;
@@ -311,7 +368,7 @@ function wezenModel(w) {
   if (k === 'hert') return 'wz:hert' + (w.v ? 1 : 0);
   return 'wz:' + k;
 }
-const ROOD = [1, 0.35, 0.35], ROOD_DELEN = 'lijf kop pootVL pootVR pootAL pootAR vleugelL vleugelR staart nek snuit rafel armL armR kraag oren vlek buik'.split(' ');
+const ROOD = [1, 0.35, 0.35], ROOD_DELEN = 'lijf kop pootVL pootVR pootAL pootAR vleugelL vleugelR staart nek snuit rafel armL armR vingerL vingerR kraag oren vlek buik'.split(' ');
 function wezensTeken(lijst) {
   if (!WD || !WD.dieren || WD.samen) return;
   wezenModellen();
@@ -338,7 +395,24 @@ function wezensTeken(lijst) {
     // even rood als het geraakt is
     let kleuren = null;
     if (w.rood > 0) { kleuren = {}; for (const n of ROOD_DELEN) kleuren[n] = ROOD; }
-    const zweef = S.zweeft && !stil ? Math.sin(tijd * 2 + w.n) * 0.06 : 0;
-    lijst.push({ model: wezenModel(w), x: w.x, y: w.y + zweef, z: w.z, yaw: w.yaw, pitch: 0, licht, delen, kleuren, schaal: 1 });
+    let zweef = S.zweeft && !stil ? Math.sin(tijd * 2 + w.n) * 0.06 : 0, schaal = 1;
+    if (S.sleutel === 'spookje') {
+      // de waarschuwing: rode ogen, een fellere gloed, de armen omhoog en een trilling; daarna de duik
+      const dreigt = w.st === 'aanloop' || w.st === 'duik';
+      w.gloed = dreigt ? 1.5 : w.st === 'verdwaasd' ? 0.6 : 1;
+      if (dreigt) { kleuren = kleuren || {}; kleuren.pupil = [1, 0.18, 0.12]; delen.armL = [0, 0, -1.9]; delen.armR = [0, 0, 1.9]; delen.vingerL = delen.armL; delen.vingerR = delen.armR; if (!stil && w.st === 'aanloop') zweef += Math.sin(tijd * 60) * 0.025; }
+      else { delen.vingerL = delen.armL; delen.vingerR = delen.armR; }
+      if (w.st === 'verdwaasd' && !stil) zweef += Math.sin(tijd * 9) * 0.05;
+      // tevoorschijn komen: in een halve seconde van klein naar groot
+      schaal = stil ? 1 : Math.min(1, 0.3 + (w.leeftijd || 0) * 1.4);
+    }
+    lijst.push({ model: wezenModel(w), x: w.x, y: w.y + zweef, z: w.z, yaw: w.yaw, pitch: 0, licht, delen, kleuren, schaal });
+  }
+  // omvallen: op de zij in een derde seconde, even blijven liggen, rood
+  for (const s of stervend) {
+    const w = s.w, f = Math.min(1, s.t / 0.32), licht = lichtKleur(lichtOp(Math.floor(w.x), Math.floor(w.y + 0.5), Math.floor(w.z)));
+    const kleuren = {}; for (const n of ROOD_DELEN) kleuren[n] = ROOD;
+    const b = wezenDoos(w), half = (b[3] - b[0]) / 2;
+    lijst.push({ model: wezenModel(w), x: w.x, y: w.y + (minderBeweging ? 0 : Math.sin(f * Math.PI / 2) * half * 0.6) - (SOORT[w.s].zweeft ? f * 0.3 : 0), z: w.z, yaw: w.yaw, pitch: 0, rol: s.kant * (minderBeweging ? Math.PI / 2 : f * f * Math.PI / 2), licht, kleuren, schaal: 1 });
   }
 }

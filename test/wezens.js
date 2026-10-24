@@ -107,7 +107,10 @@ console.log('spookje bij een lamp: ' + lamp.n + ' keer geraakt, het bleef ' + la
   if (w.st !== 'vlucht') mis('een geraakte koe rent niet weg');
   loop([w], W, 2, 0.05);
   if (!(w.x < 0)) mis('de koe rende niet van je weg (x ' + w.x.toFixed(1) + ')');
-  let dood = false; for (let i = 0; i < 10 && !dood; i++) dood = WZ.geraakt(w, s2, w.x + 2, w.z);
+  // vlak na een klap is een wezen even onkwetsbaar: een tweede klap meteen erna doet niets
+  const hp0 = w.hp; WZ.geraakt(w, s2, w.x + 2, w.z); const hp1 = w.hp; WZ.geraakt(w, s2, w.x + 2, w.z);
+  if (!(hp0 - hp1 > 0) || w.hp !== hp1) mis('een tweede klap vlak na de eerste deed ook schade (' + hp0 + ' -> ' + hp1 + ' -> ' + w.hp + ')');
+  let dood = false; for (let i = 0; i < 10 && !dood; i++) { loop([w], W, 0.6, 0.05); dood = WZ.geraakt(w, s2, w.x + 2, w.z); }
   if (!dood) mis('een koe gaat niet dood met een ijzeren zwaard');
   const buit = {}; for (let i = 0; i < 500; i++) for (const [k, n] of WZ.buitVan(WZ.nieuwWezen(WI.schaap, 0, 0, 0), rng(i))) buit[k] = Math.max(buit[k] || 0, n);
   if (!(buit.wol >= 1 && buit.wol <= 2)) mis('schaap geeft geen 1 tot 2 wol');
@@ -125,6 +128,43 @@ console.log('spookje bij een lamp: ' + lamp.n + ' keer geraakt, het bleef ' + la
   if (s3 !== WI.grotkwal) mis('geen grotkwal diep in een donkere grot');
   if (s4 !== -1) mis('een griezel in het licht van een lamp');
   console.log('waar: nacht buiten ' + (s1 >= 0 ? S[s1].sleutel : '-') + ', dag buiten -, donkere grot ' + (s3 >= 0 ? S[s3].sleutel : '-') + ', bij een lamp -');
+}
+// ---------- 5. het spookje: eerst cirkelen, dan een waarschuwing, dan pas een duik; opzij springen ontwijkt het,
+// verdwaasd krijgt het dubbele schade, en een fakkel in je hand houdt het op afstand
+{
+  const nacht = W => { W.tijd = 0.95; W.licht = () => 0xF0 & 0x0F; return W; };
+  // a. een speler die stil blijft staan: de eerste tik komt pas na een waarschuwing van minstens 0,8 s
+  const W = nacht(wereld()), w = WZ.nieuwWezen(WI.spookje, 6.5, 66, 0.5, 0);
+  W.spelers = [{ id: 'ik', x: 0.5, y: 65, z: 0.5 }];
+  let t = 0, dreig = -1, eersteTik = -1; const st = new Set();
+  for (; t < 30 && eersteTik < 0; t += 0.05) { for (const e of WZ.stap(w, 0.05, W)) { if (e.soort === 'dreig' && dreig < 0) dreig = t; if (e.soort === 'raak' && eersteTik < 0) eersteTik = t; } st.add(w.st); }
+  console.log('spookje: standen ' + [...st].join(', ') + '; waarschuwing na ' + dreig.toFixed(1) + ' s, eerste tik na ' + eersteTik.toFixed(1) + ' s');
+  if (!(dreig >= 0 && eersteTik >= 0 && eersteTik - dreig >= 0.8)) mis('het spookje tikte zonder eerst te waarschuwen');
+  if (!st.has('cirkel')) mis('het spookje cirkelde niet');
+  // b. wie bij de duik opzij springt, wordt niet geraakt, en het spookje is daarna verdwaasd
+  let geraakt = 0, ontweken = 0, verdwaasd = 0;
+  for (let p = 0; p < 20; p++) {
+    const W2 = nacht(wereld()), g = WZ.nieuwWezen(WI.spookje, 6.5, 66, 0.5 + p * 0.1, 0), sp = { id: 'ik', x: 0.5, y: 65, z: 0.5 }; W2.spelers = [sp];
+    let duik = false, klaar = false;
+    for (let tt = 0; tt < 30 && !klaar; tt += 0.05) {
+      for (const e of WZ.stap(g, 0.05, W2)) { if (e.soort === 'duik') duik = true; if (e.soort === 'raak') { geraakt++; klaar = true; } if (e.soort === 'gemist') { ontweken++; klaar = true; } }
+      // zodra de waarschuwing begint, stapt de speler opzij (2 blokken per seconde, haaks op het spookje)
+      if (g.st === 'aanloop' || g.st === 'duik') { const ax = g.x - sp.x, az = g.z - sp.z, l = Math.hypot(ax, az) || 1; sp.x += -az / l * 3 * 0.05; sp.z += ax / l * 3 * 0.05; }
+    }
+    if (g.st === 'verdwaasd') verdwaasd++;
+  }
+  console.log('spookje: opzij stappen bij de waarschuwing: ' + ontweken + ' keer ontweken, ' + geraakt + ' keer toch geraakt, daarna ' + verdwaasd + ' keer verdwaasd');
+  if (!(ontweken >= 16)) mis('opzij stappen ontwijkt het spookje te weinig');
+  // c. verdwaasd: dubbele schade
+  const v = WZ.nieuwWezen(WI.spookje, 0, 66, 0, 0); v.st = 'verdwaasd'; v.t = 2; const hp = v.hp; WZ.geraakt(v, 5, 3, 0);
+  if (hp - v.hp !== 10) mis('een verdwaasd spookje kreeg geen dubbele schade (' + (hp - v.hp) + ')');
+  // d. een fakkel in je hand: het spookje blijft op afstand en tikt niet
+  const W3 = nacht(wereld()), f = WZ.nieuwWezen(WI.spookje, 6.5, 66, 0.5, 0); W3.spelers = [{ id: 'ik', x: 0.5, y: 65, z: 0.5, fakkel: true }];
+  let tik = 0, dichtst = 99; for (let tt = 0; tt < 20; tt += 0.05) { for (const e of WZ.stap(f, 0.05, W3)) if (e.soort === 'raak') tik++; dichtst = Math.min(dichtst, Math.hypot(f.x - 0.5, f.z - 0.5)); }
+  console.log('spookje bij iemand met een fakkel: ' + tik + ' keer geraakt, hooguit ' + dichtst.toFixed(1) + ' blokken dichtbij');
+  if (tik || dichtst < 5) mis('een fakkel in je hand houdt het spookje niet op afstand');
+  // e. sterker dan vroeger, en maar een paar tegelijk
+  if (!(G.WEZENS.WEZENS[WI.spookje].hp >= 20 && G.WEZENS.MOEILIJK.normaal.spoken === 2 && G.WEZENS.MOEILIJK.makkelijk.spoken === 1)) mis('spookjes zijn niet sterker of niet minder');
 }
 console.log(fouten ? 'MISLUKT: ' + fouten : 'dieren en griezels: alles goed');
 process.exit(fouten ? 1 : 0);

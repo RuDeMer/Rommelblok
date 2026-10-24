@@ -63,9 +63,11 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
     R.sim(60, 0.025, {});
     const af1 = Math.hypot(koe.x - R.sp.x, koe.z - R.sp.z);
     // het schaap: net zo lang slaan tot het weg is
-    for (let i = 0; i < 6 && R.WD.dieren.includes(schaap); i++) R.slaWezen(schaap);
+    // (tussen twee slagen zit een wachttijd, en wie geen levens meer heeft, valt eerst om: de buit valt na 0,8 s)
+    for (let i = 0; i < 12 && R.WD.dieren.includes(schaap); i++) { R.slaWezen(schaap); R.sim(25, 0.025, {}); }
+    R.sim(40, 0.025, {});
     const wol = R.losse.filter(d => d.id === I.wol).reduce((a, d) => a + d.n, 0);
-    for (let i = 0; i < 6 && R.WD.dieren.includes(koe); i++) R.slaWezen(koe);
+    for (let i = 0; i < 12 && R.WD.dieren.includes(koe); i++) { R.slaWezen(koe); R.sim(25, 0.025, {}); }
     return { doel, st, hp, af0: +af0.toFixed(1), af1: +af1.toFixed(1), schaapWeg: !R.WD.dieren.includes(schaap), wol, koeWeg: !R.WD.dieren.includes(koe), slijt: R.WD.inv[R.WD.kies] && R.WD.inv[R.WD.kies].dur };
   }, plek);
   console.log('raken:', JSON.stringify(r3));
@@ -101,9 +103,9 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
     const R = window.__rommelblok, [X, Y, Z] = p, WZ = R.WZ, uit = {};
     R.WD.dieren.length = 0; R.griezels.length = 0; R.WD.speler.hp = 20;
     R.tijd(0.9); R.WD.moeilijk = 'normaal';
-    // een spookje vlak naast je, 6 seconden stilstaan
+    // een spookje vlak naast je, 10 seconden stilstaan (het cirkelt eerst en waarschuwt voor het toeslaat)
     R.griezels.push(WZ.nieuwWezen(WZ.WI.spookje, X + 1.5, Y + 0.4, Z + 0.5, 0)); R.wezensTik(0.01);
-    for (let i = 0; i < 240; i++) { R.zet(X + 0.5, Y, Z + 0.5); R.sim(1, 0.025, {}); }
+    for (let i = 0; i < 400; i++) { R.zet(X + 0.5, Y, Z + 0.5); R.sim(1, 0.025, {}); }
     uit.hpNormaal = R.WD.speler.hp;
     // vredig: weg, en er komen er geen bij
     R.WD.speler.hp = 20; R.WD.moeilijk = 'vredig'; R.sim(40, 0.025, {}); uit.vredigNa1s = R.griezels.length;

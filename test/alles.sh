@@ -32,6 +32,7 @@ N=3 loop "bladeren van bomen: allemaal met het merkje van de natuur, en allemaal
 N=6 loop "bladeren vergaan na het hakken van de stam (verspreid, met wat eruit valt); wat een speler neerzet blijft" node test/bladeren_vergaan.js
 N=4 loop "dieren bewegen: over een tapijtje in een lage gang, langzaam door een spinnenweb, op een waterlelie" node test/wezens_beweging.js
 N=16 loop "browser: geen geflikker (bladeren alleen van voren, brokjes nooit in een blok), een rustig kader in het donker, spooklicht" node test/flikker.js
+N=16 loop "browser: vechten (raakdoos uit het model, wachttijd, onkwetsbaar, omvallen en een wolkje, hooguit twee spookjes)" node test/vechten.js
 N=12 loop "browser: springen alleen vanaf de grond (elk tempo), klimop, spinnenweb, tapijt in een lage gang, waterlelie" node test/beweging.js
 N=4 loop "blokwaarden: ruimte voor 1024 soorten zonder iets om te zetten" node test/standen.js
 N=3 loop "zaadje: zelfde wereld" node test/gen1.js
