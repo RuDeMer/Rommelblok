@@ -107,7 +107,7 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
       R.sim(20, 0.02, { voor: 1 }); const x0 = R.sp.x, z0 = R.sp.z; R.sim(10, 0.02, { voor: 1 });
       R.maakCamera(0, 0);
       // het lijf draait zacht mee met waar je heen kijkt (binnen zo'n 0,3 s, per getekend beeldje): eerst een paar beeldjes
-      for (let k = 0; k < 8; k++) { R.tekenLijst(); await new Promise(r => setTimeout(r, 60)); }
+      for (let k = 0; k < 15; k++) { R.tekenLijst(); await new Promise(r => setTimeout(r, 60)); }
       const e = zoek(R.tekenLijst(), R.sp.x, R.sp.z, m => !m.startsWith('wz:') && !m.startsWith('bw_') && m !== 'kar');
       uit.push({ wie: 'je eigen poppetje (van achteren) loopt ' + naam, d: e ? hoek(inWereld(voorVan(e.model), e.yaw), [R.sp.x - x0, R.sp.z - z0]) : NaN, l: Math.hypot(R.sp.x - x0, R.sp.z - z0) });
     }
