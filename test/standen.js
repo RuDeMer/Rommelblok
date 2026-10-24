@@ -24,7 +24,7 @@ console.log('hoogste stand in gemaakte stukken:', hoogste, Object.entries(per).f
 const MAX = {
   richting: 3, trap: 3 | 4, plaat: 2, luik: 3 | 4 | 8, muur: 3, lantaarn: 1, deur: 3 | 4 | 8 | 16, bed: 3 | 4, fakkel: 4, as: 2,
   spoor: 11 | 16, // vorm 0-11, en bit 16: hier staat een karretje uit een mijn (spoorKies neemt de bits boven de 15 van de buur over, en alleen 16 wordt ooit gezet)
-  kleur: 11, pot: G.POTPLANT.length - 1, gewas: 3, groei: 3, hap: 3, nat: 1, bessen: 1, water: 7 | 8, kist: 3 | (3 << 2),
+  kleur: 11, pot: G.POTPLANT.length - 1, blad: 1, gewas: 3, groei: 3, hap: 3, nat: 1, bessen: 1, water: 7 | 8, kist: 3 | (3 << 2),
 };
 for (const [k, m] of Object.entries(MAX)) if (m > BW.STAND_MAX) mis('stand van', k, 'kan', m, 'worden');
 console.log('standen die het spel maakt: hooguit', Math.max(...Object.values(MAX)));

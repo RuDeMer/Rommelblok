@@ -24,6 +24,7 @@ const VERANDERD = [
   [/^G\.BL\.(23|76|117|168|169)\.(nl|en)$/, 'stap 2: de namen van kalksteen en de taarten'],
   [/^G\.IT\.(23|76|117|168|169|275)\.(nl|en)$/, 'stap 2: de namen van kalksteen en de taarten'],
   [/^G\.REC\.\d+\.(patroon|sleutels)/, 'stap 2: de bessentaart wordt gebakken met suiker en tarwe (was: appels en planken)', r => r.uit === 117],
+  [/^G\.botsDozen$/, 'oktober 2026: je kunt op een waterlelie staan (een dun botsvlak)'],
   [/^G\.(vormDozen|botsDozen|bouwGroep)$/, 'stap 2: de vorm en de groep van de taart heten anders'],
 ];
 const TEXTUUR_ANDERS = new Set(Object.values(TEXTUUR));   // nieuwe tekeningen (stap 2)
@@ -38,7 +39,9 @@ function zonderErbij(G, oudAantalDtex, GO) {
   const kopie = Object.assign({}, G), erbij = [];
   // stap 4: nieuwe voorwerpen en blokken weg, en de lijsten op hun oude lengte
   const it = G.IT.slice(); for (const id of ERBIJ_IT.concat(ERBIJ_BL)) { if (!G.IT[id] || GO.IT[id]) fout('voorwerp ' + id + ' is niet nieuw'); delete it[id]; } kopie.IT = it;
-  const bl = G.BL.slice(); for (const id of ERBIJ_BL) { if (!G.BL[id] || GO.BL[id]) fout('blok ' + id + ' is niet nieuw'); bl[id] = null; } kopie.BL = bl;
+  const bl = G.BL.slice(); for (const id of ERBIJ_BL) { if (!G.BL[id] || GO.BL[id]) fout('blok ' + id + ' is niet nieuw'); bl[id] = null; }
+  // oktober 2026: elk blok heeft de eigenschap klim (ladder en klimop: true); die laten we bij het vergelijken weg
+  kopie.BL = bl.map(b => { if (!b) return b; const { klim, ...rest } = b; if (klim !== (b.sleutel === 'ladder' || b.sleutel === 'klimop')) fout('klim bij', b.sleutel); return rest; });
   const nieuweNamen = new Set([...ERBIJ_IT.map(id => G.IT[id].sleutel), ...ERBIJ_BL.map(id => G.BL[id].sleutel)]);
   kopie.I = Object.fromEntries(Object.entries(G.I).filter(([k]) => !nieuweNamen.has(k)));
   kopie.B = Object.fromEntries(Object.entries(G.B).filter(([k]) => !nieuweNamen.has(k)));
@@ -47,6 +50,7 @@ function zonderErbij(G, oudAantalDtex, GO) {
   const nTex = GO.TEXNAMEN.length; kopie.TEXNAMEN = G.TEXNAMEN.slice(0, nTex); kopie.TEXNR = Object.fromEntries(Object.entries(G.TEXNR).filter(([, v]) => v < nTex));
   for (const n of G.TEXNAMEN.slice(nTex)) if (!nieuweNamen.has(n)) fout('nieuwe textuur die er niet bij hoort:', n);
   kopie.REC = G.REC.slice(0, GO.REC.length); kopie.OVEN = G.OVEN.slice(0, GO.OVEN.length);
+  erbij.push('de eigenschap klim (ladder, klimop)');
   erbij.push(ERBIJ_IT.length + ' voorwerpen (' + ERBIJ_IT.map(id => G.IT[id].sleutel).join(', ') + ')', ERBIJ_BL.length + ' blokken (' + ERBIJ_BL.map(id => G.BL[id].sleutel).join(', ') + ')', (G.REC.length - GO.REC.length) + ' recepten', (G.OVEN.length - GO.OVEN.length) + ' ovenrecept');
   const namen = Object.keys(G), staart = namen.slice(namen.length - ERBIJ_G.length);
   if (staart.join() !== ERBIJ_G.join()) fout('de nieuwe onderdelen staan niet achteraan in G:', staart.join());
@@ -97,6 +101,20 @@ console.log('  erbij gekomen (stap 3, je poppetje; stap 4, dieren en griezels):'
 
 // ---------- 1. werelden
 const gelijk = (a, b) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength));
+// blokken van een stuk: gelijk, op de bewuste veranderingen van oktober 2026 na:
+// - bladeren van bomen hebben stand 1 (zelfde soort blad, alleen het merkje 'van de natuur' erbij)
+const BLADID = new Set(NIEUW.BL.filter(b => b && b.sleutel.startsWith('blad_')).map(b => b.id !== undefined ? b.id : NIEUW.B[b.sleutel]));
+const BEWUST = { blad: 0 };
+function blokkenGelijk(a, b) {
+  if (gelijk(a, b)) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const o = a[i], n = b[i]; if (o === n) continue;
+    if (BLADID.has(n & 255) && (o & 255) === (n & 255) && (o >> 8) === 0 && (n >> 8) === 1) { BEWUST.blad++; continue; }
+    return false;
+  }
+  return true;
+}
 const ZAADJES = [12345, 777, 4242, 0, 4294967295, NIEUW.zaadVan('zolder'), NIEUW.zaadVan('Rommelblok')];
 let stukken = 0;
 function vergelijk(zaad, opt, naam, plekken) {
@@ -105,7 +123,7 @@ function vergelijk(zaad, opt, naam, plekken) {
   if (JSON.stringify(so) !== JSON.stringify(sn)) fout(naam, 'startplek', so, sn);
   for (const [cx, cz] of plekken(so)) {
     const a = wo.maakStuk(cx, cz), b = wn.maakStuk(cx, cz); stukken++;
-    if (!gelijk(a.d, b.d)) fout(naam, 'blokken', cx, cz);
+    if (!blokkenGelijk(a.d, b.d)) fout(naam, 'blokken', cx, cz);
     if (!gelijk(a.biomen, b.biomen)) fout(naam, 'streken', cx, cz);
     if (!gelijk(a.kleur, b.kleur)) fout(naam, 'kleuren', cx, cz);
   }
@@ -134,6 +152,8 @@ for (const zaad of ZAADJES) {
   vergelijk(zaad, { gen: 3, oud: Int32Array.from(oud) }, 'zaad ' + zaad + ' oude wereld', () => rond(6)({ x: 8, z: 8 }));
 }
 console.log('werelden:', stukken, 'stukken vergeleken in', ((Date.now() - t0) / 1000).toFixed(0), 's');
+console.log('  bewust anders (oktober 2026): ' + BEWUST.blad + ' bladeren van bomen met stand 1 (verder dezelfde blokken)');
+if (!BEWUST.blad) fout('geen enkel blad met stand 1 gevonden');
 
 // ---------- 3. wereldbaas en texturen
 function wereldbaas(F, G, zaad) {
@@ -145,7 +165,7 @@ function wereldbaas(F, G, zaad) {
 for (const zaad of [777, 4242]) {
   const a = wereldbaas(OUD.RB_WERELD, GO, zaad), b = wereldbaas(RB_WERELD, NIEUW, zaad);
   let n = 0, v = 0;
-  for (const [k, s] of a.Wb.stukken) { const t = b.Wb.stukken.get(k); if (!t) { fout('wereldbaas: stuk ontbreekt', k); continue; } if (s.d && (!gelijk(s.d, t.d) || (s.l && !gelijk(s.l, t.l)))) fout('wereldbaas: blokken of licht', k); n++; }
+  for (const [k, s] of a.Wb.stukken) { const t = b.Wb.stukken.get(k); if (!t) { fout('wereldbaas: stuk ontbreekt', k); continue; } if (s.d && (!blokkenGelijk(s.d, t.d) || (s.l && !gelijk(s.l, t.l)))) fout('wereldbaas: blokken of licht', k); n++; }
   for (const [k, m] of a.mesh) { const m2 = b.mesh.get(k); if (!m2) { fout('vorm ontbreekt', k); continue; } for (let l = 0; l < m.lagen.length; l++) if (!m2.lagen[l] !== !m.lagen[l] || (m.lagen[l] && !gelijk(m.lagen[l], m2.lagen[l]))) fout('vorm', k, 'laag', l); v++; }
   console.log('wereldbaas zaadje ' + zaad + ':', n, 'stukken (blokken en licht) en', v, '3D-vormen gelijk');
 }

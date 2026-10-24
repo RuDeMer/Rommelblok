@@ -201,6 +201,8 @@ export function RB_WERELD(G, ctx) {
     if (ni === W || oi === W) plan(x, y, z);
     for (let r = 0; r < 6; r++) { const ny = y + DY[r]; if (ny >= 0 && ny < HOOG && (get(x + DX[r], ny, z + DZ[r]) & 255) === W) plan(x + DX[r], ny, z + DZ[r]); }
     if (!vanPagina && (geladen.has(s.k) || opties.server)) naarPagina.push(x, y, z, v);
+    // een stam weg: de bladeren eromheen kijken of ze nog ergens aan vastzitten
+    if (STAM[oi] && !STAM[ni] && !opties.samen) stamWeg.push(x, y, z);
     return true;
   }
 
@@ -715,6 +717,7 @@ export function RB_WERELD(G, ctx) {
           if (st < 3) zet(x, y, z, id | ((st + 1) << 8));
           else groeiBoom(x, y, z, id === B.stekje_kers ? 'kers' : id === B.stekje_noten ? 'noten' : G.HOUT[id - B.stekje_eik][0]);
         } else if (id === B.bessenstruik && !((v >> 8) & 1) && r() < 0.06) zet(x, y, z, id | (1 << 8));
+        else if (BLAD[id] && ((v >> 8) & 1) && r() < 0.25) { if (!bladTros(x, y, z, null).vast) planVergaan(x, y, z, performance.now()); }
         else if (id >= B.gewas_tarwe && id <= B.gewas_pompoen) {
           // gewassen groeien met licht; op een natte akker ruim twee keer zo snel (nat ongeveer 6 minuten, droog 14)
           const st = (v >> 8) & 3; if (st >= 3) continue;
@@ -732,6 +735,67 @@ export function RB_WERELD(G, ctx) {
           else if (boven && DICHT[boven]) zet(x, y, z, B.aarde);
         }
       }
+    }
+  }
+  // ---------- bladeren die niet meer aan een stam vastzitten, vergaan
+  // Alleen bladeren die de wereld zelf maakte (stand 1, gezet in bomen.js); wat een speler neerzet, blijft altijd staan.
+  // Een blad zit vast als je via andere bladeren (ook schuin) bij een stam komt. Een stuk dat er (nog) niet is, telt als vast.
+  // Valt er een stam weg, dan kijken we de bladeren eromheen na; wie los zit, vergaat na 1,5 tot 60 seconden (meestal
+  // vrij snel, soms pas na een minuut), en laat soms een stekje, een appel of een stok vallen (zoals bij hakken).
+  // Als vangnet kijken de willekeurige tikken af en toe ook (bijvoorbeeld na het opnieuw laden van een wereld).
+  const BLAD = new Uint8Array(256), STAM = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) { const b = BL[i]; if (!b) continue; if (b.sleutel.startsWith('blad_')) BLAD[i] = 1; if (b.sleutel.startsWith('stam_')) STAM[i] = 1; }
+  const natuurBlad = v => v > 0 && BLAD[v & 255] === 1 && ((v >> 8) & 1) === 1;
+  const stamWeg = [], vergaan = new Map();
+  const bk = (x, y, z) => (x & 1023) | ((z & 1023) << 10) | (y << 20);
+  // zoekt vanaf een blad door de bladeren naar een stam; geeft { vast, cellen } (cellen: de bekeken bladeren, als x, y, z
+  // achter elkaar). bekend (mag leeg): bladeren waarvan we al weten dat ze vastzitten (1)
+  function bladTros(x, y, z, bekend) {
+    const cellen = [x, y, z], gezien = new Set([bk(x, y, z)]);
+    for (let i = 0; i < cellen.length; i += 3) {
+      if (cellen.length > 3 * 3000) return { vast: true, cellen }; // een heel groot bladerdak: niet verder zoeken
+      const a = cellen[i], b = cellen[i + 1], c = cellen[i + 2];
+      for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        if (!dx && !dy && !dz) continue;
+        const nx = a + dx, ny = b + dy, nz = c + dz; if (ny < 0 || ny >= HOOG) continue;
+        const k = bk(nx, ny, nz); if (gezien.has(k)) continue; gezien.add(k);
+        if (bekend && bekend.get(k) === 1) return { vast: true, cellen };
+        const v = get(nx, ny, nz); if (v < 0) return { vast: true, cellen };
+        const id = v & 255; if (STAM[id]) return { vast: true, cellen };
+        if (BLAD[id]) cellen.push(nx, ny, nz);
+      }
+    }
+    return { vast: false, cellen };
+  }
+  function planVergaan(x, y, z, nu) {
+    const k = x + ',' + y + ',' + z; if (vergaan.has(k)) return;
+    vergaan.set(k, [x, y, z, nu + 1500 + Math.random() * Math.random() * 58500]);
+  }
+  function bladerenNakijken(x, y, z, r, nu) {
+    const bekend = new Map(); // 1: zit vast, 2: zit los
+    for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      const X = x + dx, Y = y + dy, Z = z + dz; if (Y < 0 || Y >= HOOG || bekend.has(bk(X, Y, Z))) continue;
+      if (!natuurBlad(get(X, Y, Z))) continue;
+      const t = bladTros(X, Y, Z, bekend), c = t.cellen;
+      for (let i = 0; i < c.length; i += 3) {
+        bekend.set(bk(c[i], c[i + 1], c[i + 2]), t.vast ? 1 : 2);
+        if (!t.vast && natuurBlad(get(c[i], c[i + 1], c[i + 2]))) planVergaan(c[i], c[i + 1], c[i + 2], nu);
+      }
+    }
+  }
+  function bladTik() {
+    const nu = performance.now();
+    for (let i = 0; i < stamWeg.length && i < 60; i += 3) bladerenNakijken(stamWeg[i], stamWeg[i + 1], stamWeg[i + 2], 6, nu);
+    stamWeg.splice(0, Math.min(stamWeg.length, 60));
+    let n = 0;
+    for (const [k, e] of vergaan) {
+      if (e[3] > nu) continue;
+      vergaan.delete(k);
+      const v = get(e[0], e[1], e[2]);
+      if (!natuurBlad(v) || bladTros(e[0], e[1], e[2], null).vast) continue;
+      zet(e[0], e[1], e[2], 0);
+      post({ t: 'drop', x: e[0], y: e[1], z: e[2], v });
+      if (++n >= 40) break;
     }
   }
   function groeiBoom(x, y, z, soort) {
@@ -796,12 +860,13 @@ export function RB_WERELD(G, ctx) {
   // ============================================================================
   // berichten van de pagina
   // ============================================================================
-  let tikker = null, waterKlok = 0, toevalKlok = 0, bouwKlok = 0;
+  let tikker = null, waterKlok = 0, toevalKlok = 0, bouwKlok = 0, bladKlok = 0;
   function lus() {
     tik();
     const nu = performance.now();
     if (!opties.samen && nu - waterKlok > 250) { waterKlok = nu; waterTik(); }
     if (!opties.samen && nu - toevalKlok > 1000) { toevalKlok = nu; willekeurig(); }
+    if (!opties.samen && nu - bladKlok > 250) { bladKlok = nu; bladTik(); }
     if (actief && !opties.server && nu - bouwKlok > 150) { bouwKlok = nu; bouwTik(); }
     tikker = setTimeout(lus, 12);
   }
@@ -813,7 +878,7 @@ export function RB_WERELD(G, ctx) {
       actief = false; clearTimeout(tikker); startNr = m.nr || 0;
       zaad = m.zaad >>> 0; wid = m.wid; straal = m.straal || 8; Object.assign(opties, { samen: false, server: false }, m.opties || {}); centra = m.centra || null; overlay.clear(); overlayVies.clear();
       wereld = G.maakWereld(zaad); bouwBekend.clear(); bouwRij.length = 0; bouwVakSpeler = '';
-      stukken.clear(); laatst = null; geladen.clear(); opgeslagen = new Set(); teBewaren.clear(); plannen.clear(); volgende.clear();
+      stukken.clear(); laatst = null; geladen.clear(); opgeslagen = new Set(); teBewaren.clear(); plannen.clear(); volgende.clear(); stamWeg.length = 0; vergaan.clear();
       for (const mk of makers) mk.bezig = 0;
       for (const p of (m.poorten || [])) { const mk = { poort: p, bezig: 0 }; p.onmessage = ev => { mk.bezig = Math.max(0, mk.bezig - 1); const r = ev.data; ontvang(r.cx, r.cz, r.d, r.b, r.k); }; makers.push(mk); }
       pX = m.x; pY = m.y; pZ = m.z; pcx = Math.floor(m.x) >> 4; pcz = Math.floor(m.z) >> 4; nodigVoor = '';
@@ -880,11 +945,17 @@ export function RB_WERELD(G, ctx) {
       // test: de tijd voor groeien versnellen
       for (let i = 0; i < (m.n || 1); i++) willekeurig();
       stuurVeranderingen(); post({ t: 'toeval', id: m.id });
+    } else if (m.t === 'blad') {
+      // test: de bladeren laten vergaan. m.sec: zoveel seconden vooruit; terug: hoeveel er nog wachten, en wanneer
+      bladTik(); const nu = performance.now();
+      for (const e of vergaan.values()) e[3] -= (m.sec || 0) * 1000;
+      const wacht = [...vergaan.values()].map(e => Math.round((e[3] - nu) / 100) / 10);
+      bladTik(); stuurVeranderingen(); post({ t: 'blad', id: m.id, wacht });
     } else if (m.t === 'lees') {
       const uit = []; for (let i = 0; i < m.a.length; i += 3) uit.push(get(m.a[i], m.a[i + 1], m.a[i + 2]));
       post({ t: 'lees', id: m.id, a: uit });
     }
   };
   // voor tests in Node
-  return { overlay, overlayVies, waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z) => { zaad = z; wereld = G.maakWereld(z); actief = true; }, meshStuk, rondBuren };
+  return { bladTik, vergaan, willekeurig, overlay, overlayVies, waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z) => { zaad = z; wereld = G.maakWereld(z); actief = true; }, meshStuk, rondBuren };
 }

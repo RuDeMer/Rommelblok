@@ -1,6 +1,6 @@
 // Bomen, struiken, cactussen en rotsen.
 // Gedeelde code: draait op de pagina, in de rekenhulpjes en op de server (geen DOM).
-import { B } from '../blokken.js';
+import { B, BL } from '../blokken.js';
 import { RICHTING } from '../vormen.js';
 import { BI } from './biomen.js';
 
@@ -19,7 +19,11 @@ export function bomen(wm) {
     }
   }
   const stamv = (s, as) => B['stam_' + s] | ((as || 0) << 8);
-  function zetBoom(soort, x, y, z, r, zet) {
+  // Bladeren van een boom die de wereld zelf maakt (ook een stekje dat een boom wordt), krijgen stand 1: die vergaan als
+  // ze niet meer aan een stam vastzitten (werker.js). Bladeren die een speler neerzet hebben stand 0 en blijven altijd.
+  const BLAD = new Uint8Array(256); BL.forEach((b, i) => { if (b && b.sleutel.startsWith('blad_')) BLAD[i] = 1; });
+  function zetBoom(soort, x, y, z, r, zet0) {
+    const zet = (xx, yy, zz, v, vr) => zet0(xx, yy, zz, BLAD[v & 255] ? v | (1 << 8) : v, vr);
     if (soort === 'eik' || soort === 'esdoorn') {
       const h = 4 + Math.floor(r() * 3) + (soort === 'esdoorn' ? 1 : 0);
       const blad = soort === 'eik' ? B.blad_eik : [B.blad_esdoorn, B.blad_esdoorn_oranje, B.blad_esdoorn_geel][Math.floor(r() * 3)];
