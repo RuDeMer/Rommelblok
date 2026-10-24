@@ -50,6 +50,7 @@ cd server && STATISCH=../dist ORIGINS=http://localhost:8090 npm start
 | `dingen` | De inhoud van kisten en ovens. |
 | `spelers` | Per wereld en speler (onder een hash van het geheim van het apparaat): naam (twee nummers), poppetje, plek, rugzak en levens. |
 | `meldingen` | Meldingen van spelers, een week bewaard. |
+| `namen` | Eigen namen per wereld (als de eigenaar die aanzette): wie een naam het eerst nam, houdt hem, ook als hij even weg is. |
 
 IP-adressen komen nooit op schijf; ze staan alleen in het geheugen, voor de grenzen.
 
@@ -64,8 +65,10 @@ Kleine JSON-berichten over één WebSocket (`/samen`). De versie staat in `share
 | `actie` | wat je deed: `{ nr, t, x, y, z, met, id, gevolg }` (zoals in `p6a_acties.js`) |
 | `open`, `dicht` | een kist of oven openen en sluiten |
 | `raap` | iets van de grond oppakken (met het nummer van de server) |
-| `zeg` | een vast zinnetje (een nummer) |
-| `slaap`, `meld`, `beheer`, `bewaar`, `leven` | slapen, iemand melden, de eigenaar, je rugzak bewaren, een teken van leven |
+| `zeg` | een vast zinnetje (`n`), of als de eigenaar vrij typen aanzette een eigen `tekst` (door het filter, hooguit 80 tekens, één bericht per 2 seconden) |
+| `naam` | een eigen naam kiezen (`tekst`; leeg = weer je twee woorden), als de eigenaar dat aanzette; uniek in de wereld |
+| `cmd` | een commando van de eigenaar: `{ wat: tijd, tijd }`, `{ wat: weer, regen }`, `{ wat: stand, stand }`, `{ wat: ga, x, y, z }` of `{ wat: ga, wie }`, `{ wat: geef, id, n, wie? }` |
+| `slaap`, `meld`, `beheer`, `bewaar`, `leven` | slapen, iemand melden, de eigenaar (ook `typen` en `namen` aan of uit), je rugzak bewaren, een teken van leven |
 
 | Van de server | Wat |
 |---|---|
@@ -75,7 +78,10 @@ Kleine JSON-berichten over één WebSocket (`/samen`). De versie staat in `share
 | `stuk` | de veranderingen van stukken in de buurt |
 | `blokken` | veranderingen van anderen, of van de server zelf (water, groei, de oven) |
 | `spelers`, `erbij`, `weg` | de plekken van anderen in de buurt, en wie er komt en gaat |
-| `zeg`, `tijd`, `slaap`, `los`, `opgeraapt`, `open`, `ding`, `plek`, `regels`, `beheer`, `gemeld` | praten, de tijd, slapen, spullen op de grond, kisten en ovens, terugzetten, wie mag wat |
+| `zeg`, `tijd`, `slaap`, `los`, `opgeraapt`, `open`, `ding`, `plek`, `regels`, `beheer`, `gemeld` | praten, de tijd, slapen, spullen op de grond, kisten en ovens, terugzetten, wie mag wat (`regels` ook met `namen`, `typen` en `commandos`) |
+| `zeg-ja`, `zeg-nee` | je getypte tekst is goedgekeurd (netjes gemaakt), of niet, met `reden`: `uit`, `snel`, `lang`, `link`, `mail`, `telefoon`, `woord` |
+| `naam`, `naam-ja`, `naam-nee` | iemand heet nu anders; je eigen naam is gezet, of niet (`uit`, `bezet`, `kort`, `lang`, `tekens`, `cijfers`, `woord`) |
+| `cmd`, `weer`, `stand`, `krijg` | het antwoord op een commando (`ok`, of `reden`: `eigenaar` of `vorm`), regen aan of uit, de stand van de wereld, een voorwerp krijgen |
 
 ## Beheer (met `BEHEER`, minstens 12 tekens)
 

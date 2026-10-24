@@ -9,7 +9,9 @@ import { naamTekstKlopt } from './filter.js';
 // het filter voor vrij typen en eigen namen (zie filter.js): ook via G.SAMEN te gebruiken
 export { tekstKlopt, naamTekstKlopt, naamSleutel, scheldwoord, REDEN as FILTER_REDEN, MAX_TEKST } from './filter.js';
 
-export const PROTOCOL = 1;
+// 2 (oktober 2026): bladeren van bomen hebben het merkje van de natuur, nieuwe werelden meer steenkool (erts 2), eigen namen,
+// vrij typen, commando's en weer. Een pagina met een ander nummer hoort: ververs de pagina.
+export const PROTOCOL = 2;
 
 // ---------------- namen: [bijvoeglijk naamwoord, ding]; alleen de-woorden, dan klopt 'Snelle Egel' altijd
 export const NAAM_A = [
