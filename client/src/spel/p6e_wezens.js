@@ -125,6 +125,17 @@ function griezelErbij() {
     return;
   }
 }
+// het licht van spookjes (een koel blauw schijnsel op de blokken eromheen): de dichtstbijzijnde 8, als [x, y, z, straal]
+function spookLichten() {
+  const uit = [], t = performance.now() / 1000;
+  for (const w of griezels) {
+    if (SOORT[w.s].sleutel !== 'spookje' || w.hp <= 0) continue;
+    const ax = w.x - sp.x, az = w.z - sp.z, a = ax * ax + az * az; if (a > 48 * 48) continue;
+    uit.push([w.x, w.y + 0.6, w.z, (minderBeweging ? 5.5 : 5.2 + Math.sin(t * 2.3 + w.n) * 0.35) * (w.gloed || 1), a]);
+  }
+  uit.sort((p, q) => p[4] - q[4]);
+  return uit.slice(0, 8);
+}
 // in een wolkje verdwijnen
 function poef(w) {
   const S = SOORT[w.s], h = S.maat[1];

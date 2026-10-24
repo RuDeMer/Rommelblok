@@ -66,6 +66,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     precision highp float; precision highp int; precision highp sampler2DArray;
     uniform sampler2DArray uTex, uTint;
     uniform vec3 uZonKleur, uFakKleur; uniform float uMin, uFlakker; uniform vec3 uPalet[12];
+    // lichtpuntjes die meebewegen (spookjes): plek tegenover de camera en straal, en hun kleur
+    uniform vec4 uPunt[8]; uniform int uPuntN; uniform vec3 uPuntKleur;
     in vec3 vLp; in vec3 vRel; in vec2 vTuv; in vec2 vL; in float vAO; in vec4 vMist;
     flat in uint vLaag, vVl, vN, vEx;
     out vec4 o;
@@ -77,6 +79,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       return t / na;
     }
     void main() {
+      ${snij ? `// Van een kubusvlak (bladeren, glas) alleen de voorkant: tussen twee bladblokken liggen twee vlakken precies op
+      // dezelfde plek (de rechterkant van het ene en de linkerkant van het andere). Tekende je ze allebei, dan vochten ze
+      // om voorrang, en dat flikkerde als je bewoog. Een kubusvlak herken je aan bit 4 van ex zonder bit 128 (zie werker.js).
+      if (vN < 6u && (vEx & 132u) == 4u && !gl_FrontFacing) discard;` : ''}
       vec2 uv;
       if (vN == 0u) uv = vec2(-vLp.z, vLp.y); else if (vN == 1u) uv = vec2(vLp.z, vLp.y);
       else if (vN == 2u) uv = vec2(vLp.x, vLp.z); else if (vN == 3u) uv = vec2(vLp.x, -vLp.z);
@@ -105,6 +111,10 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       if (kl > 0u && kl <= 12u) c *= uPalet[kl - 1u];
       float zon = vL.x, fak = vL.y * uFlakker;
       vec3 L = max(uZonKleur * zon, uFakKleur * fak) + 0.22 * min(uZonKleur * zon, uFakKleur * fak);
+      // het schijnsel van spookjes: zacht aflopend tot hun straal (door muren heen: ze zijn een beetje spookachtig)
+      vec3 Lp = vec3(0.0);
+      for (int i = 0; i < 8; i++) { if (i >= uPuntN) break; vec3 d = vRel - uPunt[i].xyz; float f = clamp(1.0 - dot(d, d) / (uPunt[i].w * uPunt[i].w), 0.0, 1.0); Lp += uPuntKleur * f * f; }
+      L = max(L, Lp) + Lp * 0.12;
       L = max(L, vec3(uMin));
       float ao = 0.42 + 0.58 * vAO * (0.7 + 0.3 * vAO);
       c *= L * ao * SCHAD[vN];
@@ -284,23 +294,25 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     }`;
   const DEELTJE_VS = `#version 300 es
     precision highp float;
-    layout(location = 0) in vec4 aP; layout(location = 1) in vec4 aT;
-    uniform mat4 uVP; uniform vec3 uRechts, uOp; out vec3 vT; out float vL;
+    layout(location = 0) in vec4 aP; layout(location = 1) in vec4 aT; layout(location = 2) in float aK;
+    uniform mat4 uVP; uniform vec3 uRechts, uOp; out vec3 vT; out float vL; out vec3 vK;
     void main() {
       int k = gl_VertexID % 4; vec2 c = vec2(k == 1 || k == 2 ? 1.0 : 0.0, k >= 2 ? 1.0 : 0.0);
       vec3 p = aP.xyz + (uRechts * (c.x - 0.5) + uOp * (c.y - 0.5)) * aP.w;
       vT = vec3(aT.xy + c * 0.25 * vec2(1.0, -1.0) + vec2(0.0, 0.25), aT.z); vL = aT.w;
+      // de kleur van de streek of het palet (bladeren, gras, gekleurde blokken), als 0xRRGGBB; 0 = geen kleur
+      float kl = aK; vK = kl < 0.5 ? vec3(1.0) : vec3(floor(kl / 65536.0), mod(floor(kl / 256.0), 256.0), mod(kl, 256.0)) / 255.0;
       gl_Position = uVP * vec4(p, 1.0);
     }`;
   const DEELTJE_FS = `#version 300 es
     precision highp float; precision highp sampler2DArray;
     uniform sampler2DArray uTex, uDing; uniform vec3 uZonKleur, uFakKleur;
-    in vec3 vT; in float vL; out vec4 o;
+    in vec3 vT; in float vL; in vec3 vK; out vec4 o;
     void main() {
       vec4 t = vT.z >= 255.5 ? textureLod(uDing, vec3(vT.xy, vT.z - 256.0), 0.0) : textureLod(uTex, vec3(vT.xy, vT.z), 0.0); if (t.a < 0.5) discard;
       float zon = floor(vL / 16.0) / 15.0, fak = mod(vL, 16.0) / 15.0;
       vec3 L = max(uZonKleur * pow(0.8, (1.0 - zon) * 15.0), uFakKleur * pow(0.8, (1.0 - fak) * 15.0)); L = max(L, vec3(0.03));
-      o = vec4(t.rgb * L, 1.0);
+      o = vec4(t.rgb * vK * L, 1.0);
     }`;
 
   // het palet als kleuren van 0 tot 1 (iets lichter gemaakt, want de grijze basis is niet helemaal wit)
@@ -481,11 +493,12 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     dingVormen.set(id, r); return r;
   }
   // ---------------- deeltjes
-  const MAXD = 600, dData = new Float32Array(MAXD * 4 * 8);
+  const MAXD = 600, dData = new Float32Array(MAXD * 4 * 9);
   const dVao = gl.createVertexArray(), dBuf = gl.createBuffer();
   gl.bindVertexArray(dVao); gl.bindBuffer(gl.ARRAY_BUFFER, dBuf); gl.bufferData(gl.ARRAY_BUFFER, dData.byteLength, gl.DYNAMIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 32, 0);
-  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 16);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 36, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 36, 16);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 36, 32);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf); gl.bindVertexArray(null);
   // ---------------- lijnen (omlijning van het blok waar je naar kijkt)
   const lVao = gl.createVertexArray(), lBuf = gl.createBuffer();
@@ -550,8 +563,11 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     if (u.uZonRicht) gl.uniform3fv(u.uZonRicht, L.zonRicht); if (u.uMaanRicht) gl.uniform3fv(u.uMaanRicht, L.maanRicht);
     if (u.uZonGloed) gl.uniform3fv(u.uZonGloed, L.zonGloed);
   }
+  // lichtpuntjes van dit beeld (spookjes): tegenover de camera, hooguit 8
+  const puntData = new Float32Array(32); let puntN = 0;
   function zetLicht(P, L) {
     const u = P.u;
+    if (u.uPuntN) { gl.uniform1i(u.uPuntN, puntN); gl.uniform4fv(u.uPunt, puntData); gl.uniform3fv(u.uPuntKleur, L.puntKleur || [0.42, 0.56, 0.95]); }
     gl.uniform3fv(u.uZonKleur, L.zonKleur); gl.uniform3fv(u.uFakKleur, L.fakKleur);
     if (u.uMistKleur) gl.uniform3fv(u.uMistKleur, L.mistKleur);
     if (u.uMist) gl.uniform2f(u.uMist, L.mist[0], L.mist[1]);
@@ -576,6 +592,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     VIEW.set([rx, ux, -fx, 0, 0, uy, -fy, 0, rz, uz, -fz, 0, 0, 0, 0, 1]);
     if (C.schud) { VIEW[12] += C.schud[0]; VIEW[13] += C.schud[1]; }
     mul(VP, PROJ, VIEW); inverteer(INV, VP); maakFrustum(VP);
+    puntN = 0;
+    if (extra && extra.punten) for (const q of extra.punten) { if (puntN >= 8) break; puntData.set([q[0] - C.x, q[1] - C.y, q[2] - C.z, q[3]], puntN * 4); puntN++; }
     gl.clearColor(L.horizon[0], L.horizon[1], L.horizon[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true);
@@ -762,8 +780,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.uniform3f(PDt.u.uRechts, cy, 0, -sy); gl.uniform3f(PDt.u.uOp, sy * sp, cp, cy * sp);
     const n = Math.min(MAXD, D.n), a = D.a; let o = 0;
     for (let i = 0; i < n; i++) {
-      const b = i * 8;
-      for (let k = 0; k < 4; k++) { dData[o++] = a[b] - C.x; dData[o++] = a[b + 1] - C.y; dData[o++] = a[b + 2] - C.z; dData[o++] = a[b + 3]; dData[o++] = a[b + 4]; dData[o++] = a[b + 5]; dData[o++] = a[b + 6]; dData[o++] = a[b + 7]; }
+      const b = i * 9;
+      for (let k = 0; k < 4; k++) { dData[o++] = a[b] - C.x; dData[o++] = a[b + 1] - C.y; dData[o++] = a[b + 2] - C.z; dData[o++] = a[b + 3]; dData[o++] = a[b + 4]; dData[o++] = a[b + 5]; dData[o++] = a[b + 6]; dData[o++] = a[b + 7]; dData[o++] = a[b + 8]; }
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, dBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, dData, 0, o);
     gl.bindVertexArray(dVao); gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, 0);
@@ -780,8 +798,11 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.useProgram(PLn.p); gl.uniformMatrix4fv(PLn.u.uVP, false, VP); gl.uniform3f(PLn.u.uOfs, 0, 0, 0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.bindVertexArray(lVao); gl.bindBuffer(gl.ARRAY_BUFFER, lBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, kaderData, 0, o);
-    gl.uniform4f(PLn.u.uKleur, 0.06, 0.05, 0.08, 0.85); gl.drawArrays(gl.LINES, 0, o / 3);
-    gl.uniform4f(PLn.u.uKleur, 1, 1, 1, 0.3); gl.uniform3f(PLn.u.uOfs, 0, 0.004, 0); gl.drawArrays(gl.LINES, 0, o / 3);
+    // het lichte randje en het waas gaan mee met het licht ter plekke (K.licht, 0 tot 1): in het donker zacht grijs,
+    // zodat je het nog ziet maar het niet fel oplicht; in het licht zoals vroeger
+    const kl = K.licht === undefined ? 1 : Math.max(0, Math.min(1, K.licht)), hel = 0.22 + 0.78 * kl;
+    gl.uniform4f(PLn.u.uKleur, 0.06, 0.05, 0.08, 0.55 + 0.3 * kl); gl.drawArrays(gl.LINES, 0, o / 3);
+    gl.uniform4f(PLn.u.uKleur, hel, hel, hel * 0.97, 0.12 + 0.18 * kl); gl.uniform3f(PLn.u.uOfs, 0, 0.004, 0); gl.drawArrays(gl.LINES, 0, o / 3);
     // een zacht licht waas over het blok, zodat je goed ziet waar je naar kijkt
     let f = 0; const e2 = 0.004;
     for (const d of K.dozen) {
@@ -790,7 +811,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       for (const q of [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]]) for (const i of [q[0], q[1], q[2], q[0], q[2], q[3]]) { kaderData[f++] = v[i][0]; kaderData[f++] = v[i][1]; kaderData[f++] = v[i][2]; }
     }
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, kaderData, 0, f); gl.uniform3f(PLn.u.uOfs, 0, 0, 0);
-    gl.depthMask(false); gl.uniform4f(PLn.u.uKleur, 1, 1, 0.92, 0.09); gl.drawArrays(gl.TRIANGLES, 0, f / 3); gl.depthMask(true);
+    gl.depthMask(false); gl.uniform4f(PLn.u.uKleur, hel, hel, hel * 0.92, 0.02 + 0.07 * kl); gl.drawArrays(gl.TRIANGLES, 0, f / 3); gl.depthMask(true);
     if (K.barst >= 0) {
       // barsten: de dozen nog eens, met de barsttextuur
       const laag = G.TEXNR['barst' + Math.min(9, K.barst)];

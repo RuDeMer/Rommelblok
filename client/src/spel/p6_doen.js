@@ -369,32 +369,70 @@ function eetTik(dt) {
 let houdGebruik = false;
 
 // ---------------- deeltjes (brokjes)
-const DEELTJES = new Float32Array(600 * 8), dp = []; // dp: {x,y,z,vx,vy,vz,t,max,laag,u,v,s}
+const DEELTJES = new Float32Array(600 * 9), dp = []; // dp: {x,y,z,vx,vy,vz,t,max,laag,u,v,s,k (kleur 0xRRGGBB of 0),rust}
+// de kleur van een brokje: bladeren en gras in een gemiddelde streekkleur (zoals een voorwerp in je hand), gekleurde blokken uit het palet
+const kleurGetal = (r, g, b) => Math.round(Math.min(1, r) * 255) * 65536 + Math.round(Math.min(1, g) * 255) * 256 + Math.round(Math.min(1, b) * 255);
+function brokKleur(v) {
+  const b = BL[v & 255]; if (!b) return 0;
+  if (b.kleur) { const p = G.PALET[Math.min(11, (v >> 8) & 15)]; if (p) { const n = parseInt(p[4].slice(1), 16); return n; } }
+  if (b.tint && !b.overlay) return b.tint === 2 ? kleurGetal(0.31 * 1.15, 0.62 * 1.15, 0.23 * 1.15) : kleurGetal(0.44 * 1.15, 0.7 * 1.15, 0.29 * 1.15);
+  return 0;
+}
 function brokjes(x, y, z, v, n, d) {
   const b = BL[v & 255]; if (!b) return;
-  const laag = b.vorm === 'kruis' || b.vorm === 'fakkel' ? b.tz : b.tz;
+  const laag = b.tz, k = brokKleur(v);
   for (let i = 0; i < n && dp.length < 600; i++) {
     let px = x + 0.15 + Math.random() * 0.7, py = y + 0.15 + Math.random() * 0.7, pz = z + 0.15 + Math.random() * 0.7;
-    if (d && n < 5) { px = d.p[0] + d.n[0] * 0.08 + (Math.random() - 0.5) * 0.3; py = d.p[1] + d.n[1] * 0.08 + (Math.random() - 0.5) * 0.3; pz = d.p[2] + d.n[2] * 0.08 + (Math.random() - 0.5) * 0.3; }
-    dp.push({ x: px, y: py, z: pz, vx: (Math.random() - 0.5) * 3, vy: Math.random() * 3 + 1, vz: (Math.random() - 0.5) * 3, t: 0, max: 0.5 + Math.random() * 0.6, laag, u: Math.random() * 0.75, v: Math.random() * 0.75, s: 0.06 + Math.random() * 0.06 });
+    let vx = (Math.random() - 0.5) * 3, vy = Math.random() * 3 + 1, vz = (Math.random() - 0.5) * 3;
+    if (d && n < 5) {
+      // tijdens het hakken: net voor het vlak dat je raakt, nooit erin (in een vast blok is het donker, en dan flitste
+      // een brokje zwart en weer licht); alleen opzij verspreid, en van het vlak af bewegend
+      const nx = d.n[0], ny = d.n[1], nz = d.n[2], r1 = (Math.random() - 0.5) * 0.5, r2 = (Math.random() - 0.5) * 0.5, af = 0.08 + Math.random() * 0.06;
+      // opzij binnen de rand van het vlak blijven (anders kwam een brokje vlak bij de onderrand in de vloer terecht)
+      const binnen = (q, c) => Math.min(c + 0.92, Math.max(c + 0.08, q));
+      px = d.p[0] + nx * af + (nx ? 0 : r1); py = d.p[1] + ny * af + (ny ? 0 : nx ? r1 : r2); pz = d.p[2] + nz * af + (nz ? 0 : r2);
+      if (!nx) px = binnen(px, x); if (!ny) py = binnen(py, y); if (!nz) pz = binnen(pz, z);
+      vx = vx * 0.5 + nx * 1.4; vy = vy * 0.6 + ny * 1.4; vz = vz * 0.5 + nz * 1.4;
+    }
+    dp.push({ x: px, y: py, z: pz, vx, vy, vz, t: 0, max: 0.5 + Math.random() * 0.6, laag, u: Math.random() * 0.75, v: Math.random() * 0.75, s: 0.06 + Math.random() * 0.06, k });
   }
 }
 function brokjesDing(id) {
   const it = IT[id]; if (!it) return; const laag = it.ding ? it.tex + 256 : it.tex; const o = oogPos(), k = kijkVector();
-  for (let i = 0; i < 4; i++) dp.push({ x: o[0] + k[0] * 0.5, y: o[1] - 0.25 + k[1] * 0.5, z: o[2] + k[2] * 0.5, vx: (Math.random() - 0.5) * 1.5 + k[0], vy: Math.random() * 1.5, vz: (Math.random() - 0.5) * 1.5 + k[2], t: 0, max: 0.5, laag, u: Math.random() * 0.75, v: Math.random() * 0.75, s: 0.05 });
+  for (let i = 0; i < 4; i++) dp.push({ x: o[0] + k[0] * 0.5, y: o[1] - 0.25 + k[1] * 0.5, z: o[2] + k[2] * 0.5, vx: (Math.random() - 0.5) * 1.5 + k[0], vy: Math.random() * 1.5, vz: (Math.random() - 0.5) * 1.5 + k[2], t: 0, max: 0.5, laag, u: Math.random() * 0.75, v: Math.random() * 0.75, s: 0.05 })
+}
+// licht voor een brokje: van de plek zelf, of als die in een vast blok ligt (op een rand) het lichtste van de buren
+function brokLicht(x, y, z) {
+  const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z), v = blokOp(X, Y, Z);
+  if (!(v > 0 && G.DICHT[v & 255])) return lichtOp(X, Y, Z);
+  let best = 0, bz = -1;
+  for (const [a, b, c] of [[0, 1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0]]) { const l = lichtOp(X + a, Y + b, Z + c), s2 = Math.max(l >> 4, l & 15); if (s2 > bz) { bz = s2; best = l; } }
+  return best;
 }
 function deeltjesTik(dt) {
   let o = 0;
   for (let i = dp.length - 1; i >= 0; i--) {
     const p = dp[i]; p.t += dt; if (p.t > p.max) { dp.splice(i, 1); continue; }
-    p.vy -= 16 * dt; const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt, nz = p.z + p.vz * dt;
-    const v = blokOp(Math.floor(nx), Math.floor(ny), Math.floor(nz));
-    if (v !== 0 && v > 0 && G.VAST[v & 255]) { p.vx *= 0.3; p.vz *= 0.3; p.vy = 0; } else { p.x = nx; p.y = ny; p.z = nz; }
+    if (p.rust) { p.vx *= Math.exp(-8 * dt); p.vz *= Math.exp(-8 * dt); }
+    else p.vy -= 16 * dt;
+    // per as bewegen; tegen een vast blok aan stopt die as. Op de grond blijft een brokje liggen, net op de vloer
+    // (vroeger bleef het zweven waar het botste, en stak de onderkant door de vloer: dat flikkerde als je rondkeek)
+    const vast = (x, y, z) => { const v = blokOp(Math.floor(x), Math.floor(y), Math.floor(z)); return v !== 0 && v > 0 && G.VAST[v & 255]; };
+    const r = p.s * 0.5;
+    if (!p.rust) {
+      const ny = p.y + p.vy * dt;
+      if (p.vy < 0 && vast(p.x, ny - r, p.z)) { p.y = Math.floor(ny - r) + 1 + r + 0.002; p.vy = 0; p.rust = true; }
+      else if (p.vy > 0 && vast(p.x, ny + r, p.z)) p.vy = 0;
+      else p.y = ny;
+    }
+    const nx = p.x + p.vx * dt; if (vast(nx, p.y, p.z)) p.vx *= -0.2; else p.x = nx;
+    const nz = p.z + p.vz * dt; if (vast(p.x, p.y, nz)) p.vz *= -0.2; else p.z = nz;
+    if (p.rust && !vast(p.x, p.y - r - 0.05, p.z)) p.rust = false; // de grond is weg: weer vallen
   }
   for (const p of dp) {
-    const l = lichtOp(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
+    const l = brokLicht(p.x, p.y, p.z);
     DEELTJES[o++] = p.x; DEELTJES[o++] = p.y; DEELTJES[o++] = p.z; DEELTJES[o++] = p.s * (1 - Math.max(0, p.t / p.max - 0.7) * 2);
-    DEELTJES[o++] = p.u; DEELTJES[o++] = p.v; DEELTJES[o++] = p.laag; DEELTJES[o++] = (l >> 4) * 16 + (l & 15);
+    DEELTJES[o++] = p.u; DEELTJES[o++] = p.v; DEELTJES[o++] = p.laag; DEELTJES[o++] = (l >> 4) * 16 + (l & 15); DEELTJES[o++] = p.k || 0;
   }
   return dp.length;
 }
@@ -590,7 +628,12 @@ function tekenExtra(dt, C) {
   if (camBeeld()) popTeken(wezens, hand.licht, hand);
   const n = deeltjesTik(dt);
   if (schud > 0) C.schud = [(Math.random() - 0.5) * schud * 0.06, (Math.random() - 0.5) * schud * 0.06];
-  return { dingen, kader, hand: camBeeld() ? null : hand, wezens, deeltjes: { n, a: DEELTJES } };
+  // het kader volgt het licht ter plekke: bij een blok de plek net voor het vlak waar je naar kijkt, bij iets anders de plek zelf
+  if (kader) {
+    const d = kader.dozen[0], m = doel && kader.dozen === doel.dozen && doel.p && doel.n ? [doel.p[0] + doel.n[0] * 0.3, doel.p[1] + doel.n[1] * 0.3, doel.p[2] + doel.n[2] * 0.3] : [(d[0] + d[3]) / 2, d[4] - 0.2, (d[2] + d[5]) / 2];
+    const L = lichtKleur(brokLicht(m[0], m[1], m[2])); kader.licht = Math.max(L[0], L[1], L[2]);
+  }
+  return { dingen, kader, hand: camBeeld() ? null : hand, wezens, deeltjes: { n, a: DEELTJES }, punten: typeof spookLichten === 'function' ? spookLichten() : null };
 }
 let doelZichtbaar = true, handProef = null; // handProef: alleen voor tests (een vaste houding van de arm)
 // licht op een plek als kleur, voor voorwerpen en de hand

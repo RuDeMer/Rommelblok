@@ -43,6 +43,7 @@ function lus(nu) {
   // met de grote kaart open hoeft de wereld erachter niet getekend te worden (scheelt veel op een telefoon).
   // Achter een ander (glazen) scherm tekent een telefoon de wereld maar elk derde beeldje: het glas maakt hem toch wazig.
   const achterGlas = telefoon && schermOpen() && huidigScherm() !== 'pop' && (glasTel++ % 3) !== 0;
+  tekenLucht = LT;
   if (!tekenUit && huidigScherm() !== 'kaart' && !achterGlas) R.teken(C, LT, extra); else R.kijkMatrix(C);
   if (spelBezig && wereldKlaar && WD && (!WD.plaatje || plaatjeVragen) && sinds > 2 && !schermOpen()) { maakPlaatje(); plaatjeVragen = false; }
   if (typeof hudTik === 'function') hudTik(dt, L);
@@ -50,7 +51,7 @@ function lus(nu) {
   frameMs = performance.now() - t0;
   bijsturen(dt);
 }
-let camVorige = null, dynSchaal = KW.schaal || 1, mistDonker = 1, glasTel = 0;
+let camVorige = null, dynSchaal = KW.schaal || 1, mistDonker = 1, glasTel = 0, tekenLucht = null;
 // automatisch bijsturen als het te traag gaat: eerst de beeldscherpte, dan de kijkafstand
 let testVast = false, tekenUit = false;
 function bijsturen(dt) {
@@ -107,6 +108,8 @@ window.__rommelblok = {
   kijk: (yaw, pitch) => { sp.yaw = yaw; sp.pitch = pitch; }, set houd(v) { houdGebruik = !!v; },
   zet: (x, y, z) => { sp.x = x; sp.y = y; sp.z = z; sp.vx = sp.vy = sp.vz = 0; camVorige = null; vertelPlek(performance.now(), true); },
   tijd: v => { if (WD) WD.tijd = v; }, set tekenUit(v) { tekenUit = !!v; },
+  // één beeldje tekenen met de camera van het laatste beeldje, iets verschoven, en dezelfde lucht en tijd (voor tests)
+  proefBeeld: (dx, dy, dz, extra) => { const C = Object.assign({}, camVorige, { x: camVorige.x + (dx || 0), y: camVorige.y + (dy || 0), z: camVorige.z + (dz || 0) }); R.teken(C, tekenLucht, extra || {}); },
   zetBlok: (x, y, z, v) => { zetBlok(x, y, z, v); stuurZetten(); },
   set handProef(v) { handProef = v; },
   set valVrij(sec) { valVrijTot = performance.now() + sec * 1000; },
@@ -119,6 +122,7 @@ window.__rommelblok = {
   WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal,
   // alles wat als wezen getekend wordt (karretjes, bewoners, dieren, andere spelers en je poppetje), zoals in tekenExtra
   tekenLijst: () => { const l = []; karrenTeken(l); bewonersTeken(l); wezensTeken(l); if (samen) samenTeken(l, 0); popTeken(l, [1, 1, 1], { id: 0, soort: '', zwaai: 1, eet: -1 }); return l; },
+  spookLichten, brokjes, deeltjesTik, get deeltjes() { return dp; }, tekenExtra,
   slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
   // samen spelen
   get samen() { return samen; }, samenAdres, samenNamen, samenTik, gooiWeg, openSamen, samenGaNaar, samenZeg, openZinnen, openSpelers, samenStop, samenStuur, samenOpScherm, samenSpelerData, spelerGeheim, mijnNaam,
