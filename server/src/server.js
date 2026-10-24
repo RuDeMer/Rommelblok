@@ -151,7 +151,15 @@ export function maakServer(inst) {
         if (v.actieEmmer < 1) { v.kamer.worker.postMessage({ t: 'bericht', sid: v.sid, m: { t: 'actie', a: m.a, teSnel: true } }); return; }
         v.actieEmmer -= 1;
       }
-      if (m.t === 'zeg') { if (!S.zinKlopt(m.n) || t - v.zinT < g.zinElke * 1000) return; v.zinT = t; }
+      // praten: een vast zinnetje of (als de eigenaar dat aanzette) een eigen tekst, hooguit één per 2 seconden
+      if (m.t === 'zeg') {
+        const vorm = S.zinKlopt(m.n) || (typeof m.tekst === 'string' && m.tekst.length <= 400);
+        if (!vorm) return;
+        if (t - v.zinT < g.zinElke * 1000) { if (typeof m.tekst === 'string') v.ws.send(JSON.stringify({ t: 'zeg-nee', reden: 'snel' })); return; }
+        v.zinT = t;
+      }
+      // een eigen naam kiezen: hooguit één poging per 2 seconden
+      if (m.t === 'naam') { if (typeof m.tekst !== 'string' || m.tekst.length > 100 || t - (v.naamT || 0) < 2000) return; v.naamT = t; }
       v.kamer.worker.postMessage({ t: 'bericht', sid: v.sid, m });
     });
     ws.on('close', () => {

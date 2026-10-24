@@ -4,6 +4,7 @@
 // dingen    de inhoud van kisten en ovens
 // spelers   per wereld de plek en de rugzak van een speler, onder een hash van zijn geheim
 // meldingen een week bewaard, daarna weg
+// namen     eigen namen per wereld (als de eigenaar dat aanzette): wie een naam het eerst nam, houdt hem
 // IP-adressen komen hier nooit in.
 import { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
@@ -39,6 +40,8 @@ export function openDb(pad) {
     CREATE TABLE IF NOT EXISTS dingen (wereld INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (wereld, x, y, z)) WITHOUT ROWID;
     CREATE TABLE IF NOT EXISTS spelers (wereld INTEGER NOT NULL, speler TEXT NOT NULL, naam TEXT NOT NULL, pop TEXT, plek TEXT, data TEXT, gezien INTEGER NOT NULL, PRIMARY KEY (wereld, speler)) WITHOUT ROWID;
     CREATE TABLE IF NOT EXISTS meldingen (id INTEGER PRIMARY KEY AUTOINCREMENT, wereld INTEGER NOT NULL, door TEXT NOT NULL, over TEXT NOT NULL, naam TEXT NOT NULL, wat TEXT NOT NULL, tijd INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS namen (wereld INTEGER NOT NULL, sleutel TEXT NOT NULL, speler TEXT NOT NULL, naam TEXT NOT NULL, tijd INTEGER NOT NULL, PRIMARY KEY (wereld, sleutel)) WITHOUT ROWID;
+    CREATE INDEX IF NOT EXISTS namen_speler ON namen (wereld, speler);
   `);
   const q = sql => db.prepare(sql);
   const S = {
@@ -49,6 +52,11 @@ export function openDb(pad) {
     tijdZet: q('UPDATE werelden SET tijd = ?, dag = ?, gespeeld = ? WHERE id = ?'),
     codeZet: q('UPDATE werelden SET code = ? WHERE id = ?'),
     regelsZet: q('UPDATE werelden SET regels = ? WHERE id = ?'),
+    standZet: q('UPDATE werelden SET stand = ? WHERE id = ?'),
+    naamVan: q('SELECT naam FROM namen WHERE wereld = ? AND speler = ?'),
+    naamBezet: q('SELECT speler FROM namen WHERE wereld = ? AND sleutel = ?'),
+    naamWeg: q('DELETE FROM namen WHERE wereld = ? AND speler = ?'),
+    naamZet: q('INSERT INTO namen (wereld, sleutel, speler, naam, tijd) VALUES (?, ?, ?, ?, ?)'),
     stukken: q('SELECT cx, cz, data FROM stukken WHERE wereld = ?'),
     stukZet: q('INSERT INTO stukken (wereld, cx, cz, data) VALUES (?, ?, ?, ?) ON CONFLICT (wereld, cx, cz) DO UPDATE SET data = excluded.data'),
     dingen: q('SELECT x, y, z, data FROM dingen WHERE wereld = ?'),
@@ -59,10 +67,11 @@ export function openDb(pad) {
     melding: q('INSERT INTO meldingen (wereld, door, over, naam, wat, tijd) VALUES (?, ?, ?, ?, ?, ?)'),
     meldingen: q('SELECT id, wereld, naam, wat, tijd FROM meldingen ORDER BY tijd DESC LIMIT 200'),
     meldingenOud: q('DELETE FROM meldingen WHERE tijd < ?'),
-    weg: ['DELETE FROM stukken WHERE wereld = ?', 'DELETE FROM dingen WHERE wereld = ?', 'DELETE FROM spelers WHERE wereld = ?', 'DELETE FROM werelden WHERE id = ?'].map(q),
+    weg: ['DELETE FROM stukken WHERE wereld = ?', 'DELETE FROM dingen WHERE wereld = ?', 'DELETE FROM spelers WHERE wereld = ?', 'DELETE FROM namen WHERE wereld = ?', 'DELETE FROM werelden WHERE id = ?'].map(q),
   };
   // erts: 2 voor werelden vanaf oktober 2026 (meer steenkool dicht onder de grond), 1 voor oudere (die blijven zoals ze waren)
-  const regels = r => { try { const o = JSON.parse(r.regels || '{}'); return { bouwen: o.bouwen === 'eigenaar' ? 'eigenaar' : 'iedereen', dicht: !!o.dicht, geweerd: Array.isArray(o.geweerd) ? o.geweerd.slice(0, 500) : [], erts: o.erts === 2 ? 2 : 1 }; } catch (e) { return { bouwen: 'iedereen', dicht: false, geweerd: [], erts: 1 }; } };
+  // namen en typen: eigen namen en vrij typen (de eigenaar zet ze aan, standaard uit); commandos: er zijn commando's gebruikt
+  const regels = r => { try { const o = JSON.parse(r.regels || '{}'); return { bouwen: o.bouwen === 'eigenaar' ? 'eigenaar' : 'iedereen', dicht: !!o.dicht, geweerd: Array.isArray(o.geweerd) ? o.geweerd.slice(0, 500) : [], erts: o.erts === 2 ? 2 : 1, namen: o.namen === true, typen: o.typen === true, commandos: o.commandos === true }; } catch (e) { return { bouwen: 'iedereen', dicht: false, geweerd: [], erts: 1, namen: false, typen: false, commandos: false }; } };
   const naam = r => { try { const n = JSON.parse(r.naam); return Array.isArray(n) ? n : [0, 0]; } catch (e) { return [0, 0]; } };
   const metRegels = r => (r ? Object.assign({}, r, { regels: regels(r), naam: naam(r) }) : null);
   return {
@@ -79,6 +88,14 @@ export function openDb(pad) {
     bewaarTijd: (id, tijd, dag) => S.tijdZet.run(tijd, dag, Date.now(), id),
     zetCode: (id, code) => S.codeZet.run(code, id),
     zetRegels: (id, r) => S.regelsZet.run(JSON.stringify(r), id),
+    zetStand: (id, stand) => S.standZet.run(stand, id),
+    // eigen namen: de naam van een speler in een wereld, wie een naam (sleutel) al heeft, en een naam vastleggen
+    naamVan: (id, speler) => { const r = S.naamVan.get(id, speler); return r ? r.naam : null; },
+    naamBezet: (id, sleutel) => { const r = S.naamBezet.get(id, sleutel); return r ? r.speler : null; },
+    zetNaam(id, speler, sleutel, naam) {
+      db.exec('BEGIN');
+      try { S.naamWeg.run(id, speler); if (naam) S.naamZet.run(id, sleutel, speler, naam, Date.now()); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; }
+    },
     // de veranderingen van alle stukken: [cx, cz, Uint32Array([plek << 16 | waarde, ...])]
     stukken: id => S.stukken.all(id).map(r => [r.cx, r.cz, new Uint32Array(r.data.buffer.slice(r.data.byteOffset, r.data.byteOffset + r.data.byteLength))]),
     bewaarStukken(id, lijst) {

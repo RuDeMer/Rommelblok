@@ -107,8 +107,14 @@ function erbij(m) {
   const oud = db.speler(wereldId, m.hash);
   const plek = oud && geldigePlek(oud.plek) ? oud.plek : null;
   const nu = Date.now();
+  // de naam: een eigen naam als de eigenaar dat aanzette en deze speler er al een koos, anders de twee woorden;
+  // nooit gelijk aan de naam van iemand anders die er nu is (dan andere woorden)
+  let woordNaam = m.naam;
+  for (let i = 0; i < 50 && naamOnline(naamSleutel(woordNaam)); i++) woordNaam = S.naamWillekeurig(() => randomInt(0, 2 ** 31) / 2 ** 31);
+  let naam = woordNaam;
+  if (W.regels.namen) { const eigen = db.naamVan(wereldId, m.hash); if (eigen && !naamOnline(S.naamSleutel(eigen))) naam = eigen; }
   const s = {
-    sid: m.sid, hash: m.hash, naam: m.naam, pop: m.pop, taal: m.taal, straal: m.straal, eigenaar,
+    sid: m.sid, hash: m.hash, naam, woordNaam, pop: m.pop, taal: m.taal, straal: m.straal, eigenaar,
     pos: plek ? plek.slice(0, 3) : START.slice(), kijk: plek && plek.length >= 5 ? [plek[3], plek[4]] : [Math.PI * 0.25, -0.15],
     f: 0, h: 0, a: 0, gaan: { h: S.SNEL.voorraad, v: S.SNEL.voorraadOmhoog, t: nu }, eerste: true, vrijTot: nu + 15000, corr: 0,
     data: oud ? oud.data : null, stukken: new Set(), midden: '', rij: [], hak: { voorraad: 1.5, t: nu }, open: null, slaapt: 0,
@@ -117,8 +123,9 @@ function erbij(m) {
   spelers.set(m.sid, s);
   stuur(s, {
     t: 'welkom', v: S.PROTOCOL, jij: s.sid,
-    wereld: { id: wereldId, naam: W.naam, zaad: W.zaad >>> 0, stand: W.stand, moeilijk: W.moeilijk, tijd, dag, bouwen: W.regels.bouwen, dicht: W.regels.dicht, erts: W.regels.erts },
-    eigenaar, plek: plek || null, start: START, data: s.data,
+    wereld: { id: wereldId, naam: W.naam, zaad: W.zaad >>> 0, stand: W.stand, moeilijk: W.moeilijk, tijd, dag, bouwen: W.regels.bouwen, dicht: W.regels.dicht, erts: W.regels.erts,
+      namen: W.regels.namen, typen: W.regels.typen, commandos: W.regels.commandos, regen: weer.regen },
+    eigenaar, plek: plek || null, start: START, data: s.data, naam: s.naam,
     nieuw: m.nieuw || null,
     spelers: [...spelers.values()].filter(o => o !== s).map(o => [o.sid, o.naam, o.pop, o.eigenaar ? 1 : 0]),
   });
@@ -362,9 +369,43 @@ function raap(s, m) {
 
 // ---------------- praten, slapen, melden, en wat de eigenaar mag
 function zeg(s, m) {
+  // een eigen tekst: alleen als de eigenaar vrij typen aanzette, en door het filter (geen scheldwoorden, links,
+  // e-mailadressen of telefoonnummers, hooguit 80 tekens). Wie het stuurde, hoort of het goed was.
+  if (typeof m.tekst === 'string') {
+    if (!W.regels.typen) return stuur(s, { t: 'zeg-nee', reden: 'uit' });
+    const f = S.tekstKlopt(m.tekst);
+    if (!f.ok) return stuur(s, { t: 'zeg-nee', reden: f.reden });
+    s.zinnen.push([f.tekst, Date.now()]); if (s.zinnen.length > 10) s.zinnen.shift();
+    stuur(s, { t: 'zeg-ja', tekst: f.tekst });
+    return stuurAlle({ t: 'zeg', wie: s.sid, tekst: f.tekst }, s);
+  }
   if (!S.zinKlopt(m.n)) return;
   s.zinnen.push([m.n, Date.now()]); if (s.zinnen.length > 10) s.zinnen.shift();
   stuurAlle({ t: 'zeg', wie: s.sid, n: m.n }, s);
+}
+// ---------------- namen: twee namen zijn dezelfde als ze plat gelijk zijn ('Rode Vos' en 'rodevos'), ook tussen
+// een eigen naam en twee woorden (in het Nederlands en het Engels)
+const naamSleutel = n => (Array.isArray(n) ? S.naamSleutel(S.naamVan(n, 'nl')) + '|' + S.naamSleutel(S.naamVan(n, 'en')) : S.naamSleutel(n));
+// (ook de twee woorden van wie nu een eigen naam heeft: die krijgt hij terug als de eigenaar eigen namen uitzet)
+function naamOnline(sleutel, behalve) {
+  const delen = sleutel.split('|'), zelfde = n => n && naamSleutel(n).split('|').some(k => delen.includes(k));
+  for (const o of spelers.values()) if (o !== behalve && (zelfde(o.naam) || zelfde(o.woordNaam))) return true;
+  return false;
+}
+// een speler kiest een eigen naam (of met een lege tekst: weer zijn twee woorden)
+function kiesNaam(s, m) {
+  if (!W.regels.namen) return stuur(s, { t: 'naam-nee', reden: 'uit' });
+  if (!m.tekst.trim()) { db.zetNaam(wereldId, s.hash, '', null); return zetNaam(s, s.woordNaam); }
+  const f = S.naamTekstKlopt(m.tekst); if (!f.ok) return stuur(s, { t: 'naam-nee', reden: f.reden });
+  const sleutel = S.naamSleutel(f.naam), van = db.naamBezet(wereldId, sleutel);
+  if ((van && van !== s.hash) || naamOnline(sleutel, s)) return stuur(s, { t: 'naam-nee', reden: 'bezet' });
+  db.zetNaam(wereldId, s.hash, sleutel, f.naam);
+  zetNaam(s, f.naam);
+}
+function zetNaam(s, naam) {
+  s.naam = naam;
+  stuur(s, { t: 'naam-ja', naam });
+  stuurAlle({ t: 'naam', wie: s.sid, naam }, s);
 }
 function slaap(s) {
   const nacht = tijd < 0.23 || tijd > 0.77; if (!nacht) return;
@@ -393,7 +434,7 @@ function nieuweCode() {
   return null;
 }
 function regelsNaarIedereen() {
-  for (const s of spelers.values()) stuur(s, { t: 'regels', bouwen: W.regels.bouwen, dicht: W.regels.dicht, mag: magBouwen(s), geweerd: s.eigenaar ? W.regels.geweerd.length : undefined });
+  for (const s of spelers.values()) stuur(s, { t: 'regels', bouwen: W.regels.bouwen, dicht: W.regels.dicht, mag: magBouwen(s), geweerd: s.eigenaar ? W.regels.geweerd.length : undefined, namen: W.regels.namen, typen: W.regels.typen, commandos: W.regels.commandos });
 }
 function beheer(s, m) {
   if (!s.eigenaar) return;
@@ -404,6 +445,16 @@ function beheer(s, m) {
     case 'weren': if (o && o !== s && !o.eigenaar) { r.geweerd.push({ h: o.hash, n: o.naam }); if (r.geweerd.length > 500) r.geweerd.shift(); db.zetRegels(wereldId, r); weg(o.sid); sluit(o.sid, 'geweerd'); regelsNaarIedereen(); } break;
     case 'niemand-weren': r.geweerd = []; db.zetRegels(wereldId, r); regelsNaarIedereen(); break;
     case 'bouwen': if (m.wie === 'iedereen' || m.wie === 'eigenaar') { r.bouwen = m.wie; db.zetRegels(wereldId, r); regelsNaarIedereen(); } break;
+    case 'typen': r.typen = m.aan === true; db.zetRegels(wereldId, r); regelsNaarIedereen(); break;
+    case 'namen': {
+      r.namen = m.aan === true; db.zetRegels(wereldId, r); regelsNaarIedereen();
+      // uit: iedereen weer zijn twee woorden; aan: wie al een eigen naam had in deze wereld, krijgt die terug
+      for (const x of spelers.values()) {
+        if (!r.namen && typeof x.naam === 'string') zetNaam(x, x.woordNaam);
+        else if (r.namen) { const eigen = db.naamVan(wereldId, x.hash); if (eigen && !naamOnline(S.naamSleutel(eigen), x)) zetNaam(x, eigen); }
+      }
+      break;
+    }
     case 'dicht': {
       r.dicht = !!m.aan; db.zetRegels(wereldId, r);
       if (r.dicht) for (const x of [...spelers.values()]) if (!x.eigenaar) { weg(x.sid); sluit(x.sid, 'dicht'); }
@@ -414,6 +465,42 @@ function beheer(s, m) {
       db.verwijderWereld(wereldId); verwijderd = true; stop(); break;
     }
   }
+}
+
+// ---------------- het weer: af en toe regen (in koude streken sneeuw; dat ziet de pagina zelf). Niet bewaard.
+const weer = { regen: false, wissel: Date.now() + (6 + Math.random() * 8) * 60e3 };
+function weerTik(nu) {
+  if (nu < weer.wissel) return;
+  weer.regen = !weer.regen; weer.wissel = nu + (weer.regen ? 2 + Math.random() * 3 : 6 + Math.random() * 8) * 60e3;
+  stuurAlle({ t: 'weer', regen: weer.regen });
+}
+// ---------------- commando's: alleen de eigenaar, en de server voert ze zelf uit. Daarna telt de wereld niet meer
+// voor het logboek (regels.commandos), zodat overleven zijn uitdaging houdt.
+function commando(s, m) {
+  if (!s.eigenaar) return stuur(s, { t: 'cmd', ok: false, reden: 'eigenaar' });
+  let ok = false;
+  switch (m.wat) {
+    case 'tijd': if (R.getal(m.tijd, 0, 1)) { tijd = m.tijd; stuurAlle({ t: 'tijd', tijd, dag }); ok = true; } break;
+    case 'weer': if (typeof m.regen === 'boolean') { weer.regen = m.regen; weer.wissel = Date.now() + (m.regen ? 5 : 12) * 60e3; stuurAlle({ t: 'weer', regen: weer.regen }); ok = true; } break;
+    case 'stand': if (m.stand === 'bouwen' || m.stand === 'overleven') { W.stand = m.stand; db.zetStand(wereldId, m.stand); stuurAlle({ t: 'stand', stand: m.stand }); ok = true; } break;
+    case 'ga': {
+      // naar een plek, of naar een andere speler
+      let p = null;
+      if (R.geheel(m.wie, 1, 1e12)) { const o = spelers.get(m.wie); if (o && o !== s) p = o.pos.slice(); }
+      else if (geldigePlek([m.x, m.y, m.z])) p = [m.x, m.y, m.z];
+      if (p) { s.pos = p; s.corr = (s.corr + 1) % 1000; s.gaan = { h: S.SNEL.voorraad, v: S.SNEL.voorraadOmhoog, t: Date.now() }; stuur(s, { t: 'plek', x: p[0], y: p[1], z: p[2], k: s.corr, ga: true }); centraBijwerken(); s.midden = ''; stukkenTik(s); ok = true; }
+      break;
+    }
+    case 'geef': {
+      // een voorwerp voor jezelf of voor een andere speler
+      const o = R.geheel(m.wie, 1, 1e12) ? spelers.get(m.wie) : s;
+      if (o && R.losGoed(m.id, m.n, 0)) { stuur(o, { t: 'krijg', id: m.id, n: m.n }); ok = true; }
+      break;
+    }
+  }
+  if (!ok) return stuur(s, { t: 'cmd', ok: false, reden: 'vorm' });
+  if (!W.regels.commandos) { W.regels.commandos = true; db.zetRegels(wereldId, W.regels); regelsNaarIedereen(); }
+  stuur(s, { t: 'cmd', ok: true, wat: m.wat });
 }
 
 // ---------------- berichten van de hoofddraad
@@ -437,6 +524,8 @@ function bericht(m) {
     case 'slaap': slaap(s); break;
     case 'meld': meld(s, b); break;
     case 'beheer': beheer(s, b); break;
+    case 'naam': if (typeof b.tekst === 'string') kiesNaam(s, b); break;
+    case 'cmd': commando(s, b); break;
     case 'bewaar': if (b.d && typeof b.d === 'object' && !Array.isArray(b.d)) { s.data = b.d; if (Date.now() - s.bewaard > 20000) { s.bewaard = Date.now(); bewaarSpeler(s); } } break;
   }
 }
@@ -462,7 +551,7 @@ function tik() {
     klokOven = nu; ovensTik();
     for (const [id, l] of los) if (nu - l.tijd > LOS_LEVEN) los.delete(id);
   }
-  if (nu - klokTijd >= 5000) { klokTijd = nu; stuurAlle({ t: 'tijd', tijd, dag }); }
+  if (nu - klokTijd >= 5000) { klokTijd = nu; stuurAlle({ t: 'tijd', tijd, dag }); weerTik(nu); }
   if (nu - klokBewaar >= 10000) { klokBewaar = nu; try { bewaar(); } catch (e) { console.error('bewaren', wereldId, e); } }
 }
 function stop() {

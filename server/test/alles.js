@@ -249,6 +249,89 @@ console.log('--- slapen: alleen als iedereen slaapt');
   await S5.server.sluit();
 }
 
+console.log('--- vrij typen, eigen namen en commando\'s (hoofdstuk 5: alles nagekeken door de server)');
+{
+  const S6 = await startServer({ MAX_NIEUW_PER_DAG: '50', MAX_PER_ADRES: '40' });
+  const E = await maakWereld(S6.url, { zaad: 777 });
+  const F = await doeMee(S6.url, E.code), Gs = await doeMee(S6.url, E.code);
+  const namen = [E.w.naam, F.w.naam, Gs.w.naam].map(n => JSON.stringify(n));
+  goed(new Set(namen).size === 3, 'drie spelers met dezelfde gekozen naam krijgen elk een andere naam (' + [E.w.naam, F.w.naam, Gs.w.naam].map(n => G.SAMEN.naamVan(n, 'nl')).join(', ') + ')');
+  goed(E.w.wereld.namen === false && E.w.wereld.typen === false && E.w.wereld.commandos === false, 'eigen namen en vrij typen staan standaard uit');
+  // vrij typen staat uit
+  F.p.stuur({ t: 'zeg', tekst: 'hoi allemaal' });
+  goed((await F.p.soort('zeg-nee')).reden === 'uit', 'vrij typen staat uit: de server weigert een eigen tekst');
+  await wacht(2100);
+  // alleen de eigenaar kan het aanzetten
+  F.p.stuur({ t: 'beheer', doe: 'typen', aan: true }); await wacht(300);
+  goed(!F.p.berichten.some(m => m.t === 'regels' && m.typen), 'een gewone speler kan vrij typen niet aanzetten');
+  E.p.stuur({ t: 'beheer', doe: 'typen', aan: true });
+  goed(!!(await Gs.p.op(m => m.t === 'regels' && m.typen === true)), 'de eigenaar zet vrij typen aan, en iedereen hoort het');
+  F.p.stuur({ t: 'zeg', tekst: '  hoi   allemaal! ' });
+  const zt = await Gs.p.op(m => m.t === 'zeg' && m.tekst);
+  goed(zt.tekst === 'hoi allemaal!' && zt.wie === F.w.jij && (await F.p.soort('zeg-ja')).tekst === 'hoi allemaal!', 'een eigen tekst komt aan (netjes gemaakt), en wie hem stuurde hoort dat het goed was');
+  F.p.stuur({ t: 'zeg', tekst: 'nog een' });
+  goed((await F.p.op(m => m.t === 'zeg-nee' && m.reden === 'snel')).reden === 'snel', 'binnen 2 seconden nog een bericht: te snel');
+  const weiger = async (tekst, reden) => { await wacht(2100); const n0 = Gs.p.berichten.filter(m => m.t === 'zeg').length; F.p.stuur({ t: 'zeg', tekst }); const r = await F.p.op(m => m.t === 'zeg-nee' && m.reden === reden, 4000).catch(() => null); await wacht(200); return !!r && Gs.p.berichten.filter(m => m.t === 'zeg').length === n0; };
+  goed(await weiger('wat een k4nk3r spel', 'woord'), 'een scheldwoord (ook met cijfers) komt er niet door');
+  goed(await weiger('kom naar www.mijnsite.nl', 'link'), 'een link komt er niet door');
+  goed(await weiger('mail me: piet@voorbeeld.nl', 'mail'), 'een e-mailadres komt er niet door');
+  goed(await weiger('bel me 06 12 34 56 78', 'telefoon'), 'een telefoonnummer komt er niet door');
+  goed(await weiger('x'.repeat(81), 'lang'), 'langer dan 80 tekens komt er niet door');
+  // melden: het bericht gaat mee (alleen bij een melding wordt het bewaard)
+  Gs.p.stuur({ t: 'meld', wie: F.w.jij }); await Gs.p.soort('gemeld');
+  const meld = S6.server.db.meldingen().find(r => r.wereld === E.w.wereld.id);
+  goed(!!meld && meld.wat.zinnen.includes('hoi allemaal!'), 'bij een melding gaat het bericht mee');
+  // eigen namen
+  F.p.stuur({ t: 'naam', tekst: 'Kees' });
+  goed((await F.p.soort('naam-nee')).reden === 'uit', 'eigen namen staan uit: de server weigert een eigen naam');
+  E.p.stuur({ t: 'beheer', doe: 'namen', aan: true }); await F.p.op(m => m.t === 'regels' && m.namen === true);
+  await wacht(2100); F.p.stuur({ t: 'naam', tekst: 'Kees' });
+  const nj = await F.p.soort('naam-ja'), nb = await Gs.p.op(m => m.t === 'naam' && m.wie === F.w.jij);
+  goed(nj.naam === 'Kees' && nb.naam === 'Kees', 'de eigenaar zet eigen namen aan: een speler heet nu Kees, en de anderen zien dat');
+  Gs.p.stuur({ t: 'naam', tekst: ' kees ' });
+  goed((await Gs.p.soort('naam-nee')).reden === 'bezet', 'dezelfde naam (met andere hoofdletters en spaties) is bezet');
+  await wacht(2100); Gs.p.stuur({ t: 'naam', tekst: 'KankerKees' });
+  goed((await Gs.p.op(m => m.t === 'naam-nee' && m.reden === 'woord')).reden === 'woord', 'een naam gaat door hetzelfde filter');
+  await wacht(2100); Gs.p.stuur({ t: 'naam', tekst: '0612345678' });
+  goed(!!(await Gs.p.op(m => m.t === 'naam-nee' && m.reden === 'tekens')), 'een telefoonnummer als naam mag niet');
+  // terugkomen: de eigen naam blijft van jou, ook als je weg was
+  await F.p.sluit(); await wacht(300);
+  await wacht(2100); Gs.p.stuur({ t: 'naam', tekst: 'Kees' });
+  goed((await Gs.p.op(m => m.t === 'naam-nee' && m.reden === 'bezet')).reden === 'bezet', 'als Kees weg is, is de naam nog steeds van hem');
+  const F2 = await doeMee(S6.url, E.code, { geheim: F.p.geheim });
+  goed(F2.w.naam === 'Kees', 'Kees komt terug en heet weer Kees');
+  // de eigenaar zet eigen namen weer uit: iedereen weer twee woorden
+  E.p.stuur({ t: 'beheer', doe: 'namen', aan: false });
+  const terug = await F2.p.op(m => m.t === 'naam-ja');
+  goed(Array.isArray(terug.naam), 'eigen namen weer uit: Kees heet weer zoals eerst (twee woorden)');
+  // (Kees kwam terug met dezelfde twee woorden als de eigenaar: die waren bezet, dus kreeg hij toen al andere)
+  const nuNamen = [E.w.naam, Gs.w.naam, terug.naam].map(n => JSON.stringify(n));
+  goed(new Set(nuNamen).size === 3, 'en niemand heeft dan dezelfde naam (' + [E.w.naam, Gs.w.naam, terug.naam].map(n => G.SAMEN.naamVan(n, 'nl')).join(', ') + ')');
+  // commando's
+  F2.p.stuur({ t: 'cmd', wat: 'tijd', tijd: 0.75 });
+  goed((await F2.p.op(m => m.t === 'cmd')).reden === 'eigenaar', 'een gewone speler mag geen commando geven');
+  E.p.stuur({ t: 'cmd', wat: 'tijd', tijd: 0.75 });
+  const tj = await F2.p.op(m => m.t === 'tijd' && Math.abs(m.tijd - 0.75) < 0.01);
+  const cr = await F2.p.op(m => m.t === 'regels' && m.commandos === true);
+  goed(!!tj && !!cr, 'de eigenaar zet de tijd op 18 uur: iedereen ziet het, en de wereld telt niet meer voor het logboek');
+  E.p.stuur({ t: 'cmd', wat: 'weer', regen: true });
+  goed((await F2.p.op(m => m.t === 'weer')).regen === true, 'het weer: regen voor iedereen');
+  E.p.stuur({ t: 'cmd', wat: 'stand', stand: 'bouwen' });
+  goed((await F2.p.op(m => m.t === 'stand')).stand === 'bouwen', 'de stand: bouwen voor iedereen');
+  plek(F2.p, F2.w.start[0] + 3, F2.w.start[1], F2.w.start[2] + 3); await wacht(300);
+  E.p.stuur({ t: 'cmd', wat: 'ga', wie: F2.w.jij });
+  const ga = await E.p.op(m => m.t === 'plek' && m.ga);
+  goed(Math.abs(ga.x - F2.w.start[0] - 3) < 0.5, 'de eigenaar gaat naar een andere speler');
+  E.p.stuur({ t: 'cmd', wat: 'geef', id: I.stok, n: 5, wie: F2.w.jij });
+  const kr = await F2.p.op(m => m.t === 'krijg');
+  goed(kr.id === I.stok && kr.n === 5, 'de eigenaar geeft een andere speler 5 stokken');
+  E.p.stuur({ t: 'cmd', wat: 'geef', id: I.stok, n: 5000 });
+  goed((await E.p.op(m => m.t === 'cmd' && !m.ok && m.reden === 'vorm')).reden === 'vorm', 'een commando dat niet klopt, doet niets');
+  const welk = await doeMee(S6.url, E.code);
+  goed(welk.w.wereld.commandos === true && welk.w.wereld.regen === true && welk.w.wereld.stand === 'bouwen', 'wie later binnenkomt, krijgt het weer, de stand en dat er commando\'s gebruikt zijn');
+  await S6.server.sluit();
+}
+
 console.log('--- bewaren en terugkomen');
 plek(A.p, st[0] + 0.5, st[1], st[2] + 0.5, { k: 0 }); await wacht(200);
 A.p.stuur({ t: 'bewaar', d: { speler: { hp: 17 }, inv: [{ id: I.stok, n: 2 }] } });

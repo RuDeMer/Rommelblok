@@ -322,6 +322,64 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   const PB = maakProg(BLOK_VS, BLOK_FS(false, !!opt.aniso), 'blok'), PU = maakProg(BLOK_VS, BLOK_FS(true, !!opt.aniso), 'uitgesneden'), PW = maakProg(WATER_VS, WATER_FS, 'water');
   const PL = maakProg(LUCHT_VS, LUCHT_FS, 'lucht'), PWk = maakProg(WOLK_VS, WOLK_FS, 'wolken'), PLn = maakProg(LIJN_VS, LIJN_FS, 'lijn');
   const PD = maakProg(DING_VS, DING_FS, 'ding'), PDt = maakProg(DEELTJE_VS, DEELTJE_FS, 'deeltje');
+  // ---------------- regen en sneeuw: druppels en vlokken rond de camera, zonder buffers (alles uit gl_VertexID).
+  // uKaart: per kolom (32 x 32 rond de camera) de hoogte van het eerste dak of de grond (r, 255 = onbekend) en of het er
+  // sneeuwt (g). Een druppel onder het dak of in de grond wordt niet getekend, dus onder een dak en in grotten droog.
+  const NEERSLAG_VS = `#version 300 es
+    precision highp float; precision highp sampler2D;
+    uniform mat4 uVP; uniform sampler2D uKaart; uniform vec2 uOfs; uniform float uTijd, uBasis, uCamY; uniform int uPer;
+    uniform vec3 uRechts, uOp;
+    out vec2 vUv; out float vSneeuw, vVer;
+    float h(float n) { return fract(sin(n * 12.9898 + 4.1) * 43758.5453); }
+    void main() {
+      int id = gl_VertexID / 6, hk = gl_VertexID % 6, kol = id / uPer;
+      int gx = kol % 32, gz = kol / 32;
+      vec2 k = texelFetch(uKaart, ivec2(gx, gz), 0).rg;
+      float top = k.r * 255.0, sneeuw = step(0.5, k.g);
+      float f = float(id), r1 = h(f * 1.7), r2 = h(f * 2.3 + 1.0), r3 = h(f * 0.7 + 2.0);
+      float snel = mix(15.0, 1.7, sneeuw), span = 32.0;
+      float y = uBasis - mod(uTijd * snel + r3 * span, span);
+      vec3 p = vec3(uOfs.x + float(gx) + r1, y - uCamY, uOfs.y + float(gz) + r2);
+      if (sneeuw > 0.5) { p.x += sin(uTijd * 1.3 + f) * 0.35; p.z += cos(uTijd * 1.1 + f * 1.7) * 0.35; }
+      vec2 c = vec2(hk == 1 || hk == 2 || hk == 4 ? 1.0 : 0.0, hk == 2 || hk == 4 || hk == 5 ? 1.0 : 0.0);
+      // regen: een dun streepje van bijna een blok lang; sneeuw: een vlokje
+      vec2 maat = sneeuw > 0.5 ? vec2(0.11, 0.11) : vec2(0.034, 0.8);
+      vec3 op = sneeuw > 0.5 ? uOp : vec3(0.0, 1.0, 0.0);
+      p += uRechts * (c.x - 0.5) * maat.x + op * (c.y - 0.5) * maat.y;
+      vUv = c; vSneeuw = sneeuw; vVer = length(p.xz);
+      bool weg = top > 254.5 || y < top + 1.0 || y < uCamY - 24.0;
+      gl_Position = weg ? vec4(2.0, 2.0, 2.0, 1.0) : uVP * vec4(p, 1.0);
+    }`;
+  const NEERSLAG_FS = `#version 300 es
+    precision highp float;
+    uniform float uSterkte; uniform vec3 uLicht;
+    in vec2 vUv; in float vSneeuw, vVer; out vec4 o;
+    void main() {
+      float rand = 1.0 - smoothstep(11.0, 15.5, vVer);
+      float a = vSneeuw > 0.5 ? (1.0 - smoothstep(0.25, 0.5, length(vUv - 0.5))) * 0.9 : 0.42 * (1.0 - abs(vUv.x - 0.5) * 1.4);
+      vec3 k = vSneeuw > 0.5 ? vec3(0.97, 0.98, 1.0) : vec3(0.72, 0.78, 0.9);
+      o = vec4(k * uLicht, a * rand * uSterkte);
+      if (o.a < 0.01) discard;
+    }`;
+  const PNs = maakProg(NEERSLAG_VS, NEERSLAG_FS, 'neerslag');
+  const kaartTex = gl.createTexture(); let kaartVersie = -1;
+  gl.bindTexture(gl.TEXTURE_2D, kaartTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG8, 32, 32, 0, gl.RG, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  function tekenNeerslag(N, C, L) {
+    if (!N || N.sterkte < 0.01) return;
+    gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, kaartTex);
+    if (N.versie !== kaartVersie) { kaartVersie = N.versie; gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 32, 32, gl.RG, gl.UNSIGNED_BYTE, N.kaart); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4); }
+    gl.useProgram(PNs.p); gl.uniformMatrix4fv(PNs.u.uVP, false, VP); gl.uniform1i(PNs.u.uKaart, 4);
+    gl.uniform2f(PNs.u.uOfs, N.x0 - C.x, N.z0 - C.z); gl.uniform1f(PNs.u.uTijd, (performance.now() / 1000) % 1000);
+    const span = 32, basis = Math.ceil((C.y + 16) / span) * span; gl.uniform1f(PNs.u.uBasis, basis); gl.uniform1f(PNs.u.uCamY, C.y);
+    gl.uniform1i(PNs.u.uPer, N.per || 2); gl.uniform1f(PNs.u.uSterkte, N.sterkte);
+    const z = L.zonKleur, l = Math.max(0.12, (z[0] + z[1] + z[2]) / 3); gl.uniform3f(PNs.u.uLicht, l, l, l);
+    const cy = Math.cos(C.yaw), sy = Math.sin(C.yaw), cp = Math.cos(C.pitch), spi = Math.sin(C.pitch);
+    gl.uniform3f(PNs.u.uRechts, cy, 0, -sy); gl.uniform3f(PNs.u.uOp, sy * spi, cp, cy * spi);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
+    gl.bindVertexArray(leegVao); gl.drawArrays(gl.TRIANGLES, 0, 32 * 32 * (N.per || 2) * 6);
+    gl.depthMask(true); gl.activeTexture(gl.TEXTURE0);
+  }
 
   // ---------------- texturen
   const N = T.N, MIPS = 5;
@@ -675,6 +733,8 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     if (wereld) tekenLaag(PW, 2);
     gl.depthMask(true);
     if (wereld) tekenLaag(PW, 3);
+    // regen en sneeuw (na het water, zodat je ze ook boven een meer ziet)
+    if (extra && extra.neerslag) tekenNeerslag(extra.neerslag, C, L);
     // omlijning en barsten
     if (extra && extra.kader) tekenKader(extra.kader, C, L);
     // het ding in je hand

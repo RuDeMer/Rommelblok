@@ -146,7 +146,7 @@ export function RB_GELUID(opt) {
   }
 
   // ---------------- doorlopende sfeer: wind, water, onder water
-  let sfeer = null, laatsteSfeer = -1, volgendeVogel = 0, volgendeKrekel = 0, volgendeDruppel = 0, volgendeBel = 0, volgendeMuziek = 0;
+  let sfeer = null, laatsteSfeer = -1, volgendeVogel = 0, volgendeKrekel = 0, volgendeDruppel = 0, volgendeBel = 0, volgendeMuziek = 0, volgendeTik = 0;
   function lus(buf, type, freq, Q) {
     const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = Q;
@@ -154,7 +154,7 @@ export function RB_GELUID(opt) {
     s.connect(f); f.connect(g); g.connect(bus); s.start(ctx.currentTime, Math.random() * 1.5);
     return { s, f, g };
   }
-  function startSfeer() { sfeer = { wind: lus(bruin, 'bandpass', 420, 0.8), water: lus(wit, 'lowpass', 750, 0.7), onder: lus(bruin, 'lowpass', 260, 0.6) }; }
+  function startSfeer() { sfeer = { wind: lus(bruin, 'bandpass', 420, 0.8), water: lus(wit, 'lowpass', 750, 0.7), onder: lus(bruin, 'lowpass', 260, 0.6), regen: lus(wit, 'bandpass', 2600, 0.35), regenLaag: lus(bruin, 'lowpass', 900, 0.5) }; }
   const naar = (param, waarde, tijd) => { try { param.setTargetAtTime(waarde, ctx.currentTime, tijd); } catch (e) {} };
   function omgeving(o) {
     if (!klaar() || offline) return;
@@ -171,6 +171,12 @@ export function RB_GELUID(opt) {
     naar(sfeer.wind.g.gain, stil || onder ? 0 : buiten * (0.03 + 0.09 * hoog) * (0.75 + 0.25 * Math.sin(nu * 0.31)), 1.2);
     naar(sfeer.water.g.gain, stil || onder ? 0 : waterBij * 0.05, 0.8);
     naar(sfeer.onder.g.gain, stil || !onder ? 0 : 0.05, 0.5);
+    // regen: een zacht ruisen met getik, buiten helder en onder een dak gedempt (dan vooral het lage geroffel)
+    const regen = Math.max(0, Math.min(1, o.regen || 0)), binnen = !!o.binnen;
+    naar(sfeer.regen.g.gain, stil || onder ? 0 : regen * (binnen ? 0.012 : 0.05), 1.5);
+    naar(sfeer.regen.f.frequency, binnen ? 1300 : 2600, 0.8);
+    naar(sfeer.regenLaag.g.gain, stil || onder ? 0 : regen * (binnen ? 0.035 : 0.025), 1.5);
+    if (!stil && !onder && !binnen && regen > 0.3 && nu > volgendeTik) { klank(v => { for (let i = 0; i < 3; i++) korrels(v, 1, 0.02, { na: Math.random() * 0.25, type: 'bandpass', freq: r(2500, 5200), Q: 3, aanval: 0.001, verval: 0.025, piek: 0.012 * regen }); }, { pan: r(-0.8, 0.8) }); volgendeTik = nu + r(0.05, 0.18); }
     naar(demp.frequency, onder ? 550 : 20000, 0.15);
     if (stil) return;
     // vogeltjes overdag, buiten

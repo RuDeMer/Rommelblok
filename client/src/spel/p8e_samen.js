@@ -133,7 +133,8 @@ function speelSamen(ws, wk, info, houd) {
   const w = wk.wereld;
   samen = {
     ws, jij: wk.jij, id: w.id, code: (wk.nieuw && wk.nieuw.code) || info.code, sleutel: (wk.nieuw && wk.nieuw.sleutel) || info.sleutel || null,
-    eigenaar: !!wk.eigenaar, regels: { bouwen: w.bouwen, dicht: w.dicht }, naam: w.naam, stand: w.stand,
+    eigenaar: !!wk.eigenaar, regels: { bouwen: w.bouwen, dicht: w.dicht, namen: !!w.namen, typen: !!w.typen }, naam: w.naam, stand: w.stand,
+    mijnNaam: wk.naam || mijnNaam(),
     spelers: new Map(), acties: new Map(), corr: 0, pT: 0, pSleutel: '', zwaaiN: 0, zwaaiVorig: 1, sprong: false,
     open: null, slaapKlok: null, log: [], bewust: false, geweerd: 0, gegooid: [],
   };
@@ -149,6 +150,7 @@ function speelSamen(ws, wk, info, houd) {
     gemaakt: Date.now(), gespeeld: Date.now(), speeltijd: d.speeltijd || 0, tijd: w.tijd, dag: w.dag,
     speler: s, inv: d.inv || beginRugzak(w.stand), kies: d.kies || 0, rugzakken: d.rugzakken || [], dingen: {}, plaatje: 'samen', grotten: 2, gen: 3, erts: w.erts === 2 ? 2 : 1,
     moeilijk: w.moeilijk, dieren: [], dierVak: {}, markers: d.markers || [], gevonden: d.gevonden || [], logboek: d.logboek, geland: !!d.geland || !!plek, welkom: !!d.welkom,
+    commandos: !!w.commandos, weer: { regen: !!w.regen },
   };
   samenOnthoud(Object.assign({ i: w.id, c: samen.code, n: w.naam, s: nieuw.stand === 'bouwen' ? 'b' : 'o' }, samen.sleutel ? { k: samen.sleutel } : {}));
   speelWereld(nieuw);
@@ -196,7 +198,16 @@ function samenBericht(m) {
     case 'spelers': samenPlekken(m.l); break;
     case 'erbij': samenErbij(m.sid, m.naam, m.pop, m.eigenaar); break;
     case 'weg': samenWegSpeler(m.sid); break;
-    case 'zeg': samenHoort(m.wie, m.n); break;
+    case 'zeg': samenHoort(m.wie, m.n, m.tekst); break;
+    case 'zeg-ja': if (typeof m.tekst === 'string') samenLog(t('Jij'), m.tekst); break;
+    case 'zeg-nee': samenTypInfo(t(SM.FILTER_REDEN[m.reden] || 'Dat mag hier niet.'), true); break;
+    case 'naam': { const o = samen.spelers.get(m.wie); if (o) { o.naam = m.naam; if (o.el) o.el.firstChild.textContent = smNaam(o.naam); } toonSpelers(); break; }
+    case 'naam-ja': samen.mijnNaam = m.naam; toonSpelers(); samenNaamInfo(t('Je heet nu {0}.', smNaam(m.naam))); break;
+    case 'naam-nee': samenNaamInfo(t(SM.FILTER_REDEN[m.reden] || 'Dat mag hier niet.'), true); break;
+    case 'weer': if (WD) zetWeer(!!m.regen); break;
+    case 'stand': if (WD && (m.stand === 'bouwen' || m.stand === 'overleven')) zetStand(m.stand); break;
+    case 'krijg': if (WD && IT[m.id] && Number.isInteger(m.n) && m.n > 0) { geefOfLaatVallen(m.id, m.n); rugzakVeranderd(); melding(t('Je kreeg {0} × {1}.', m.n, naam(m.id)), true); } break;
+    case 'cmd': if (!m.ok) cmdInfo(m.reden === 'eigenaar' ? t('Alleen de eigenaar mag commando\'s geven.') : t('Dat commando klopt niet.'), true); break;
     case 'tijd': if (WD) { WD.tijd = m.tijd; WD.dag = m.dag; if (m.ochtend) samenOchtend(); } break;
     case 'slaap': if (samen.slaapKlok) $('rb-slaap-tekst').textContent = t('{0} van {1} slapen. Iedereen moet slapen om de nacht over te slaan.', m.slapen, m.van); break;
     case 'los': samenLos(m.l); break;
@@ -342,12 +353,28 @@ function samenZeg(n) {
   samenLog(t('Jij'), smZin(n));
   if (huidigScherm() === 'zinnen') sluitScherm();
 }
-function samenHoort(wie, n) {
-  const o = samen.spelers.get(wie); if (!o || o.stil || !SM.zinKlopt(n)) return;
-  o.ballon = { tekst: smZin(n), tot: performance.now() + 6000 };
-  samenLog(smNaam(o.naam), smZin(n));
+function samenHoort(wie, n, tekst) {
+  // een gedempte speler hoor je niet (ook geen eigen tekst)
+  const o = samen.spelers.get(wie); if (!o || o.stil) return;
+  const zin = typeof tekst === 'string' ? tekst : SM.zinKlopt(n) ? smZin(n) : null; if (!zin) return;
+  o.ballon = { tekst: zin, tot: performance.now() + 6000 };
+  samenLog(smNaam(o.naam), zin);
   klank('oppak');
 }
+// vrij typen (als de eigenaar dat aanzette): de pagina kijkt eerst zelf na, de server altijd nog eens
+function samenTyp(invoer) {
+  if (!samen || !samen.regels.typen) return;
+  const f = SM.tekstKlopt(invoer);
+  if (!f.ok) { samenTypInfo(t(SM.FILTER_REDEN[f.reden]), true); return false; }
+  const nu = performance.now();
+  if (nu - (samen.zinT || 0) < 2000) { samenTypInfo(t('Even wachten…'), true); return false; }
+  samen.zinT = nu;
+  samenStuur({ t: 'zeg', tekst: f.tekst });
+  samenTypInfo('');
+  return true;
+}
+function samenTypInfo(tekst, fout) { const e = $('rb-typ-info'); if (e) { e.textContent = tekst; e.classList.toggle('fout', !!fout); } if (fout && huidigScherm() !== 'zinnen' && tekst) melding(tekst, true); }
+function samenNaamInfo(tekst, fout) { const e = $('rb-spelers-naam-info'); if (e) { e.textContent = tekst; e.classList.toggle('fout', !!fout); } if (huidigScherm() !== 'spelers' && tekst) melding(tekst, true); }
 function samenLog(wie, tekst) {
   const l = $('rb-praat'), r = document.createElement('div');
   r.className = 'rb-praat-regel'; const b = document.createElement('b'); b.textContent = wie + ': '; r.append(b, document.createTextNode(tekst));
@@ -358,8 +385,9 @@ function openZinnen() {
   if (!samen) return;
   const g = $('rb-zinnen-lijst'); g.innerHTML = '';
   SM.ZINNEN.forEach((z, n) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'rb-knop' + (n >= 16 ? ' plaatje' : ''); b.textContent = smZin(n); b.onclick = () => samenZeg(n); g.appendChild(b); });
+  $('rb-typ').hidden = !samen.regels.typen; samenTypInfo(samen.regels.typen ? t('Hooguit 80 tekens.') : '');
   openScherm('zinnen');
-  setTimeout(() => { const b = g.querySelector('button'); if (b) b.focus(); }, 30);
+  setTimeout(() => { const b = samen.regels.typen ? $('rb-typ-tekst') : g.querySelector('button'); if (b) b.focus(); }, 30);
 }
 
 // ---------------- spullen op de grond (met een nummer van de server)
@@ -459,14 +487,19 @@ function samenTik(dt, C) {
 function samenTerug(m) {
   samen.corr = m.k; sp.x = m.x; sp.y = m.y; sp.z = m.z; sp.vx = sp.vy = sp.vz = 0; sp.valStart = null; samen.pSleutel = '';
   vertelPlek(performance.now(), true);
+  // een commando /ga: wachten tot de wereld daar geladen is, en dan veilig neerzetten
+  if (m.ga) cmdLanden();
 }
 // een teken van leven, ook als het tabblad even op de achtergrond staat
 setInterval(() => { if (samen) samenStuur({ t: 'leven' }); }, 15000);
 
 // ---------------- wie mag wat, en wat de eigenaar kan
 function samenRegels(m) {
-  const mag = !!m.mag, was = samen.mag;
-  samen.regels = { bouwen: m.bouwen, dicht: m.dicht }; samen.mag = mag;
+  const mag = !!m.mag, was = samen.mag, oud = samen.regels;
+  samen.regels = { bouwen: m.bouwen, dicht: m.dicht, namen: !!m.namen, typen: !!m.typen }; samen.mag = mag;
+  if (m.commandos && WD) WD.commandos = true;
+  if (!!m.typen !== !!oud.typen) melding(m.typen ? t('De eigenaar heeft vrij typen aangezet.') : t('De eigenaar heeft vrij typen uitgezet.'), true);
+  if (!!m.namen !== !!oud.namen) melding(m.namen ? t('De eigenaar heeft eigen namen aangezet. Kies je naam bij Spelers.') : t('De eigenaar heeft eigen namen uitgezet.'), true);
   if (m.geweerd !== undefined) samen.geweerd = m.geweerd;
   if (was !== mag) melding(mag ? t('Je mag weer bouwen.') : t('Alleen de eigenaar mag nu bouwen.'));
   toonSpelers();
@@ -482,7 +515,7 @@ function toonSpelers() {
   if (!samen) return;
   const l = $('rb-spelers-lijst'); l.innerHTML = '';
   const regel = (naam, extra, knoppen) => { const li = document.createElement('li'); const b = document.createElement('b'); b.textContent = naam; li.appendChild(b); if (extra) { const s = document.createElement('small'); s.textContent = extra; li.appendChild(s); } const k = document.createElement('div'); k.className = 'rb-wereld-knoppen'; for (const x of knoppen) k.appendChild(x); li.appendChild(k); l.appendChild(li); };
-  regel((samen.eigenaar ? '👑 ' : '') + smNaam(mijnNaam()), t('jij'), []);
+  regel((samen.eigenaar ? '👑 ' : '') + smNaam(samen.mijnNaam || mijnNaam()), t('jij'), []);
   for (const o of samen.spelers.values()) {
     const k = [smKnop(o.stil ? t('Weer horen') : t('Dempen'), () => { o.stil = !o.stil; toonSpelers(); }), smKnop(t('Melden'), async () => { if (await vraag(t('{0} melden?', smNaam(o.naam)), t('Doet iemand vervelend? De eigenaar en Ruben krijgen een melding (zonder jouw naam).'), { ja: t('Melden') })) samenStuur({ t: 'meld', wie: o.sid }); })];
     if (samen.eigenaar) k.push(smKnop(t('Wegsturen'), () => samenStuur({ t: 'beheer', doe: 'weg-sturen', wie: o.sid })), smKnop(t('Weren'), async () => { if (await vraag(t('{0} weren?', smNaam(o.naam)), t('Die speler kan dan niet meer in deze wereld komen, ook niet met de code.'), { ja: t('Weren'), gevaar: true })) samenStuur({ t: 'beheer', doe: 'weren', wie: o.sid }); }, 'gevaar'));
@@ -497,7 +530,11 @@ function toonSpelers() {
     $('rb-spelers-bouwen-ik').setAttribute('aria-pressed', String(samen.regels.bouwen === 'eigenaar'));
     $('rb-spelers-dicht').textContent = samen.regels.dicht ? t('Open de wereld weer') : t('Sluit de wereld');
     $('rb-spelers-toelaten').hidden = !samen.geweerd;
+    for (const [k, aan] of [['namen', samen.regels.namen], ['typen', samen.regels.typen]]) { $('rb-spelers-' + k + '-aan').setAttribute('aria-pressed', String(!!aan)); $('rb-spelers-' + k + '-uit').setAttribute('aria-pressed', String(!aan)); }
   }
+  // je eigen naam (als de eigenaar eigen namen aanzette)
+  $('rb-spelers-naam').hidden = !samen.regels.namen;
+  if (samen.regels.namen && document.activeElement !== $('rb-spelers-naam-tekst')) $('rb-spelers-naam-tekst').value = typeof samen.mijnNaam === 'string' ? samen.mijnNaam : '';
   $('rb-spelers-uitleg').textContent = samen.eigenaar ? t('Jij bent de eigenaar. Alleen wie de code heeft, kan erin.') : samen.mag ? t('Iedereen mag hier bouwen.') : t('In deze wereld mag alleen de eigenaar bouwen.');
 }
 $('rb-spelers-kopie').addEventListener('click', async () => { try { await navigator.clipboard.writeText(samen.code); melding(t('De code is gekopieerd.'), true); } catch (e) { melding(samen.code); } });
@@ -506,6 +543,16 @@ $('rb-spelers-bouwen-iedereen').addEventListener('click', () => samenStuur({ t: 
 $('rb-spelers-bouwen-ik').addEventListener('click', () => samenStuur({ t: 'beheer', doe: 'bouwen', wie: 'eigenaar' }));
 $('rb-spelers-dicht').addEventListener('click', () => samenStuur({ t: 'beheer', doe: 'dicht', aan: !samen.regels.dicht }));
 $('rb-spelers-toelaten').addEventListener('click', () => samenStuur({ t: 'beheer', doe: 'niemand-weren' }));
+for (const k of ['namen', 'typen']) { $('rb-spelers-' + k + '-aan').addEventListener('click', () => samenStuur({ t: 'beheer', doe: k, aan: true })); $('rb-spelers-' + k + '-uit').addEventListener('click', () => samenStuur({ t: 'beheer', doe: k, aan: false })); }
+$('rb-typ').addEventListener('submit', e => { e.preventDefault(); const i = $('rb-typ-tekst'); if (samenTyp(i.value)) { i.value = ''; sluitScherm(); } });
+$('rb-typ-tekst').addEventListener('input', e => { const v = e.target.value; samenTypInfo(v ? (SM.tekstKlopt(v).ok ? t('{0} van de 80 tekens.', v.trim().length) : t(SM.FILTER_REDEN[SM.tekstKlopt(v).reden])) : t('Hooguit 80 tekens.'), v && !SM.tekstKlopt(v).ok); });
+$('rb-spelers-naam').addEventListener('submit', e => {
+  e.preventDefault(); if (!samen) return;
+  const f = SM.naamTekstKlopt($('rb-spelers-naam-tekst').value);
+  if (!f.ok) { samenNaamInfo(t(SM.FILTER_REDEN[f.reden]), true); return; }
+  samenStuur({ t: 'naam', tekst: f.naam }); samenNaamInfo(t('Even kijken of die naam vrij is…'));
+});
+$('rb-spelers-naam-woord').addEventListener('click', () => { if (samen) samenStuur({ t: 'naam', tekst: '' }); });
 $('rb-spelers-weg').addEventListener('click', async () => {
   if (!(await vraag(t('Wereld verwijderen?'), t('De gedeelde wereld is dan voorgoed weg, voor iedereen.'), { ja: t('Verwijder'), gevaar: true }))) return;
   samenVergeet(samen.id); samenStuur({ t: 'beheer', doe: 'verwijder' });
@@ -562,7 +609,7 @@ $('rb-samen-mee').addEventListener('submit', e => {
 // een nieuwe gedeelde wereld maken (met het scherm voor een nieuwe wereld, zonder naam: die is 'De wereld van ...')
 let maakSamen = false;
 $('rb-samen-maak').addEventListener('click', () => {
-  maakSamen = true; $('rb-maak-titel').textContent = t('Nieuwe gedeelde wereld'); $('rb-maak-naam-rij').hidden = true; $('rb-maak-naam').required = false;
+  maakSamen = true; $('rb-maak-titel').textContent = t('Nieuwe gedeelde wereld'); $('rb-maak-naam-rij').hidden = true; $('rb-maak-naam').required = false; $('rb-maak-cmd-rij').hidden = true;
   $('rb-maak-zaad').value = ''; kiesStand('overleven'); openScherm('maak');
 });
 function samenMaak(zaadTekst, stand, moeilijk) {
@@ -571,4 +618,4 @@ function samenMaak(zaadTekst, stand, moeilijk) {
   samenGaNaar({ maak: { zaad: G.zaadVan(tekst) >>> 0, stand, moeilijk } }, {});
 }
 // het scherm voor een nieuwe wereld weer gewoon maken (voor een eigen wereld)
-function maakGewoon() { maakSamen = false; $('rb-maak-titel').textContent = t('Nieuwe wereld'); $('rb-maak-naam-rij').hidden = false; $('rb-maak-naam').required = true; }
+function maakGewoon() { maakSamen = false; $('rb-maak-titel').textContent = t('Nieuwe wereld'); $('rb-maak-naam-rij').hidden = false; $('rb-maak-naam').required = true; $('rb-maak-cmd-rij').hidden = false; }

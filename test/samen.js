@@ -3,6 +3,7 @@
 // - een gedeelde wereld maken (eigenaar), meedoen met de code, elkaar zien (poppetje en naamkaartje)
 // - samen bouwen: breken en bouwen komt bij de ander aan, spullen op de grond krijgt maar één speler
 // - praten met vaste zinnetjes, dempen; de eigenaar zet iemand eruit
+// - vrij typen en eigen namen (met het filter), en commando's van de eigenaar (de server kijkt alles na)
 // - geen fouten in de console en geen overtredingen van het veiligheidsbeleid
 const { spawn } = require('child_process');
 const net = require('net'), path = require('path'), fs = require('fs'), os = require('os');
@@ -180,13 +181,14 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
     if (i === 30 || i === 70) koppen.push(await R(A, kopVoor, await R(B, () => window.__rommelblok.sp.yaw)));
   }
   goed(koppen.every(k => k > 0.8), 'A ziet het poppetje van B met zijn gezicht naar voren lopen (' + koppen.map(k => typeof k === 'number' ? (k * 100).toFixed(0) + '%' : k).join(', ') + ')');
-  // B blijft staan en kijkt omhoog en een stukje opzij: A ziet het hoofd van B meedraaien, vloeiend, en het lijf blijft staan
+  // B blijft staan en kijkt omhoog en een stukje opzij (0,6): A ziet het hoofd van B meedraaien, vloeiend, en het lijf blijft staan
+  // (het lijf mocht tijdens het lopen tot 0,2 achterlopen, en staand draait het hoofd hooguit 0,85 opzij)
   await R(B, () => { const R = window.__rommelblok; R.kijk(R.sp.yaw + 0.6, 1.2); R.samenTik(0.1, R.camVorige); });
   for (let i = 0; i < 12; i++) { await R(B, () => { const R = window.__rommelblok; R.sim(2, 0.05, {}); R.samenTik(0.1, R.camVorige); }); await B.page.waitForTimeout(100); }
   await A.page.waitForTimeout(400);
   const hoofdB = await R(A, () => { const R = window.__rommelblok; const stappen = []; for (let i = 0; i < 30; i++) { const l = []; R.samenTeken(l, 0.05); const e = l[0]; if (e && e.delen) stappen.push([e.delen.hoofd[0], e.delen.hoofd[1]]); } return stappen; });
   const laatste = hoofdB[hoofdB.length - 1] || [0, 0], sprong = hoofdB.slice(1).reduce((m, h, i) => Math.max(m, Math.abs(h[0] - hoofdB[i][0]), Math.abs(h[1] - hoofdB[i][1])), 0);
-  goed(laatste[0] < -1.0 && Math.abs(laatste[1] - 0.6) < 0.15 && sprong < 0.35, 'A ziet het hoofd van B omhoog en opzij kijken, vloeiend (hoofd ' + laatste.map(v => v.toFixed(2)).join(', ') + ', grootste stap ' + sprong.toFixed(2) + ')');
+  goed(laatste[0] < -1.0 && laatste[1] > 0.45 && laatste[1] <= 0.86 && sprong < 0.35, 'A ziet het hoofd van B omhoog en opzij kijken, vloeiend (hoofd ' + laatste.map(v => v.toFixed(2)).join(', ') + ', grootste stap ' + sprong.toFixed(2) + ')');
   const gelopen = await R(B, p => { const R = window.__rommelblok; return Math.hypot(R.sp.x - p[0], R.sp.z - p[1]); }, loopVan);
   await B.page.waitForTimeout(500);
   goed(gelopen > 15 && await R(B, n => window.__ber.filter(m => m.t === 'plek').length === n, correcties), 'B loopt en rent ' + gelopen.toFixed(0) + ' blokken over het land: de server zet hem nergens terug');
@@ -223,6 +225,105 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
   goed(await R(A, () => document.getElementById('rb-spelers-code').textContent === window.__rommelblok.samen.code && !document.getElementById('rb-spelers-eigenaar').hidden), 'de eigenaar ziet de code en zijn knoppen');
   await A.page.screenshot({ path: path.join(UIT, 'samen-spelers.png') });
   await A.page.keyboard.press('Escape');
+
+  // ---------------- vrij typen, eigen namen en commando's (hoofdstuk 5 van multiplayer-plan.md)
+  await R(A, () => { for (const o of window.__rommelblok.samen.spelers.values()) o.stil = false; });
+  const pauze = s => s.page.waitForTimeout(2150); // één bericht of naam per 2 seconden
+  const hoort = (s, re) => wacht(s, r => new RegExp(r).test(document.getElementById('rb-praat').textContent), re.source, 8000);
+  await R(B, () => window.__rommelblok.openZinnen());
+  goed(await R(B, () => document.getElementById('rb-typ').hidden), 'vrij typen staat eerst uit: B ziet bij de zinnetjes geen typvak');
+  await B.page.keyboard.press('Escape');
+  await pauze(B);
+  await R(B, () => window.__rommelblok.samenStuur({ t: 'zeg', tekst: 'Hallo allemaal' }));
+  goed(await wacht(B, () => window.__ber.some(m => m.t === 'zeg-nee' && m.reden === 'uit'), null, 5000), 'B stuurt toch tekst (om de pagina heen): de server weigert, want typen staat uit');
+  await R(A, () => window.__rommelblok.openSpelers());
+  await A.page.click('#rb-spelers-typen-aan');
+  goed(await wacht(B, () => window.__rommelblok.samen.regels.typen === true), 'A zet vrij typen aan bij Spelers; B krijgt het te horen');
+  await A.page.keyboard.press('Escape');
+  await pauze(B);
+  await R(B, () => window.__rommelblok.openZinnen());
+  goed(await R(B, () => !document.getElementById('rb-typ').hidden), 'B ziet nu een typvak bij de zinnetjes');
+  await B.page.fill('#rb-typ-tekst', 'Wie gaat er mee naar de grot?');
+  goed(await R(B, () => /29 van de 80/.test(document.getElementById('rb-typ-info').textContent)), 'onder het typvak staat hoeveel tekens het zijn');
+  await B.page.click('#rb-typ button[type=submit]');
+  goed(await hoort(A, /Wie gaat er mee naar de grot\?/), 'B typt een zin, A leest hem');
+  await pauze(B);
+  await R(B, () => window.__rommelblok.openZinnen());
+  await B.page.fill('#rb-typ-tekst', 'jij bent een k4nk3r');
+  goed(await R(B, () => /mag hier niet/.test(document.getElementById('rb-typ-info').textContent)), 'een scheldwoord (met cijfers): B ziet meteen dat het niet mag');
+  await B.page.click('#rb-typ button[type=submit]');
+  await B.page.keyboard.press('Escape');
+  // om de pagina heen: de server kijkt alles zelf na, en A hoort niets
+  for (const [tekst, reden] of [['kijk op www.voorbeeld.nl', 'link'], ['k.a.n.k.e.r', 'woord'], ['bel me 06 1234 5678', 'telefoon'], ['mail naam@voorbeeld.nl', 'mail'], ['a'.repeat(81), 'lang']]) {
+    await pauze(B);
+    await R(B, x => window.__rommelblok.samenStuur({ t: 'zeg', tekst: x }), tekst);
+    goed(await wacht(B, r => window.__ber.some(m => m.t === 'zeg-nee' && m.reden === r), reden, 5000), 'de server weigert "' + tekst.slice(0, 24) + '" (' + reden + ')');
+  }
+  await pauze(B);
+  await R(B, () => { window.__rommelblok.samenStuur({ t: 'zeg', tekst: 'Een' }); window.__rommelblok.samenStuur({ t: 'zeg', tekst: 'Twee' }); });
+  goed(await wacht(B, () => window.__ber.some(m => m.t === 'zeg-nee' && m.reden === 'snel'), null, 5000), 'twee berichten vlak na elkaar: het tweede weigert de server');
+  await A.page.waitForTimeout(800);
+  goed(!(await R(A, () => /k4nk3r|k\.a\.n|voorbeeld|1234|aaaa|Twee/.test(document.getElementById('rb-praat').textContent))), 'van wat geweigerd is, ziet A niets');
+  await R(A, () => { for (const o of window.__rommelblok.samen.spelers.values()) o.stil = true; });
+  await pauze(B);
+  await R(B, () => window.__rommelblok.samenTyp('Hoor je mij nog?'));
+  await A.page.waitForTimeout(1200);
+  goed(!(await R(A, () => /Hoor je mij nog/.test(document.getElementById('rb-praat').textContent))), 'na dempen ziet A ook getypte tekst van B niet meer');
+  await R(A, () => { for (const o of window.__rommelblok.samen.spelers.values()) o.stil = false; });
+  // eigen namen
+  await R(B, () => window.__rommelblok.openSpelers());
+  goed(await R(B, () => document.getElementById('rb-spelers-naam').hidden), 'eigen namen staan eerst uit: B kan geen naam kiezen');
+  await B.page.keyboard.press('Escape');
+  await R(A, () => window.__rommelblok.openSpelers());
+  await A.page.click('#rb-spelers-namen-aan');
+  goed(await wacht(B, () => window.__rommelblok.samen.regels.namen === true), 'A zet eigen namen aan');
+  await A.page.keyboard.press('Escape');
+  await R(B, () => window.__rommelblok.openSpelers());
+  await B.page.waitForSelector('#rb-spelers-naam:not([hidden])');
+  await B.page.fill('#rb-spelers-naam-tekst', 'Kut Koning');
+  await B.page.click('#rb-spelers-naam button[type=submit]');
+  goed(await R(B, () => /mag hier niet/.test(document.getElementById('rb-spelers-naam-info').textContent)), 'een naam met een scheldwoord mag niet');
+  await B.page.fill('#rb-spelers-naam-tekst', 'Bouwmeester');
+  await B.page.click('#rb-spelers-naam button[type=submit]');
+  const bNaam = await wacht(B, () => window.__rommelblok.samen.mijnNaam === 'Bouwmeester' && /Bouwmeester/.test(document.getElementById('rb-spelers-naam-info').textContent));
+  const aZiet = await wacht(A, () => [...window.__rommelblok.samen.spelers.values()].some(o => o.naam === 'Bouwmeester'));
+  if (!(bNaam && aZiet)) console.log(JSON.stringify({ bNaam, aZiet, b: await R(B, () => [window.__rommelblok.samen.mijnNaam, document.getElementById('rb-spelers-naam-info').textContent, window.__ber.filter(m => /naam/.test(m.t)).slice(-3)]), a: await R(A, () => [...window.__rommelblok.samen.spelers.values()].map(o => o.naam)) }));
+  goed(bNaam && aZiet, 'B heet nu Bouwmeester, en A ziet dat');
+  await B.page.keyboard.press('Escape');
+  await pauze(A);
+  await R(A, () => window.__rommelblok.samenStuur({ t: 'naam', tekst: 'bouw Meester' }));
+  goed(await wacht(A, () => window.__ber.some(m => m.t === 'naam-nee' && m.reden === 'bezet'), null, 5000), 'A wil "bouw Meester": die naam is al bezet (hoofdletters en spaties tellen niet)');
+  await pauze(A);
+  await R(A, () => window.__rommelblok.samenStuur({ t: 'naam', tekst: 'www.rommel.nl' }));
+  goed(await wacht(A, () => window.__ber.some(m => m.t === 'naam-nee' && m.reden === 'tekens'), null, 5000), 'om de pagina heen: een link als naam weigert de server');
+  // commando's: alleen de eigenaar
+  await B.page.mouse.click(5, 300); await B.page.keyboard.press('Slash');
+  await B.page.waitForTimeout(400);
+  goed(await R(B, () => document.getElementById('rb-cmd').hidden), 'B (geen eigenaar) drukt op /: er gaat geen commandoscherm open');
+  await R(B, () => window.__rommelblok.samenStuur({ t: 'cmd', wat: 'tijd', tijd: 0.85 }));
+  goed(await wacht(B, () => window.__ber.some(m => m.t === 'cmd' && !m.ok && m.reden === 'eigenaar'), null, 5000), 'om de pagina heen: de server weigert het commando van B');
+  await R(A, () => window.__rommelblok.openCmd('/'));
+  await A.page.waitForSelector('#rb-cmd:not([hidden])');
+  await A.page.fill('#rb-cmd-tekst', '/tijd nacht');
+  await A.page.press('#rb-cmd-tekst', 'Enter');
+  goed(await wacht(B, () => Math.abs(window.__rommelblok.WD.tijd - 0.85) < 0.03, null, 8000), 'A typt /tijd nacht: bij B wordt het nacht');
+  goed(await wacht(B, () => window.__rommelblok.WD.commandos === true, null, 5000) && await R(A, () => window.__rommelblok.WD.commandos === true), 'daarna telt de wereld bij allebei niet meer voor het logboek');
+  const cmd = async tekst => { await R(A, x => { const R = window.__rommelblok; R.cmdDoe(x); }, tekst); };
+  await cmd('/weer regen');
+  goed(await wacht(B, () => window.__rommelblok.WD.weer && window.__rommelblok.WD.weer.regen === true, null, 5000), '/weer regen: bij B gaat het regenen');
+  const fakkels = () => R(B, () => window.__rommelblok.WD.inv.reduce((n, s) => n + (s && s.id === window.__rommelblok.G.B.fakkel ? s.n : 0), 0));
+  const f0 = await fakkels();
+  await cmd('/geef fakkel 5 Bouwmeester');
+  goed(await wacht(B, n => window.__rommelblok.WD.inv.reduce((t, s) => t + (s && s.id === window.__rommelblok.G.B.fakkel ? s.n : 0), 0) === n + 5, f0, 5000), '/geef fakkel 5 Bouwmeester: B krijgt 5 fakkels');
+  await cmd('/stand bouwen');
+  goed(await wacht(B, () => window.__rommelblok.WD.stand === 'bouwen', null, 5000), '/stand bouwen: de hele wereld staat op bouwen');
+  await cmd('/stand overleven');
+  goed(await wacht(B, () => window.__rommelblok.WD.stand === 'overleven', null, 5000), '/stand overleven: en weer terug');
+  await cmd('/ga Bouwmeester');
+  goed(await wacht(A, () => { const R = window.__rommelblok, o = [...R.samen.spelers.values()][0], b = o && o.buf[o.buf.length - 1]; return !!b && Math.hypot(R.sp.x - b[1], R.sp.z - b[3]) < 2; }, null, 8000), '/ga Bouwmeester: A staat bij B');
+  await cmd('/tijd dag'); await cmd('/weer helder');
+  goed(await wacht(B, () => Math.abs(window.__rommelblok.WD.tijd - 0.5) < 0.03 && !window.__rommelblok.WD.weer.regen, null, 5000), '/tijd dag en /weer helder');
+  await A.page.waitForTimeout(500);
 
   // ---------------- alleen de eigenaar mag bouwen
   await R(A, () => window.__rommelblok.samenStuur({ t: 'beheer', doe: 'bouwen', wie: 'eigenaar' }));

@@ -8,6 +8,9 @@ const extra = ['Je viel van te hoog.', 'Je had geen adem meer.', 'Je had te lang
   'Kleine rommelaar', 'Echte houthakker', 'Dappere verkenner', 'Grote avonturier', 'Meester van de rommel', 'Legende van Rommelblok', 'Overleven', 'Verkennen', 'Mijnbouw', 'Sterrenglans', 'Ruïne', 'Oude mijn', 'Sterrenkrater', 'Bouwwerk', 'Jij', 'Thuis', 'Markering',
   // de uitleg bij voorwerpen staat in tabellen
   'Bouwblok', 'Hout', 'Kleur', 'Decoratie', 'Licht', 'Werktuig', 'Eten', 'Spul', 'Natuur', 'Gereedschap', 'Zet hem neer: daaraan maak je dingen van 3 bij 3.', 'Bewaar hier 27 stapels spullen.', 'Wijst naar je bed, je startplek of een markering.', 'Graaft sneller in aarde, zand, grind en sneeuw.', 'Hakt sneller in hout.', 'Snijdt snel door bladeren, planten en spinnenweb.', 'Maakt van gras of aarde een akker om op te zaaien.', 'Zet er een bloem of plantje in.', 'Klim omhoog. Zet hem tegen een muur.'];
+// de redenen van het filter (shared/filter.js) gaan ook door t()
+const filterBron = fs.readFileSync(path.join(__dirname, '..', 'shared', 'filter.js'), 'utf8').split('export const REDEN')[1];
+for (const m of filterBron.matchAll(/:\s*'((?:[^'\\]|\\.)*)'/g)) extra.push(m[1]);
 const mist = [...zinnen, ...extra].filter(z => EN_ZIN[z] === undefined);
 console.log(mist.length ? 'ZONDER VERTALING:\n' + mist.join('\n') : 'alle ' + (zinnen.length + extra.length) + ' zinnen vertaald');
 process.exit(mist.length ? 1 : 0);

@@ -65,8 +65,9 @@ for (const [m, ids] of Object.entries(LB_DING)) for (const id of ids || []) if (
 IT.forEach((it, id) => { if (it && it.kleur !== undefined) LB_VAN.set(id, 'kleur'); });
 const rangVan = n => { let r = RANGEN[0]; for (const x of RANGEN) if (n >= x[0]) r = x; return r; };
 const aantalMijlpalen = () => (WD && WD.logboek ? Object.keys(WD.logboek).filter(k => LB[k]).length : 0);
+// (een wereld waarin commando's gebruikt zijn, telt niet meer: WD.commandos)
 function logboek(id, stil) {
-  if (!WD || wereldStand() === 'bouwen' || !LB[id]) return false;
+  if (!WD || wereldStand() === 'bouwen' || WD.commandos || !LB[id]) return false;
   WD.logboek = WD.logboek || {};
   if (WD.logboek[id]) return false;
   const voor = rangVan(aantalMijlpalen());
@@ -80,7 +81,7 @@ function logboek(id, stil) {
 // elke halve seconde: wat je bij je hebt, waar je bent, en of er een nacht voorbij is
 let lbKlok = 0, lbKan = -1, lbDag = -1;
 function logboekTik(nu) {
-  if (nu - lbKlok < 500 || !WD || !wereldKlaar || wereldStand() === 'bouwen') return;
+  if (nu - lbKlok < 500 || !WD || !wereldKlaar || wereldStand() === 'bouwen' || WD.commandos) return;
   lbKlok = nu;
   // de eerste keer in een wereld (ook een oude): stil bijwerken en één melding
   const eerste = !WD.logboek;
@@ -113,7 +114,7 @@ function openLogboek() {
   const kop = $('rb-logboek-rang');
   kop.innerHTML = `<p class="rb-rang"><span class="rb-rang-naam"></span><span class="rb-klein"></span></p><div class="rb-voortgang" role="progressbar" aria-valuemin="0" aria-valuemax="${LOGBOEK.length}" aria-valuenow="${n}"><div></div></div><p class="rb-klein rb-rang-volgende"></p>`;
   kop.querySelector('.rb-rang-naam').textContent = t(r[1]);
-  kop.querySelector('.rb-rang .rb-klein').textContent = t('{0} van {1} mijlpalen', n, LOGBOEK.length);
+  kop.querySelector('.rb-rang .rb-klein').textContent = WD.commandos ? t('In deze wereld zijn commando\'s gebruikt: nieuwe mijlpalen tellen niet meer.') : t('{0} van {1} mijlpalen', n, LOGBOEK.length);
   kop.querySelector('.rb-voortgang div').style.width = (n / LOGBOEK.length * 100).toFixed(1) + '%';
   kop.querySelector('.rb-rang-volgende').textContent = volgende ? t('Nog {0} voor de rang {1}.', volgende[0] - n, t(volgende[1])) : t('Je hebt de hoogste rang!');
   const lijst = $('rb-logboek-lijst'); lijst.innerHTML = '';

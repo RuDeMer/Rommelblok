@@ -493,3 +493,14 @@ body.rb-samen.rb-aanraak #rb-minikaart { top: calc(64px + var(--veilig-b)); }
 #rb-spelers-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--veld); border-radius: 10px; padding: .45rem .6rem; flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--tekst); }
 #rb-spelers-eigenaar[hidden], #rb-spelers-nieuw[hidden], #rb-spelers-toelaten[hidden] { display: none; }
 @media (max-width: 560px) { .rb-spelers-lijst li { grid-template-columns: 1fr; } .rb-spelers-lijst li .rb-wereld-knoppen { grid-row: auto; grid-column: 1; justify-content: stretch; } .rb-spelers-lijst li .rb-knop { flex: 1; } }
+/* oktober 2026: meldingen bij typen, namen en commando's; het commandoscherm; het vinkje voor commando's */
+.rb-klein.fout { color: #ffb4a8; }
+.rb-cmd { max-width: 34rem; }
+.rb-cmd .rb-rij-in input { font-family: ui-monospace, Menlo, Consolas, monospace; border: 1px solid var(--vakrand); border-radius: 12px; padding: .58rem .7rem; background: var(--veld); color: var(--tekst); flex: 1; min-width: 0; font-weight: 600; }
+.rb-cmd .rb-rij-in input:focus { outline: 2px solid var(--goud); outline-offset: 1px; }
+.rb-cmd .rb-rij-in input::placeholder { color: rgba(255,255,255,.5); }
+.rb-cmd-hulp { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .4rem; }
+.rb-cmd-hulp .rb-knop { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.rb-vinkje .rb-rij-in { align-items: center; gap: .5rem; }
+.rb-vinkje input[type=checkbox] { width: 1.25rem; height: 1.25rem; accent-color: var(--rood, #C8323C); }
+.rb-typ { margin-bottom: .6rem; }

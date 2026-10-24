@@ -5,6 +5,9 @@
 // - de vaste zinnetjes en plaatjes om te praten (ook alleen een nummer)
 // - uitnodigingscodes, en de regels die de server nakijkt (bereik, tempo, hakken, bewegen)
 import { BL } from './blokken.js';
+import { naamTekstKlopt } from './filter.js';
+// het filter voor vrij typen en eigen namen (zie filter.js): ook via G.SAMEN te gebruiken
+export { tekstKlopt, naamTekstKlopt, naamSleutel, scheldwoord, REDEN as FILTER_REDEN, MAX_TEKST } from './filter.js';
 
 export const PROTOCOL = 1;
 
@@ -23,7 +26,8 @@ export const NAAM_B = [
   ['Robot', 'Robot'], ['Ridder', 'Knight'], ['Piraat', 'Pirate'], ['Walvis', 'Whale'], ['Schildpad', 'Turtle'], ['Zeehond', 'Seal'], ['Kabouter', 'Gnome'],
 ];
 export const naamKlopt = n => Array.isArray(n) && n.length === 2 && Number.isInteger(n[0]) && Number.isInteger(n[1]) && n[0] >= 0 && n[0] < NAAM_A.length && n[1] >= 0 && n[1] < NAAM_B.length;
-export const naamVan = (n, taal) => (naamKlopt(n) ? NAAM_A[n[0]][taal === 'en' ? 1 : 0] + ' ' + NAAM_B[n[1]][taal === 'en' ? 1 : 0] : '?');
+// een naam is twee woorden ([nummer, nummer]), of een eigen naam (tekst) als de eigenaar dat aanzette
+export const naamVan = (n, taal) => (naamKlopt(n) ? NAAM_A[n[0]][taal === 'en' ? 1 : 0] + ' ' + NAAM_B[n[1]][taal === 'en' ? 1 : 0] : typeof n === 'string' && naamTekstKlopt(n).ok ? n : '?');
 export const naamWillekeurig = r => [Math.floor(r() * NAAM_A.length) % NAAM_A.length, Math.floor(r() * NAAM_B.length) % NAAM_B.length];
 
 // ---------------- praten: alleen vaste zinnetjes en plaatjes

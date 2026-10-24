@@ -580,7 +580,7 @@ function spelTik(dt, nu) {
   if (bouwKnop && !eet.bezig && nu > bouwHerhaal) { bouwHerhaal = nu + 210; gebruik(); }
   overleefTik(dt);
   losseTik(dt);
-  karTik(dt); karDuwen(); bewonersTik(dt); wezensTik(dt);
+  karTik(dt); karDuwen(); bewonersTik(dt); wezensTik(dt); weerTik(dt);
   zwaaiT = Math.min(1, zwaaiT + dt * 3.2);
   rood = Math.max(0, rood - dt * 2.5); schud = Math.max(0, schud - dt);
   // stappen
@@ -633,7 +633,7 @@ function tekenExtra(dt, C) {
     const d = kader.dozen[0], m = doel && kader.dozen === doel.dozen && doel.p && doel.n ? [doel.p[0] + doel.n[0] * 0.3, doel.p[1] + doel.n[1] * 0.3, doel.p[2] + doel.n[2] * 0.3] : [(d[0] + d[3]) / 2, d[4] - 0.2, (d[2] + d[5]) / 2];
     const L = lichtKleur(brokLicht(m[0], m[1], m[2])); kader.licht = Math.max(L[0], L[1], L[2]);
   }
-  return { dingen, kader, hand: camBeeld() ? null : hand, wezens, deeltjes: { n, a: DEELTJES }, punten: typeof spookLichten === 'function' ? spookLichten() : null };
+  return { dingen, kader, hand: camBeeld() ? null : hand, wezens, deeltjes: { n, a: DEELTJES }, punten: typeof spookLichten === 'function' ? spookLichten() : null, neerslag: weerTeken() };
 }
 let doelZichtbaar = true, handProef = null; // handProef: alleen voor tests (een vaste houding van de arm)
 // licht op een plek als kleur, voor voorwerpen en de hand

@@ -31,6 +31,7 @@ function lus(nu) {
   verwerkMeshes(spelBezig ? 3.5 : 6, sp.x, sp.z);
   const LW = WD || menuWereld;
   const L = lucht(LW ? LW.tijd : 0.42, LW ? LW.dag || 0 : 0, sp.hoofdOnder, huidigeStraal, nu / 1000);
+  if (WD && spelBezig) weerLucht(L);
   // onder de grond wordt de verte donker in plaats van luchtblauw
   const zl = (lichtOp(Math.floor(sp.x), Math.floor(sp.y + sp.oog), Math.floor(sp.z)) >> 4) / 15;
   mistDonker += (Math.max(0.04, Math.pow(zl, 1.5)) - mistDonker) * (1 - Math.exp(-dt * 1.5)); L.mistDonker = mistDonker;
@@ -126,6 +127,8 @@ window.__rommelblok = {
   slaWezen, wezenGebruik, wezensTik, wezensLaden, griezelErbij, wzKolom, stukGeweest, dierData, schoonDier, wzW, WZ_MAX,
   // samen spelen
   get samen() { return samen; }, samenAdres, samenNamen, samenTik, gooiWeg, openSamen, samenGaNaar, samenZeg, openZinnen, openSpelers, samenStop, samenStuur, samenOpScherm, samenSpelerData, spelerGeheim, mijnNaam,
+  // commando's, weer en vrij typen
+  cmdLees, cmdDoe, cmdMag, openCmd, WEER, zetWeer, weerTik, weerTeken, weerKolom, samenTyp, samenHoort,
   wisselCamera, camModus, camBeeld, maakCamera, camAchterVoor, get camPlek() { return camPlek; }, get oogVorige() { return oogVorige; }, get camSchouder() { return camSchouder && [sp.x + camSchouder[0], sp.y + sp.oog + camSchouder[1], sp.z + camSchouder[2]]; }, kijkVector, BEREIK, oogPos, get camVorige() { return camVorige; },
 };
 opstarten();

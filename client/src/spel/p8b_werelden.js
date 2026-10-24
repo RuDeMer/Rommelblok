@@ -53,7 +53,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && spe
 addEventListener('pagehide', () => { if (spelBezig) bewaarWereld(true); });
 
 // ---------------- een nieuwe wereld
-function nieuweWereldGegevens(naam, zaadTekst, stand, moeilijk) {
+function nieuweWereldGegevens(naam, zaadTekst, stand, moeilijk, commandosMag) {
   const tekst = (zaadTekst || '').trim() || String(Math.floor(Math.random() * 2147483647));
   const zaad = G.zaadVan(tekst);
   const st = G.maakWereld(zaad).startPlek();
@@ -62,7 +62,7 @@ function nieuweWereldGegevens(naam, zaadTekst, stand, moeilijk) {
     naam: (naam || '').trim().slice(0, 40) || t('Mijn wereld'), zaad, zaadTekst: tekst, stand: stand === 'bouwen' ? 'bouwen' : 'overleven',
     gemaakt: Date.now(), gespeeld: Date.now(), speeltijd: 0, tijd: 0.3, dag: 0,
     speler: { pos: [st.x, st.y, st.z], kijk: [Math.PI * 0.25, -0.15], vliegt: false, hp: 20, honger: 20, verzadiging: 5, adem: 10, uitputting: 0, start: [st.x, st.y, st.z], bed: null },
-    inv: beginRugzak(stand), kies: 0, rugzakken: [], dingen: {}, plaatje: null, grotten: 2, gen: 3, erts: 2,
+    inv: beginRugzak(stand), kies: 0, rugzakken: [], dingen: {}, plaatje: null, grotten: 2, gen: 3, erts: 2, commandosMag: !!commandosMag, commandos: false,
     moeilijk: G.WEZENS.MOEILIJK[moeilijk] ? moeilijk : 'makkelijk', dieren: [], dierVak: {},
   };
 }
@@ -161,7 +161,7 @@ function beginScherm() {
   $('rb-samen-knop').hidden = !samenAdres();
   toonWerelden();
 }
-$('rb-nieuw').addEventListener('click', () => { maakGewoon(); $('rb-maak-naam').value = t('Mijn wereld'); $('rb-maak-zaad').value = ''; kiesStand('overleven'); openScherm('maak'); setTimeout(() => $('rb-maak-naam').select(), 30); });
+$('rb-nieuw').addEventListener('click', () => { maakGewoon(); $('rb-maak-naam').value = t('Mijn wereld'); $('rb-maak-zaad').value = ''; $('rb-maak-cmd').checked = false; kiesStand('overleven'); openScherm('maak'); setTimeout(() => $('rb-maak-naam').select(), 30); });
 $('rb-begin-inst').addEventListener('click', () => openInstellingen());
 $('rb-taal').addEventListener('click', () => zetTaal(TAAL === 'en' ? 'nl' : 'en'));
 let gekozenStand = 'overleven', gekozenMoeilijk = 'makkelijk';
@@ -177,7 +177,7 @@ kiesMoeilijk('makkelijk');
 for (const b of document.querySelectorAll('.rb-stand')) b.addEventListener('click', () => kiesStand(b.dataset.stand));
 const ZAADWOORDEN = ['taart', 'rommel', 'molen', 'tulp', 'kraanvogel', 'zolder', 'schuurtje', 'hamer', 'knikker', 'kroket', 'polder', 'duin', 'klomp', 'drop', 'paling', 'heide'];
 $('rb-dobbel').addEventListener('click', () => { $('rb-maak-zaad').value = ZAADWOORDEN[Math.floor(Math.random() * ZAADWOORDEN.length)] + Math.floor(Math.random() * 1000); });
-$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); if (maakSamen) { samenMaak($('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); return; } const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); speelWereld(w); });
+$('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); if (maakSamen) { samenMaak($('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk); return; } const w = nieuweWereldGegevens($('rb-maak-naam').value, $('rb-maak-zaad').value, gekozenStand, gekozenMoeilijk, $('rb-maak-cmd').checked); speelWereld(w); });
 
 // ---------------- verwijderen, exporteren en importeren
 async function verwijder(id) {
@@ -244,7 +244,8 @@ function schoonWereld(w) {
     speler: { pos: s.pos.slice(), kijk: [getal(s.kijk[0], 0), klem(getal(s.kijk[1], 0), -1.55, 1.55)], vliegt: !!s.vliegt, hp: klem(getal(s.hp, 20), 1, 20), honger: klem(getal(s.honger, 20), 0, 20), verzadiging: klem(getal(s.verzadiging, 5), 0, 20), adem: 10, uitputting: 0, start: plek(s.start) || s.pos.slice(), bed: plek(s.bed) },
     inv: vakken(w.inv, 36), kies: klem(Math.floor(getal(w.kies, 0)), 0, 8),
     rugzakken: (Array.isArray(w.rugzakken) ? w.rugzakken : []).slice(0, 20).map(r => ({ x: getal(r.x, 0), y: getal(r.y, 64), z: getal(r.z, 0), inhoud: (Array.isArray(r.inhoud) ? r.inhoud : []).slice(0, 36).map(vak).filter(Boolean), dag: getal(r.dag, 0) })),
-    dingen, grotten: w.grotten === 2 ? 2 : 1, gen: w.gen === 3 ? 3 : 2, erts: w.erts === 2 ? 2 : 1, welkom: !!w.welkom,
+    dingen, grotten: w.grotten === 2 ? 2 : 1, gen: w.gen === 3 ? 3 : 2, erts: w.erts === 2 ? 2 : 1, welkom: !!w.welkom, commandosMag: !!w.commandosMag, commandos: !!w.commandos,
+    weer: w.weer && typeof w.weer === 'object' ? { regen: !!w.weer.regen, wissel: getal(w.weer.wissel, 0) } : undefined,
     markers: (Array.isArray(w.markers) ? w.markers : []).slice(0, MAX_MARKERINGEN).filter(m => m && [m.x, m.y, m.z].every(v => typeof v === 'number' && isFinite(v))).map(m => ({ x: m.x, y: m.y, z: m.z, naam: String(m.naam || '').slice(0, 24) || '?', kleur: Math.abs(Math.floor(getal(m.kleur, 0))) % 6 })),
     kompasDoel: Math.floor(getal(w.kompasDoel, -1)),
     karren: (Array.isArray(w.karren) ? w.karren : []).slice(0, 300).filter(k => k && Number.isInteger(k.id) && k.id > 0 && [k.bx, k.by, k.bz].every(Number.isInteger) && k.by >= 0 && k.by < 128).map(k => ({ id: k.id, bx: k.bx, by: k.by, bz: k.bz, van: Math.abs(Math.floor(getal(k.van, 0))) % 4, t: klem(getal(k.t, 0.5), 0, 1), v: klem(getal(k.v, 0), -11, 11) })),

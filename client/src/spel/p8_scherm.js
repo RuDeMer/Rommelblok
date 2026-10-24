@@ -136,7 +136,7 @@ function hudTik(dt, L) {
   lichaamKlassen();
   if (GELUID && GELUID.omgeving && WD) {
     const l = lichtOp(Math.floor(sp.x), Math.floor(sp.y + 1.6), Math.floor(sp.z)) >> 4;
-    try { GELUID.omgeving({ buiten: l / 15, hoogte: sp.y, nacht: 1 - L.dag, onderWater: sp.hoofdOnder, grot: sp.y < 50 && l < 4 ? 1 : 0, waterBij: waterBij(), regen: 0, pauze: schermOpen() || document.hidden }); } catch (e) {}
+    try { GELUID.omgeving({ buiten: l / 15, hoogte: sp.y, nacht: 1 - L.dag, onderWater: sp.hoofdOnder, grot: sp.y < 50 && l < 4 ? 1 : 0, waterBij: waterBij(), regen: WEER.sneeuwHier ? 0 : WEER.mix, binnen: WEER.binnen, pauze: schermOpen() || document.hidden }); } catch (e) {}
   }
 }
 const laagWaarde = {};
@@ -157,6 +157,7 @@ function openMenu() {
   $('rb-menu-info').textContent = WD.naam + ' · ' + (WD.stand === 'bouwen' ? t('Bouwen') : t('Overleven')) + ' · ' + t('dag {0}', (WD.dag || 0) + 1);
   $('rb-menu-scherm').hidden = !document.fullscreenEnabled && !document.webkitFullscreenEnabled;
   $('rb-menu-logboek').hidden = WD.stand === 'bouwen';
+  $('rb-menu-cmd').hidden = !cmdMag();
   if (WD.stand !== 'bouwen') { const n = aantalMijlpalen(); $('rb-menu-logboek').textContent = t('Logboek') + ' (' + n + '/' + LOGBOEK.length + ')'; }
   openScherm('menu');
   if (typeof bewaarWereld === 'function') bewaarWereld();
@@ -167,6 +168,7 @@ $('rb-menu-scherm').addEventListener('click', () => volledigScherm(true));
 $('rb-menu-uit').addEventListener('click', () => { if (typeof naarWerelden === 'function') naarWerelden(); });
 $('rb-menu-kaart').addEventListener('click', () => openKaart());
 $('rb-menu-logboek').addEventListener('click', () => openLogboek());
+$('rb-menu-cmd').addEventListener('click', () => openCmd());
 function volledigScherm(wissel) {
   const d = document, el = d.documentElement;
   try {
