@@ -35,7 +35,11 @@ const { open, wachtKlaar } = require('./pw');
     uit.wakker = { hp: s.hp, honger: s.honger, aanStart: Math.hypot(sp.x - s.start[0], sp.z - s.start[2]) < 1 };
     for (let i = 0; i < 100 && !R.klaar; i++) await wacht(100);
     const d = R.losse.find(d => d.rugzak); R.zet(d.x, d.y + 0.3, d.z);
-    for (let i = 0; i < 100 && !R.klaar; i++) await wacht(100);
+    // wakker worden zet je op het beginpunt, ver van de rugzak: de stukken daar kunnen intussen zijn opgeruimd.
+    // Wachten tot ze er weer zijn (een stuk dat er niet is, telt als vast: dan kom je niet bij de rugzak).
+    const geladen = () => { for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = -2; dy <= 2; dy++) if (R.blokOp(Math.floor(d.x) + dx, Math.floor(d.y) + dy, Math.floor(d.z) + dz) < 0) return false; return true; };
+    for (let i = 0; i < 200 && !(R.klaar && geladen()); i++) await wacht(100);
+    R.zet(d.x, d.y + 0.3, d.z);
     // de rugzak wacht 3 seconden voordat je hem kunt oppakken
     R.sim(420, 1 / 60, {});
     uit.terug = { rugzakken: R.WD.rugzakken.length, inv: R.WD.inv.filter(Boolean).map(v => G.IT[v.id].sleutel + ':' + v.n) };
