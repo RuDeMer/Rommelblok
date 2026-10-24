@@ -4,6 +4,8 @@ import rommelblok from './rommelblok-plugin.js';
 export default defineConfig({
   root: import.meta.dirname,
   plugins: [rommelblok()],
+  // client/geluiden/ komt naast de pagina (rommelblok-geluiden.bin, de opnames), net als op de site
+  publicDir: 'geluiden',
   server: { port: 5173, strictPort: true, fs: { allow: ['..'] } },
   build: { target: 'esnext', minify: false, outDir: '../dist/vite', emptyOutDir: true },
 });

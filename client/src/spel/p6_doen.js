@@ -2,6 +2,14 @@
 // Doen: richten, hakken, bouwen, gebruiken, deeltjes, losse voorwerpen en overleven
 // ============================================================================
 let GELUID = null; try { if (typeof RB_GELUID === 'function') GELUID = RB_GELUID(); } catch (e) { GELUID = null; }
+// de opnames (rommelblok-geluiden.bin, naast de pagina) pas ophalen als er een wereld speelt, zodat ze het laden van de
+// wereld niet ophouden. Lukt het niet (geen bestand, geen verbinding), dan klinkt alles gewoon zelfgemaakt.
+let opnamenGevraagd = false;
+function laadOpnamen() {
+  if (opnamenGevraagd || !GELUID || typeof fetch !== 'function') return;
+  opnamenGevraagd = true;
+  fetch('rommelblok-geluiden.bin').then(r => (r.ok ? r.arrayBuffer() : null)).then(b => { if (b) GELUID.laadOpnamen(b); }).catch(() => {});
+}
 function klank(naam, ...a) { if (!GELUID || !inst.geluid) return; try { const f = GELUID[naam]; if (typeof f === 'function') f.apply(GELUID, a); } catch (e) {} }
 const mat = v => { const b = BL[v & 255]; return b ? b.geluid : 'steen'; };
 // het materiaal onder je voeten: eerst wat je voeten raakt (een plaat, tapijt of trap), anders het blok eronder; op een randje de buurman

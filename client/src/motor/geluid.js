@@ -1,6 +1,8 @@
 // ============================================================================
-// Rommelblok: geluid. Alles zelf gemaakt met de Web Audio API: geen bestanden, geen samples.
-// RB_GELUID({ ctx }) geeft de geluidsfuncties; zonder Web Audio doen ze stil niets.
+// Rommelblok: geluid. Gemaakt met de Web Audio API, en voor hakken, breken, bouwen, stappen, deuren, kisten,
+// vechten en een paar dieren ook echte opnames (CC0, zie client/geluiden/BRONNEN.md). Die staan in een apart bestand
+// (rommelblok-geluiden.bin) dat de pagina pas ophaalt als het spel loopt; tot dan, of zonder dat bestand, klinkt alles
+// zelfgemaakt. RB_GELUID({ ctx }) geeft de geluidsfuncties; zonder Web Audio doen ze stil niets.
 // ============================================================================
 export function RB_GELUID(opt) {
   'use strict';
@@ -90,6 +92,70 @@ export function RB_GELUID(opt) {
   function korrels(v, n, spreid, o) { for (let i = 0; i < n; i++) ruis(v, Object.assign({}, o, { na: (o.na || 0) + Math.random() * spreid, freq: o.freq * r(0.75, 1.3), piek: o.piek * r(0.6, 1) })); }
   // plopjes van belletjes in het water
   function bel(v, na, piek) { const f = r(350, 900); toon(v, { na, freq: f, freqEind: f * r(1.6, 2.4), aanval: 0.004, verval: r(0.03, 0.07), piek: piek || 0.04 }); }
+  // een stem: een toon (zaagtand of blok) door twee of drie 'klinkers' (bandfilters), voor eenden, zeehonden en herten
+  function stem(v, o) {
+    const s = v.t + (o.na || 0), osc = v.knoop(ctx.createOscillator()), lang = (o.aanval || 0.01) + (o.verval || 0.12);
+    osc.type = o.vorm || 'sawtooth'; osc.frequency.setValueAtTime(o.freq, s);
+    if (o.freqEind) osc.frequency.exponentialRampToValueAtTime(o.freqEind, s + lang);
+    const g = v.knoop(ctx.createGain()); g.connect(v.uit);
+    for (const [f, q, a] of o.klinkers) { const b = v.knoop(ctx.createBiquadFilter()); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = q; const m = v.knoop(ctx.createGain()); m.gain.value = a; osc.connect(b); b.connect(m); m.connect(g); }
+    v.bron(osc, s, omhul(v, g, s, o.aanval || 0.01, o.piek || 0.1, o.verval || 0.12));
+  }
+
+  // een spookstem: twee tonen die net niet gelijk zijn (zweven) met een trage trilling, plus adem door een bandfilter
+  // dat open en dicht gaat ('oeoeoe'). h: toonhoogte, lang: duur in seconden, piek: volume
+  function spookStem(v, h, lang, piek) {
+    const f = r(300, 340) * h;
+    for (const d of [1, 1.018]) toon(v, { freq: f * d, freqEind: f * d * 0.72, glij: lang, aanval: lang * 0.35, verval: lang * 0.65, piek: 0.026 * piek, fm: 5.5, fmDiep: 14 });
+    ruis(v, { type: 'bandpass', freq: 420 * h, freqEind: 820 * h, Q: 7, aanval: lang * 0.45, verval: lang * 0.55, piek: 0.2 * piek });
+  }
+  // ---------------- opnames: het bestand rommelblok-geluiden.bin ('RBG1', lengte van de kop, de kop als JSON, dan
+  // mono-MP3'tjes). Ontsleuteld zodra er een AudioContext is. De MP3-coder zet er een stukje stilte voor: dat gaat eraf.
+  let opnameRuw = null, opnamen = null, opnameBezig = false;
+  function laadOpnamen(buf) {
+    try {
+      const d = new DataView(buf);
+      if (String.fromCharCode(d.getUint8(0), d.getUint8(1), d.getUint8(2), d.getUint8(3)) !== 'RBG1') return false;
+      const n = d.getUint32(4, true), kop = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 8, n)));
+      if (!kop || typeof kop.klanken !== 'object') return false;
+      opnameRuw = { kop, data: buf.slice(8 + n) }; ontsleutel(); return true;
+    } catch (e) { return false; }
+  }
+  const decodeer = b => new Promise((ok, nee) => { try { const p = ctx.decodeAudioData(b, ok, nee); if (p && p.then) p.then(ok, nee); } catch (e) { nee(e); } });
+  function knipStilte(ab) {
+    const d = ab.getChannelData(0), sr = ab.sampleRate, max = Math.min(d.length, Math.floor(sr * 0.12));
+    let piek = 0; for (let i = 0; i < d.length; i++) piek = Math.max(piek, Math.abs(d[i]));
+    const drempel = Math.max(0.006, piek * 0.03); let i = 0;
+    while (i < max && Math.abs(d[i]) < drempel) i++;
+    i = Math.max(0, i - Math.floor(sr * 0.0015)); if (i >= max || i <= 0) return ab;
+    const nb = ctx.createBuffer(1, d.length - i, sr); nb.getChannelData(0).set(d.subarray(i)); return nb;
+  }
+  function ontsleutel() {
+    if (!opnameRuw || !ctx || opnameBezig || opnamen) return;
+    opnameBezig = true; const uit = {}, klussen = [];
+    for (const [naam, delen] of Object.entries(opnameRuw.kop.klanken)) {
+      uit[naam] = [];
+      for (const [ofs, len] of delen) klussen.push(decodeer(opnameRuw.data.slice(ofs, ofs + len)).then(ab => { if (ab && ab.length) uit[naam].push(knipStilte(ab)); }, () => {}));
+    }
+    Promise.all(klussen).then(() => { opnamen = uit; opnameRuw = null; opnameBezig = false; });
+  }
+  const heeft = naam => !!(opnamen && opnamen[naam] && opnamen[naam].length);
+  // een opname afspelen (in een klank): p = toonhoogte (en snelheid), piek = volume, lang = hooguit zo lang (met een fade),
+  // laag = een filter dat de hoge tonen dempt. Geeft false als die opname er (nog) niet is.
+  function speel(v, naam, o) {
+    if (!heeft(naam)) return false;
+    o = o || {};
+    const l = opnamen[naam], s = v.t + (o.na || 0), p = o.p || 1, src = v.knoop(ctx.createBufferSource());
+    src.buffer = l[Math.floor(Math.random() * l.length)]; src.playbackRate.value = p;
+    let kop = src;
+    if (o.laag) { const f = v.knoop(ctx.createBiquadFilter()); f.type = 'lowpass'; f.frequency.value = o.laag; kop.connect(f); kop = f; }
+    const g = v.knoop(ctx.createGain()), piek = o.piek == null ? 0.5 : o.piek; kop.connect(g); g.connect(v.uit);
+    let lang = src.buffer.duration / p;
+    g.gain.setValueAtTime(piek, s);
+    if (o.lang && o.lang < lang) { lang = o.lang; g.gain.setValueAtTime(piek, s + Math.max(0, lang - 0.08)); g.gain.linearRampToValueAtTime(0.0001, s + lang); }
+    v.bron(src, s, s + lang + 0.01);
+    return true;
+  }
 
   // ---------------- materialen: soort is 'stap', 'hak', 'breek' of 'plaats'
   const MAT = {
@@ -130,17 +196,42 @@ export function RB_GELUID(opt) {
     water(v, s, p) { ruis(v, { type: 'lowpass', freq: 1100 * p, freqEind: 500, aanval: 0.01, verval: 0.12, piek: 0.09 * s }); hiel(v, s, p, 260, 0.08); bel(v, r(0.01, 0.06), 0.02 * s); },
     modder(v, s, p) { ruis(v, { bruin: true, type: 'lowpass', freq: 380 * p, aanval: 0.012, verval: 0.1, piek: 0.32 * s }); toon(v, { freq: 170 * p, freqEind: 90, aanval: 0.01, verval: 0.08, piek: 0.035 * s }); },
   };
+  // voetstappen uit opnames: [opname, toonhoogte, volume, hoeveel van het zelfgemaakte geluid erbij (voor korrels en geritsel)]
+  const STAP_OPN = {
+    steen: ['stap_steen', 1, 0.5, 0], hout: ['stap_hout', 1, 0.5, 0], gras: ['stap_gras', 1, 0.4, 0.3], aarde: ['stap_aarde', 0.92, 0.38, 0],
+    zand: ['stap_aarde', 1.12, 0.22, 0.6], grind: ['stap_aarde', 1.05, 0.25, 0.6], sneeuw: ['stap_sneeuw', 1, 0.27, 0], stof: ['stap_stof', 0.95, 0.32, 0],
+    blad: ['stap_gras', 1.15, 0.25, 0.6],
+  };
   function stap(m, s, ren) {
-    const f = STAP[m] || STAP.steen; voet ^= 1;
+    const f = STAP[m] || STAP.steen, o = STAP_OPN[m]; voet ^= 1;
     const p = r(0.93, 1.07) * (voet ? 1.03 : 0.97) * (ren ? 1.04 : 1);
-    klank(v => f(v, s * 2.4, p), { laag: true, pan: voet ? 0.08 : -0.08 });
+    klank(v => {
+      if (o && speel(v, o[0], { p: p * o[1], piek: o[2] * s * (ren ? 1.15 : 1) })) { if (o[3]) f(v, s * 2.4 * o[3], p); }
+      else f(v, s * 2.4, p);
+    }, { laag: true, pan: voet ? 0.08 : -0.08 });
   }
+  // hakken, breken en neerzetten uit opnames: per materiaal [hak, breek, plaats], het volume van elk (zo afgesteld dat
+  // ze even hard klinken als de rest van het spel; hakken klinkt steeds opnieuw, dus zachter), de toonhoogte, en hoeveel
+  // van het zelfgemaakte geluid erbij (korrels, geritsel, gruis). Water en bladeren blijven helemaal zelfgemaakt.
+  const ZACHT = ['zacht', 'zacht_zwaar', 'zacht'], ZACHT_V = [0.3, 0.18, 0.27];
+  const MAT_OPN = {
+    steen: [['hak_steen', 'hak_steen', 'plaats_steen'], [0.24, 0.19, 0.55], 1, 0.25], hout: [['hak_hout', 'breek_hout', 'plaats_hout'], [0.35, 0.24, 0.45], 1, 0],
+    glas: [['glas_tik', 'glas_breek', 'glas_tik'], [0.25, 0.73, 0.28], 1, 0], metaal: [['metaal_tik', 'metaal_zwaar', 'metaal_tik'], [0.3, 0.6, 0.4], 1, 0],
+    aarde: [ZACHT, ZACHT_V, 1, 0.4], gras: [ZACHT, ZACHT_V, 1.05, 0.6], zand: [ZACHT, ZACHT_V, 1.1, 0.7], grind: [ZACHT, ZACHT_V, 1.05, 0.8], modder: [ZACHT, ZACHT_V, 0.85, 0.6],
+    sneeuw: [['stap_sneeuw', 'stap_sneeuw', 'stap_sneeuw'], [0.25, 0.3, 0.25], 0.95, 0.3], stof: [['stof', 'stof', 'zacht'], [0.3, 0.135, 0.27], 1.1, 0.3],
+  };
   function mat(m, soort, sterkte, extra) {
-    const f = MAT[m] || MAT.steen;
+    const f = MAT[m] || MAT.steen, o = MAT_OPN[m];
     const s = sterkte == null ? 1 : sterkte, p = r(0.88, 1.13) * (soort === 'hak' ? 1.08 : soort === 'plaats' ? 0.86 : 1);
     klank(v => {
-      f(v, soort, s, p);
-      if (soort === 'plaats') toon(v, { freq: 120, freqEind: 70, aanval: 0.003, verval: 0.07, piek: 0.09 * s });
+      const i = soort === 'hak' ? 0 : soort === 'breek' ? 1 : 2;
+      // breken van steen klinkt lager en voller dan een tik met het houweel
+      const po = p * (o ? o[2] : 1) * (m === 'steen' && soort === 'breek' ? 0.8 : 1);
+      if (o && soort !== 'stap' && speel(v, o[0][i], { p: po, piek: o[1][i] * s })) { if (o[3]) f(v, soort, s * o[3], p); }
+      else {
+        f(v, soort, s, p);
+        if (soort === 'plaats') toon(v, { freq: 120, freqEind: 70, aanval: 0.003, verval: 0.07, piek: 0.09 * s });
+      }
       if (extra) extra(v);
     }, { laag: soort === 'stap' });
   }
@@ -243,6 +334,7 @@ export function RB_GELUID(opt) {
       try {
         if (!ctx) { if (!AC) return; ctx = new AC({ latencyHint: 'interactive' }); bouw(); }
         if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+        ontsleutel();
       } catch (e) { ctx = null; }
     },
     aan(b) { aanS = !!b; if (hoofd) naar(hoofd.gain, aanS ? vol : 0, 0.05); },
@@ -251,29 +343,35 @@ export function RB_GELUID(opt) {
     get aanStaat() { return aanS; },
     get context() { return ctx; },
     get klinkend() { return stemmen; },
+    // de opnames (een ArrayBuffer van rommelblok-geluiden.bin); klaar: ontsleuteld en te horen
+    laadOpnamen, get opnamenKlaar() { return !!opnamen; }, get opnameNamen() { return opnamen ? Object.keys(opnamen).filter(heeft) : []; },
+    // (voor de tests) hoe laat het eerste duidelijke geluid in elk stukje begint, in ms: hooguit een paar, de MP3-stilte is eraf
+    get opnameBegin() { if (!opnamen) return null; let m = 0; for (const l of Object.values(opnamen)) for (const ab of l) { const d = ab.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i])); let i = 0; while (i < d.length && Math.abs(d[i]) < Math.max(0.006, pk * 0.03)) i++; m = Math.max(m, i / ab.sampleRate * 1000); } return m; },
     stap: (m, s, ren) => stap(m, s == null ? 0.55 : s, ren),
     hak: (m, s) => mat(m, 'hak', s == null ? 0.6 : s),
     breek: (m, s) => mat(m, 'breek', s == null ? 1 : s),
     plaats: (m, s) => mat(m, 'plaats', s == null ? 0.8 : s),
     spring: () => klank(v => ruis(v, { type: 'bandpass', freq: 600, freqEind: 1400, Q: 0.9, aanval: 0.03, verval: 0.1, piek: 0.05 })),
-    land(k) { k = Math.max(0, Math.min(1, k == null ? 0.3 : k)); klank(v => { ruis(v, { bruin: true, type: 'lowpass', freq: 300 + 300 * k, aanval: 0.003, verval: 0.1 + 0.12 * k, piek: 0.12 + 0.3 * k }); toon(v, { freq: 75, freqEind: 45, aanval: 0.003, verval: 0.12, piek: 0.05 + 0.12 * k }); }); },
+    land(k) { k = Math.max(0, Math.min(1, k == null ? 0.3 : k)); klank(v => { if (k > 0.35) speel(v, 'zacht_zwaar', { p: 0.9, piek: 0.08 + 0.12 * k }); ruis(v, { bruin: true, type: 'lowpass', freq: 300 + 300 * k, aanval: 0.003, verval: 0.1 + 0.12 * k, piek: 0.12 + 0.3 * k }); toon(v, { freq: 75, freqEind: 45, aanval: 0.003, verval: 0.12, piek: 0.05 + 0.12 * k }); }); },
     plons(groot) { const g = groot ? 1 : 0.55; klank(v => { ruis(v, { type: 'lowpass', freq: 3200, freqEind: 450, aanval: 0.005, verval: 0.45 * g + 0.1, piek: 0.28 * g }); for (let i = 0; i < 4 + 4 * g; i++) bel(v, r(0.05, 0.5), 0.04 * g); }, { galm: 0.15 }); },
     zwem: () => klank(v => { ruis(v, { type: 'lowpass', freq: 850, freqEind: 500, aanval: 0.08, verval: 0.22, piek: 0.07 }); bel(v, r(0.05, 0.2), 0.025); }, { laag: true }),
-    au: () => klank(v => { ruis(v, { bruin: true, type: 'lowpass', freq: 260, aanval: 0.003, verval: 0.14, piek: 0.4 }); toon(v, { freq: 115, freqEind: 70, aanval: 0.003, verval: 0.12, piek: 0.12 }); toon(v, { vorm: 'triangle', na: 0.02, freq: 440, freqEind: 290, glij: 0.18, aanval: 0.01, verval: 0.17, piek: 0.06 }); }),
+    au: () => klank(v => { speel(v, 'klap', { p: r(0.9, 1.05), piek: 0.15 }); ruis(v, { bruin: true, type: 'lowpass', freq: 260, aanval: 0.003, verval: 0.14, piek: 0.4 }); toon(v, { freq: 115, freqEind: 70, aanval: 0.003, verval: 0.12, piek: 0.12 }); toon(v, { vorm: 'triangle', na: 0.02, freq: 440, freqEind: 290, glij: 0.18, aanval: 0.01, verval: 0.17, piek: 0.06 }); }),
     eet: () => klank(v => { for (let i = 0; i < 3; i++) korrels(v, 2, 0.03, { na: i * 0.13 + r(0, 0.02), type: 'bandpass', freq: 2100, Q: 1.3, aanval: 0.003, verval: 0.05, piek: 0.09 }); }),
     slik: () => klank(v => { toon(v, { freq: 320, freqEind: 140, aanval: 0.01, verval: 0.12, piek: 0.08 }); ruis(v, { bruin: true, type: 'lowpass', freq: 500, aanval: 0.01, verval: 0.1, piek: 0.08 }); }),
     oppak: () => klank(v => { const f = r(480, 560); toon(v, { freq: f, freqEind: f * 2.1, aanval: 0.003, verval: 0.08, piek: 0.08 }); toon(v, { na: 0.01, freq: f * 2, freqEind: f * 3.5, aanval: 0.003, verval: 0.06, piek: 0.025 }); }),
     klik: () => klank(v => { toon(v, { vorm: 'triangle', freq: r(1150, 1300), aanval: 0.001, verval: 0.03, piek: 0.06 }); ruis(v, { type: 'highpass', freq: 4000, aanval: 0.001, verval: 0.012, piek: 0.03 }); }),
-    deur(open) { mat('hout', 'plaats', 0.7, v => { if (open) toon(v, { vorm: 'sawtooth', na: 0.02, freq: r(560, 640), freqEind: r(700, 780), glij: 0.2, aanval: 0.03, verval: 0.18, piek: 0.012, fm: 9, fmDiep: 25 }); else ruis(v, { na: 0.06, bruin: true, type: 'lowpass', freq: 400, aanval: 0.003, verval: 0.08, piek: 0.2 }); }); },
-    kist(open) { mat('hout', 'plaats', 0.6, v => { if (open) toon(v, { vorm: 'sawtooth', na: 0.03, freq: r(300, 360), freqEind: r(240, 280), glij: 0.25, aanval: 0.04, verval: 0.22, piek: 0.01, fm: 7, fmDiep: 15 }); else ruis(v, { na: 0.04, bruin: true, type: 'lowpass', freq: 350, aanval: 0.003, verval: 0.1, piek: 0.22 }); }); },
-    oven: () => klank(v => { ruis(v, { bruin: true, type: 'bandpass', freq: 220, freqEind: 900, Q: 0.7, aanval: 0.12, verval: 0.5, piek: 0.25 }); korrels(v, 6, 0.6, { type: 'bandpass', freq: 2500, Q: 2, aanval: 0.001, verval: 0.02, piek: 0.05 }); }),
-    stuk: () => klank(v => { for (const m of [1, 2.4, 4.1]) toon(v, { freq: 1300 * m, freqEind: 900 * m, aanval: 0.001, verval: 0.12, piek: 0.04 }); ruis(v, { type: 'bandpass', freq: 2600, Q: 1.5, aanval: 0.001, verval: 0.08, piek: 0.15 }); toon(v, { vorm: 'triangle', na: 0.06, freq: 600, freqEind: 300, glij: 0.2, aanval: 0.01, verval: 0.2, piek: 0.05 }); }),
+    deur(open) { if (heeft('deur_open')) return klank(v => speel(v, open ? 'deur_open' : 'deur_dicht', { p: r(0.95, 1.06), piek: open ? 0.16 : 0.15 })); mat('hout', 'plaats', 0.7, v => { if (open) toon(v, { vorm: 'sawtooth', na: 0.02, freq: r(560, 640), freqEind: r(700, 780), glij: 0.2, aanval: 0.03, verval: 0.18, piek: 0.012, fm: 9, fmDiep: 25 }); else ruis(v, { na: 0.06, bruin: true, type: 'lowpass', freq: 400, aanval: 0.003, verval: 0.08, piek: 0.2 }); }); },
+    kist(open) { if (heeft('kist_open')) return klank(v => { speel(v, open ? 'kist_open' : 'kist_dicht', { p: r(0.95, 1.08), piek: open ? 0.065 : 0.19 }); if (!open) speel(v, 'plaats_hout', { na: 0.02, p: 0.8, piek: 0.1 }); }); mat('hout', 'plaats', 0.6, v => { if (open) toon(v, { vorm: 'sawtooth', na: 0.03, freq: r(300, 360), freqEind: r(240, 280), glij: 0.25, aanval: 0.04, verval: 0.22, piek: 0.01, fm: 7, fmDiep: 15 }); else ruis(v, { na: 0.04, bruin: true, type: 'lowpass', freq: 350, aanval: 0.003, verval: 0.1, piek: 0.22 }); }); },
+    oven: () => klank(v => { speel(v, 'klink', { piek: 0.35 }); ruis(v, { bruin: true, type: 'bandpass', freq: 220, freqEind: 900, Q: 0.7, aanval: 0.12, verval: 0.5, piek: 0.25 }); korrels(v, 6, 0.6, { type: 'bandpass', freq: 2500, Q: 2, aanval: 0.001, verval: 0.02, piek: 0.05 }); }),
+    stuk: () => klank(v => { speel(v, 'metaal_zwaar', { p: 1.2, piek: 0.4 }); for (const m of [1, 2.4, 4.1]) toon(v, { freq: 1300 * m, freqEind: 900 * m, aanval: 0.001, verval: 0.12, piek: 0.04 }); ruis(v, { type: 'bandpass', freq: 2600, Q: 1.5, aanval: 0.001, verval: 0.08, piek: 0.15 }); toon(v, { vorm: 'triangle', na: 0.06, freq: 600, freqEind: 300, glij: 0.2, aanval: 0.01, verval: 0.2, piek: 0.05 }); }),
     nieuw: () => klank(v => { const g = kies([72, 74, 77]); [0, 4, 7, 12].forEach((s, i) => noot(v, i * 0.055, g + s, 0.045, 0.6)); }, { galm: 0.35 }),
     vult: () => klank(v => { ruis(v, { type: 'lowpass', freq: 600, freqEind: 1600, aanval: 0.05, verval: 0.3, piek: 0.08 }); for (let i = 0; i < 6; i++) { const f = 300 + i * 90; toon(v, { na: i * 0.05 + r(0, 0.02), freq: f, freqEind: f * 1.8, aanval: 0.003, verval: 0.05, piek: 0.035 }); } }),
     giet: () => klank(v => { ruis(v, { type: 'lowpass', freq: 1500, freqEind: 500, aanval: 0.04, verval: 0.5, piek: 0.12 }); for (let i = 0; i < 5; i++) bel(v, 0.1 + i * 0.08, 0.03); }),
     ontdek: () => klank(v => { const f = kies([880, 988, 1047]); for (const [m, a, d] of [[1, 0.07, 1.6], [2.0, 0.035, 1.1], [3.01, 0.02, 0.7], [4.2, 0.012, 0.5]]) toon(v, { freq: f * m, aanval: 0.002, verval: d, piek: a }); }, { galm: 0.6 }),
     dood: () => klank(v => { [67, 64, 60, 57].forEach((m, i) => noot(v, i * 0.28, m, 0.05, 0.9)); }, { galm: 0.5 }),
     slaap: () => klank(v => { const g = kies([72, 74]); [0, 4, 7, 11, 14, 19, 16, 12].forEach((s, i) => noot(v, i * 0.14, g + s, 0.022, 1.2)); }, { galm: 0.8 }),
+    // de rugzak open of dicht: wat leer en stof (alleen met de opnames)
+    rugzak: () => klank(v => speel(v, 'rugzak', { p: r(0.95, 1.1), piek: 0.3 })),
     // een karretje over de naad tussen twee stukjes spoor: twee doffe tikken (laag gehouden, nooit schel)
     kar(snel) {
       const k = Math.max(0.15, Math.min(1, (snel || 2) / 9)), g = Math.max(0.035, 0.11 - k * 0.07);
@@ -281,26 +379,38 @@ export function RB_GELUID(opt) {
     },
     // een stuwspoor dat een karretje wegduwt: een zacht aanzwellend gezoem
     stuw: () => klank(v => { ruis(v, { type: 'bandpass', freq: 260, freqEind: 1000, Q: 1.1, aanval: 0.05, verval: 0.35, piek: 0.06 }); toon(v, { vorm: 'triangle', freq: 165, freqEind: 330, glij: 0.3, aanval: 0.03, verval: 0.3, piek: 0.03 }); }),
-    // dieren en griezels (stap 4): een kort, zacht geluidje per soort; au = geraakt (iets hoger en korter)
+    // dieren en griezels: per soort een eigen geluid (koe, schaap en kip uit opnames); au = geraakt (hoger en korter).
+    // Bij de spookjes (spook_ziet, spook_dreig, spook_duik, spook_gemist) en bij 'sla' is au het volume (0 tot 1).
     wezen(soort, au) {
-      const h = au ? 1.25 : 1, k = au ? 0.6 : 1;
+      const vol = typeof au === 'number' ? Math.max(0, Math.min(1, au)) : 1, pijn = au === true;
+      const h = pijn ? 1.25 : 1, k = pijn ? 0.6 : 1;
       klank(v => {
         switch (soort) {
-          case 'koe': toon(v, { vorm: 'sawtooth', freq: r(110, 130) * h, freqEind: r(82, 92) * h, glij: 0.7 * k, aanval: 0.12, verval: 0.75 * k, piek: 0.03, fm: 4, fmDiep: 6 }); ruis(v, { bruin: true, type: 'lowpass', freq: 380, aanval: 0.1, verval: 0.6 * k, piek: 0.05 }); break;
-          case 'schaap': toon(v, { vorm: 'sawtooth', freq: r(330, 380) * h, freqEind: r(300, 330) * h, glij: 0.5 * k, aanval: 0.04, verval: 0.5 * k, piek: 0.018, fm: 22, fmDiep: 40 }); break;
-          case 'kip': for (let i = 0; i < (au ? 2 : 3); i++) toon(v, { na: i * 0.11, vorm: 'triangle', freq: r(620, 760) * h, freqEind: r(480, 560), aanval: 0.006, verval: 0.07, piek: 0.035 }); break;
-          case 'eend': for (let i = 0; i < 2; i++) ruis(v, { na: i * 0.16, type: 'bandpass', freq: r(900, 1100) * h, freqEind: 600, Q: 6, aanval: 0.01, verval: 0.12, piek: 0.12 }); break;
-          case 'konijn': case 'hagedis': korrels(v, 3, 0.08, { type: 'bandpass', freq: 3200 * h, Q: 2, aanval: 0.002, verval: 0.03, piek: 0.03 }); break;
-          case 'hert': toon(v, { vorm: 'triangle', freq: r(520, 600) * h, freqEind: r(380, 420), aanval: 0.02, verval: 0.25 * k, piek: 0.03 }); break;
-          case 'zeehond': toon(v, { vorm: 'square', freq: r(260, 300) * h, freqEind: r(200, 220), aanval: 0.02, verval: 0.3 * k, piek: 0.012 }); ruis(v, { type: 'bandpass', freq: 700, Q: 2, aanval: 0.02, verval: 0.25, piek: 0.04 }); break;
-          case 'spook': toon(v, { freq: r(440, 520) * h, freqEind: r(300, 340), glij: 0.9 * k, aanval: 0.25 * k, verval: 0.9 * k, piek: 0.03, fm: 5, fmDiep: 18 }); break;
+          case 'koe': if (!speel(v, 'koe', { p: r(0.9, 1.05) * (pijn ? 1.22 : 1), piek: 0.11, lang: pijn ? 0.55 : 0 })) { toon(v, { vorm: 'sawtooth', freq: r(110, 130) * h, freqEind: r(82, 92) * h, glij: 0.7 * k, aanval: 0.12, verval: 0.75 * k, piek: 0.03, fm: 4, fmDiep: 6 }); ruis(v, { bruin: true, type: 'lowpass', freq: 380, aanval: 0.1, verval: 0.6 * k, piek: 0.05 }); } break;
+          case 'schaap': if (!speel(v, 'schaap', { p: r(0.94, 1.08) * (pijn ? 1.18 : 1), piek: 0.1, lang: pijn ? 0.4 : 0 })) toon(v, { vorm: 'sawtooth', freq: r(330, 380) * h, freqEind: r(300, 330) * h, glij: 0.5 * k, aanval: 0.04, verval: 0.5 * k, piek: 0.018, fm: 22, fmDiep: 40 }); break;
+          case 'kip': if (!speel(v, pijn ? 'kip_au' : 'kip', { p: r(0.95, 1.1) * (pijn ? 1.12 : 1), piek: 0.17 })) for (let i = 0; i < (pijn ? 2 : 3); i++) toon(v, { na: i * 0.11, vorm: 'triangle', freq: r(620, 760) * h, freqEind: r(480, 560), aanval: 0.006, verval: 0.07, piek: 0.035 }); break;
+          // een eend: twee keer 'kwak', een neuzige toon door twee klinkers
+          case 'eend': for (let i = 0; i < (pijn ? 3 : 2); i++) { const f = r(250, 290) * h; stem(v, { na: i * (pijn ? 0.11 : 0.17), freq: f, freqEind: f * 0.8, klinkers: [[1050 * h, 5, 1], [2500, 6, 0.5]], aanval: 0.012, verval: 0.11 * k + 0.02, piek: 0.22 }); } break;
+          // een hert: een kort, hees blafje
+          case 'hert': stem(v, { freq: r(420, 480) * h, freqEind: r(330, 360) * h, klinkers: [[900, 3, 1], [2100, 4, 0.4]], aanval: 0.02, verval: 0.2 * k, piek: 0.12 }); ruis(v, { type: 'bandpass', freq: 1400, Q: 1.2, aanval: 0.02, verval: 0.15 * k, piek: 0.04 }); break;
+          // een zeehond: 'ow-ow', blaffend
+          case 'zeehond': for (let i = 0; i < 2; i++) { const f = r(260, 300) * h; stem(v, { na: i * 0.2, vorm: 'square', freq: f, freqEind: f * 0.75, klinkers: [[700, 3, 1], [1500, 4, 0.5]], aanval: 0.02, verval: 0.14 * k, piek: 0.1 }); } break;
+          // konijn en hagedis: geritsel, en geraakt een piepje
+          case 'konijn': case 'hagedis': korrels(v, 4, 0.1, { type: 'bandpass', freq: soort === 'konijn' ? 2600 : 3600, Q: 1.6, aanval: 0.002, verval: 0.035, piek: 0.08 }); if (pijn) toon(v, { freq: r(1700, 1900), freqEind: 1300, aanval: 0.005, verval: 0.09, piek: 0.03 }); break;
+          // het spookje: een holle, ademende klaagtoon (twee tonen die tegen elkaar zweven, door een bewegend filter)
+          case 'spook': spookStem(v, pijn ? 1.45 : 1, pijn ? 0.5 : 1.2, 0.8); if (pijn) ruis(v, { type: 'highpass', freq: 2500, aanval: 0.005, verval: 0.18, piek: 0.06 }); break;
+          case 'spook_ziet': spookStem(v, 0.8, 1.0, 0.7 * vol); ruis(v, { type: 'bandpass', freq: 300, freqEind: 900, Q: 2, aanval: 0.35, verval: 0.5, piek: 0.08 * vol }); break;
+          // dreigen: een stijgende jammerklacht, als waarschuwing vlak voor de duik (goed te horen)
+          case 'spook_dreig': for (const d of [1, 1.012]) toon(v, { vorm: 'sawtooth', freq: 210 * d, freqEind: 640 * d, glij: 0.8, aanval: 0.15, verval: 0.75, piek: 0.022 * vol, fm: 7, fmDiep: 20 }); ruis(v, { type: 'bandpass', freq: 500, freqEind: 1600, Q: 3, aanval: 0.5, verval: 0.4, piek: 0.12 * vol }); break;
+          case 'spook_duik': ruis(v, { type: 'bandpass', freq: 2400, freqEind: 380, Q: 1.4, aanval: 0.04, verval: 0.36, piek: 0.2 * vol }); toon(v, { freq: 700, freqEind: 260, aanval: 0.02, verval: 0.3, piek: 0.03 * vol }); break;
+          case 'spook_gemist': toon(v, { freq: 420, freqEind: 170, glij: 0.55, aanval: 0.03, verval: 0.6, piek: 0.045 * vol, fm: 4, fmDiep: 10 }); ruis(v, { bruin: true, type: 'lowpass', freq: 500, aanval: 0.05, verval: 0.4, piek: 0.1 * vol }); break;
           case 'kwal': for (let i = 0; i < 3; i++) bel(v, i * 0.09, 0.03); toon(v, { freq: r(180, 220) * h, freqEind: 140, aanval: 0.05, verval: 0.3, piek: 0.03 }); break;
           case 'braam': korrels(v, 6, 0.25, { type: 'bandpass', freq: 1800 * h, Q: 1.1, aanval: 0.003, verval: 0.05, piek: 0.05 }); break;
-          case 'sla': ruis(v, { bruin: true, type: 'lowpass', freq: 520, aanval: 0.002, verval: 0.09, piek: 0.22 }); break;
+          case 'sla': if (!speel(v, 'sla', { p: r(0.92, 1.08), piek: 0.13 * vol })) ruis(v, { bruin: true, type: 'lowpass', freq: 520, aanval: 0.002, verval: 0.09, piek: 0.22 * vol }); break;
           case 'poef': ruis(v, { type: 'lowpass', freq: 2200, freqEind: 300, aanval: 0.01, verval: 0.35, piek: 0.12 }); toon(v, { freq: 660, freqEind: 990, aanval: 0.005, verval: 0.18, piek: 0.03 }); break;
           case 'stuiter': { const s2 = Math.max(0.2, au || 0.5); toon(v, { vorm: 'triangle', freq: 180, freqEind: 520, glij: 0.16, aanval: 0.005, verval: 0.2, piek: 0.05 * s2 }); ruis(v, { bruin: true, type: 'lowpass', freq: 400, aanval: 0.003, verval: 0.08, piek: 0.1 * s2 }); break; }
         }
-      });
+      }, { galm: soort.startsWith('spook') ? 0.6 : 0 });
     },
     omgeving,
   };

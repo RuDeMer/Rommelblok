@@ -55,6 +55,7 @@ N=2 loop "rails: recht, bocht, helling, aansluiten" node test/spoor.js
 N=1 loop "vertaling" node test/vertaling.js
 N=1 loop "lint: geen namen die nergens bestaan" node test/lint.js
 N=2 loop "geluid" node test/geluid.js
+N=8 loop "geluid: de opnames (CC0, apart bestand): bronnen, ontsleutelen, geen stilte vooraf, even hard als de rest, dieren en spookjes, en de pagina haalt ze op" node test/opnames.js
 N=1 loop "voetstappen per ondergrond" node test/stappen.js
 N=2 loop "duurtest" node test/duur.js
 N=3 loop "browser: hakken en bouwen" node test/doen.js

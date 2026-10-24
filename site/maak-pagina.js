@@ -66,8 +66,12 @@ if (g.scorebord !== lees(path.join(HIER, 'gedeeld', 'scorebord.html')) || g.grap
 const UIT = arg('--uit') || path.join(WORTEL, 'dist');
 fs.mkdirSync(UIT, { recursive: true });
 fs.writeFileSync(path.join(UIT, 'rommelblok.html'), html);
+// de opnames (CC0, zie client/geluiden/BRONNEN.md) staan in een eigen bestand naast de pagina; de pagina haalt het
+// pas op als het spel loopt. Op de site komt het in dezelfde map als rommelblok.html.
+const GELUIDEN = path.join(WORTEL, 'client', 'geluiden', 'rommelblok-geluiden.bin');
+fs.copyFileSync(GELUIDEN, path.join(UIT, 'rommelblok-geluiden.bin'));
 // de tests draaien de pagina uit RB_UIT (of een tijdelijke map)
 const TEST = process.env.RB_UIT || path.join(os.tmpdir(), 'rommelblok-uit');
 fs.mkdirSync(TEST, { recursive: true });
-if (path.resolve(TEST) !== path.resolve(UIT)) fs.writeFileSync(path.join(TEST, 'rommelblok.html'), html);
-console.log('gebouwd:', path.join(UIT, 'rommelblok.html'), (html.length / 1024).toFixed(0), 'kB,', html.split('\n').length, 'regels, in', Date.now() - t0, 'ms');
+if (path.resolve(TEST) !== path.resolve(UIT)) { fs.writeFileSync(path.join(TEST, 'rommelblok.html'), html); fs.copyFileSync(GELUIDEN, path.join(TEST, 'rommelblok-geluiden.bin')); }
+console.log('gebouwd:', path.join(UIT, 'rommelblok.html'), (html.length / 1024).toFixed(0), 'kB,', html.split('\n').length, 'regels, in', Date.now() - t0, 'ms; geluiden', (fs.statSync(GELUIDEN).size / 1024).toFixed(0), 'kB');

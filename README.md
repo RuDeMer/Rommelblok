@@ -15,7 +15,8 @@ Alleen spelen werkt altijd, ook zonder server en zonder internet.
 | Map | Wat |
 |---|---|
 | `shared/` | De gedeelde code: blokken, voorwerpen, recepten, ruis, vormen, rails en de wereldmaker (`shared/wereld/`). Gewone ES-modules zonder DOM. Ze draaien op de pagina, in de rekenhulpjes (workers), op de server en in de tests. `shared/index.js` geeft `G`: dezelfde namen als vroeger `RB_GEDEELD()`. |
-| `client/src/motor/` | De WebGL2-tekenaar, de texturen (met de hand getekend in code) en het geluid (Web Audio, zonder geluidsbestanden). |
+| `client/src/motor/` | De WebGL2-tekenaar, de texturen (met de hand getekend in code) en het geluid (Web Audio: zelfgemaakt, plus opnames uit `client/geluiden/`). |
+| `client/geluiden/` | `rommelblok-geluiden.bin`: opnames met de licentie CC0 (Kenney en BigSoundBank) voor hakken, breken, bouwen, stappen, deuren, kisten, vechten en een paar dieren. Een apart bestand naast de pagina, dat pas wordt opgehaald als het spel loopt; zonder dat bestand klinkt alles zelfgemaakt. Bronnen en licentie per opname: [BRONNEN.md](client/geluiden/BRONNEN.md). Opnieuw maken: `node site/maak-geluiden.mjs`. |
 | `client/src/werkers/` | De rekenhulpjes. De **wereldbaas** doet licht, water, bewaren en kaartjes; de **makers** maken nieuwe stukken. |
 | `client/src/spel/` | Het spel zelf, in volgorde van de bestandsnamen (`p1_kern.js` tot en met `p9_start.js`). Deze delen gebruiken dezelfde gegevens (de open wereld `WD`, de speler `sp`, de instellingen `inst`, de tekenaar `R`). Daarom voegt de bouw ze samen tot één geheel, zoals vroeger in één script. |
 | `client/src/stijl/` | `stijl.css` en de HTML van alle schermen (`lichaam.html`). |
@@ -45,6 +46,7 @@ node site/maak-pagina.js --gedeeld /pad/naar/mijn-website/rommelblok.html
 ```
 
 - **`--gedeeld`** haalt eerst het scorebord-script en de grapjes uit de nieuwste versie op de site. Zo krijgt de pagina nooit een verouderde kopie.
+- **Twee bestanden:** naast `rommelblok.html` komt `rommelblok-geluiden.bin` (de opnames). Zet ze allebei in dezelfde map op de site.
 - **De volgorde** is altijd:
   1. de schermen;
   2. het scorebord-script;

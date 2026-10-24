@@ -24,6 +24,7 @@ function openRugzak(modus, plek) {
   if (wereldStand() === 'bouwen' && (!modus || modus === 'rugzak' || modus === 'werkbank')) { openBouwmenu(); return; }
   if (huidigScherm() === 'rugzak') { sluitScherm(); return; }
   RZ.modus = modus || 'rugzak'; RZ.plek = plek || null;
+  if (RZ.modus === 'rugzak') klank('rugzak');
   RZ.maat = RZ.modus === 'werkbank' ? 3 : 2;
   RZ.raster = new Array(RZ.maat * RZ.maat).fill(null);
   RZ.gekozen = null; RZ.keuze = null; RZ.zoekRz = '';

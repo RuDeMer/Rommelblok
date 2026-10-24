@@ -70,6 +70,7 @@ async function speelWereld(w) {
   sluitAlles(); menuWereld = null;
   losse.length = 0; dp.length = 0;
   WD = w; WD._sinds = performance.now();
+  setTimeout(laadOpnamen, 2500);
   WD.dingen = WD.dingen || {}; WD.rugzakken = WD.rugzakken || []; WD.markers = WD.markers || []; WD.gevonden = WD.gevonden || [];
   bewonersLaden(); WD.bewoners = WD.bewoners || []; WD.dorpen = WD.dorpen || [];
   wezensLaden();
