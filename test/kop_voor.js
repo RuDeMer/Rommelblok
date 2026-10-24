@@ -1,6 +1,7 @@
 // De kop zit vooraan: elk dier en elke griezel, de bewoners en je eigen poppetje lopen in vier richtingen,
 // en in beeld moet de kop (of het gezicht) steeds aan de kant zitten waar ze heen lopen. node test/kop_voor.js
 // Ook: zwemmen, zweven, vluchten, een griezel die je volgt, en een griezel die naar je kijkt voor hij aanstormt.
+// En: een bewoner die in stromend water staat, drijft mee.
 // (De andere spelers worden net zo getekend als je eigen poppetje; dat staat in test/samen.js.)
 const { open, wachtKlaar } = require('./pw');
 const mis = []; const check = (ok, w) => { if (!ok) mis.push(w); };
@@ -88,6 +89,17 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
       R.WD.bewoners.splice(R.WD.bewoners.indexOf(k), 1); R.bwRust.delete(k.id);
       uit.push({ wie: 'bewoner loopt ' + naam, d: e ? hoek(inWereld(voorVan(e.model), e.yaw), [k.x - x0, k.z - z0]) : NaN, l: Math.hypot(k.x - x0, k.z - z0) });
     }
+    // ---- een bewoner die in stromend water staat, drijft mee (een goot van 12 lang met water dat naar +x stroomt)
+    {
+      for (let x = -1; x <= 13; x++) for (let z = -1; z <= 1; z++) { R.zetBlok(X + x, Y - 1, Z - 9 + z, R.G.B.steen); R.zetBlok(X + x, Y, Z - 9 + z, Math.abs(z) === 1 || x === -1 || x === 13 ? R.G.B.steen : x % 8 === 0 ? R.G.W : R.G.W | ((x % 8) << 8)); }
+      const thuis = [X + 3, Y, Z + 3];
+      const k = { id: 99991, dorp: 'test', beroep: 'boer', naam: 'Test', kl: 0, bed: thuis, thuis, deur: thuis, buiten: thuis, werk: null, kijk: null, put: thuis, vak: null, x: X + 2.5, y: Y, z: Z - 8.5, yaw: 0, ruil: [], dag: R.WD.dag || 0 };
+      R.WD.bewoners.push(k); R.bewonersTik(0);
+      k.x = X + 2.5; k.y = Y; k.z = Z - 8.5; R.bwRust.set(k.id, { pad: null, i: 0, fase, wacht: 1e9, anim: 0, weg: false, stil: 0 });
+      for (let t = 0; t < 60; t++) { R.bwRust.get(k.id).wacht = 1e9; R.bewonersTik(0.03); }
+      uit.push({ stroom: true, wie: 'een bewoner in stromend water', l: k.x - (X + 2.5) });
+      R.WD.bewoners.splice(R.WD.bewoners.indexOf(k), 1); R.bwRust.delete(k.id);
+    }
     // ---- je eigen poppetje van achteren (de derde persoon): vooruit lopen in vier richtingen
     const camVoor = R.inst.camera; R.wisselCamera(1);
     for (const [yaw, naam] of [[0, '-z'], [Math.PI / 2, '-x'], [Math.PI, '+z'], [-Math.PI / 2, '+x']]) {
@@ -105,6 +117,7 @@ const wacht = ms => new Promise(r => setTimeout(r, ms));
     return { uit, kar: sym };
   }, plek);
   for (const u of r.uit) {
+    if (u.stroom) { console.log((u.l > 2 ? 'goed ' : 'FOUT ') + u.wie + ' drijft mee (' + u.l.toFixed(1) + ' blokken in 1,8 seconde)'); check(u.l > 2, u.wie + ' drijft niet mee'); continue; }
     if (u.rond) { console.log('  ' + u.wie + ': rond, geen voor- of achterkant'); continue; }
     const goed = u.d > 0.8 && u.l > 0.05;
     console.log((goed ? 'goed ' : 'FOUT ') + u.wie + ': kop in de looprichting ' + (isNaN(u.d) ? '?' : (u.d * 100).toFixed(0) + '%') + (u.l > 0.05 ? '' : ' (beweegt niet)'));

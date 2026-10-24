@@ -534,10 +534,9 @@ export function RB_WERELD(G, ctx) {
       if (dir === 2) continue;
       const nb = P[c + PO[dir]], ni = nb & 255;
       if (ni === W || DICHT[ni] || ni === B.ijs) continue;
-      // strepen alleen op een echte waterval (minstens drie blokken vallend water boven elkaar), met het licht van ernaast;
-      // de rand van een stromend laagje, en water dat maar één treetje af valt, is hetzelfde water als het oppervlak
-      // erboven, met hetzelfde licht: zo is een trap één egale laag
-      const valt = waterval, nz = valt ? PL[c + PO[dir]] >> 4 : zon, nf = valt ? PL[c + PO[dir]] & 15 : fak;
+      // Een zijkant is hetzelfde water als het oppervlak erboven, met hetzelfde licht: zo is een trap één egale laag.
+      // Zachte strepen alleen op een echte waterval (minstens drie blokken vallend water boven elkaar).
+      const valt = waterval, nz = zon, nf = fak;
       const exz = (valt ? 0x80 : 0) | diep;
       if (dir === 3) { vert(L, X, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); vert(L, X, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); continue; }
       const [ha, hb, xa, za, xb, zb, oxa, oza, oxb, ozb] = zijH[dir];

@@ -33,18 +33,7 @@ function staatOp(x, y, z) { return raakt(x, y - 0.05, z, 0.05); }
 // water rond een punt: hoe hoog staat het en welke kant stroomt het op
 const WH = [14, 12, 11, 9, 7, 5, 4, 2];
 function waterHoogte(X, Y, Z) { const v = blokOp(X, Y, Z); if ((v & 255) !== G.W) return -1; if ((blokOp(X, Y + 1, Z) & 255) === G.W) return 1; return WH[(v >> 8) & 7] / 16; }
-function stroming(X, Y, Z) {
-  const h = waterHoogte(X, Y, Z); if (h < 0) return [0, 0];
-  let fx = 0, fz = 0;
-  for (const [dx, dz] of G.RICHTING) {
-    const n = waterHoogte(X + dx, Y, Z + dz);
-    if (n >= 0) { fx += (h - n) * dx; fz += (h - n) * dz; }
-    else { const b = blokOp(X + dx, Y, Z + dz); if (b === 0 || (b > 0 && !G.VAST[b & 255])) { const o = waterHoogte(X + dx, Y - 1, Z + dz); if (o >= 0 || blokOp(X + dx, Y - 1, Z + dz) === 0) { fx += dx * 0.6; fz += dz * 0.6; } } }
-  }
-  const v = blokOp(X, Y, Z), lv = (v >> 8) & 7;
-  if (!lv && !((v >> 8) & 8)) return [fx * 0.2, fz * 0.2];
-  const l = Math.hypot(fx, fz); return l > 0.01 ? [fx / l, fz / l] : [0, 0];
-}
+function stroming(X, Y, Z) { return G.WEZENS.stroming(blokOp, X, Y, Z); }
 function cel(id) { return (x, y, z) => (blokOp(Math.floor(x), Math.floor(y), Math.floor(z)) & 255) === id; }
 const isWaterOp = cel(G.W);
 function ladderBij(x, y, z, h) {

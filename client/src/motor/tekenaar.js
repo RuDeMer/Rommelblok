@@ -147,8 +147,11 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       }
       // Van buitenaf alleen de buitenkant van elk watervlak: anders zie je door een zijkant heen de binnenkant van het
       // oppervlak erachter (donkere driehoekjes, dubbele lagen). Onder water ook de binnenkant: het oppervlak van onderen.
+      // (de echte richting van het vlak uit de afgeleiden, want een bovenkant kan schuin liggen: een schuin stukje boven je
+      // ooghoogte dat naar je toe helt, zie je van buiten)
       vec3 nv = vN == 0u ? vec3(1.0, 0.0, 0.0) : vN == 1u ? vec3(-1.0, 0.0, 0.0) : vN == 2u ? vec3(0.0, 1.0, 0.0) : vN == 3u ? vec3(0.0, -1.0, 0.0) : vN == 4u ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 0.0, -1.0);
-      if (uOnderWater < 0.5 && dot(vRel, nv) > 0.0) discard;
+      vec3 ng = cross(dFdx(vRel), dFdy(vRel)); if (dot(ng, nv) < 0.0) ng = -ng;
+      if (uOnderWater < 0.5 && dot(vRel, ng) > 0.0) discard;
       vec3 wk = texture(uTint, vec3(vTuv, 2.0)).rgb;
       uint diep = vEx & 15u, rdir = (vEx >> 4u) & 7u; bool stroomt = (vEx & 128u) != 0u;
       // golfjes: twee lagen ruis die meedrijven met de stroming
@@ -156,42 +159,38 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       float ang = float(rdir) * 0.785398;
       vec2 sd = stroomt ? vec2(cos(ang), sin(ang)) * 1.4 : vec2(0.18, 0.11);
       vec3 N; float val = 0.0;
-      // De zijkant van een stromend laagje (geen waterval) is hetzelfde water als het oppervlak erboven: dezelfde golfjes,
-      // dezelfde reflectie en dezelfde doorzichtigheid, zodat het van boven en van opzij één egale laag is.
-      bool alsBoven = vN == 2u || (vN != 3u && !stroomt);
-      if (alsBoven) {
+      // Alle zijkanten (ook een waterval) zijn hetzelfde water als het oppervlak erboven: dezelfde golfjes, dezelfde
+      // reflectie en dezelfde doorzichtigheid, zodat het van boven en van opzij één egale laag is.
+      if (vN != 3u) {
         vec2 a = wp * 0.11 + uRuisOfs - sd * uTijd * 0.11, b = wp * 0.23 + uRuisOfs * 1.7 + vec2(0.37, 0.71) - sd.yx * uTijd * 0.17;
         float h0 = texture(uRuis, a).r + texture(uRuis, b).r * 0.5;
         float hx = texture(uRuis, a + vec2(0.02, 0.0)).r + texture(uRuis, b + vec2(0.02, 0.0)).r * 0.5;
         float hz = texture(uRuis, a + vec2(0.0, 0.02)).r + texture(uRuis, b + vec2(0.0, 0.02)).r * 0.5;
         N = normalize(vec3((h0 - hx) * 2.2, 1.0, (h0 - hz) * 2.2));
       } else {
-        // vallend water en de onderkant: de richting van het vlak, een beetje verstoord
-        vec3 n0 = vN == 0u ? vec3(1.0, 0.0, 0.0) : vN == 1u ? vec3(-1.0, 0.0, 0.0) : vN == 4u ? vec3(0.0, 0.0, 1.0) : vN == 5u ? vec3(0.0, 0.0, -1.0) : vec3(0.0, -1.0, 0.0);
-        float u = (vN == 0u || vN == 1u) ? wp.y : wp.x;
-        if (stroomt && vN != 3u) {
-          // vallend water: strepen die naar beneden vallen (twee lagen ruis, lang en smal), met wit schuim
-          float y = vLp.y;
-          float s1 = texture(uRuis, vec2(u * 0.55, y * 0.045 + uTijd * 0.2)).r, s2 = texture(uRuis, vec2(u * 1.1 + 0.31, y * 0.09 + uTijd * 0.46)).r;
-          val = smoothstep(0.5, 0.72, s1 * 0.6 + s2 * 0.5);
-          N = normalize(n0 + vec3(0.0, (s1 - 0.5) * 0.5, 0.0) + (vN < 2u ? vec3(0.0, 0.0, s2 - 0.5) : vec3(s2 - 0.5, 0.0, 0.0)) * 0.6);
-        } else {
-          float s = texture(uRuis, vec2(u * 0.13 + vLp.z * 0.13, vLp.y * 0.08 + uTijd * 0.5)).r;
-          N = normalize(n0 + vec3(0.0, (s - 0.5) * 0.4, 0.0));
-        }
+        // de onderkant: naar beneden, een beetje verstoord
+        float s = texture(uRuis, vec2(wp.x * 0.13 + vLp.z * 0.13, vLp.y * 0.08 + uTijd * 0.5)).r;
+        N = normalize(vec3(0.0, -1.0, 0.0) + vec3(0.0, (s - 0.5) * 0.4, 0.0));
       }
       if (uOnderWater > 0.5) N = -N;
-      float fr = pow(1.0 - max(dot(-V, N), 0.0), 4.0) * 0.85 + 0.08;
-      vec3 refl = lucht(reflect(V, N)) * (0.35 + 0.65 * zon);
-      float glim = pow(max(dot(reflect(V, N), uZonRicht), 0.0), 120.0) * zon * step(0.0, uZonRicht.y) * 3.0;
+      // (van onderen gezien, zoals een zijkant boven je ooghoogte, net zo als van boven: anders spiegelt hij de bleke grond van de lucht)
+      vec3 rv = reflect(V, N); if (uOnderWater < 0.5) rv.y = abs(rv.y);
+      float fr = pow(1.0 - (uOnderWater < 0.5 ? abs(dot(-V, N)) : max(dot(-V, N), 0.0)), 4.0) * 0.85 + 0.08;
+      vec3 refl = lucht(rv) * (0.35 + 0.65 * zon);
+      float glim = pow(max(dot(rv, uZonRicht), 0.0), 120.0) * zon * step(0.0, uZonRicht.y) * 3.0;
       vec3 diepK = wk * vec3(0.55, 0.75, 0.9);
       float d = float(diep);
       vec3 c = mix(wk * 1.05, diepK, clamp(d / 8.0, 0.0, 1.0)) * L;
       c = mix(c, refl, fr) + uZonGloed * glim;
       if (stroomt && vN == 2u) c += vec3(0.16) * smoothstep(0.62, 0.8, texture(uRuis, wp * 0.3 - sd * uTijd * 0.3).r) * L;
       float a = mix(0.42, 0.86, clamp(d / 6.0, 0.0, 1.0));
-      // een waterval is goed te zien: minder doorzichtig, en de strepen zijn wit schuim
-      if (stroomt && vN != 2u && vN != 3u) { c = mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, val * 0.85); a = max(a, 0.8) + val * 0.15; }
+      // een waterval: hetzelfde water, met zachte lichte strepen die naar beneden vallen
+      if (stroomt && vN != 2u && vN != 3u) {
+        float u = (vN == 0u || vN == 1u) ? wp.y : wp.x, y = vLp.y;
+        float s1 = texture(uRuis, vec2(u * 0.55, y * 0.045 + uTijd * 0.2)).r, s2 = texture(uRuis, vec2(u * 1.1 + 0.31, y * 0.09 + uTijd * 0.46)).r;
+        val = smoothstep(0.52, 0.78, s1 * 0.6 + s2 * 0.5);
+        c = mix(c, vec3(0.86, 0.93, 1.0) * L, val * 0.3); a += val * 0.08;
+      }
       a = clamp(a + fr * 0.4, 0.0, 0.95);
       if (uOnderWater > 0.5) { c = mix(wk * L * 0.7, refl * 0.5, 0.3); a = 0.55; }
       float m = uOnderWater > 0.5 ? clamp(1.0 - exp(-length(vRel) * 0.075), 0.0, 1.0) : smoothstep(uMist.x, uMist.y, length(vRel.xz));

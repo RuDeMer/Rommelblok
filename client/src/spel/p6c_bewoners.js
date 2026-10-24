@@ -290,6 +290,19 @@ function bewonersTik(dt) {
     const w = blokOp(d.x, d.y, d.z); bwDeuren.delete(sl);
     if (w > 0 && (w & 255) === B.deur && ((w >> 8) & 4)) deurBewoner(d.x, d.y, d.z, w, false);
   }
+  // in stromend water (bijvoorbeeld uit je emmer): het water neemt de bewoner mee, en in vallend water zakt hij
+  const vastBlok = v => v < 0 || (v > 0 && G.VAST[v & 255] && (v & 255) !== G.W && BL[v & 255].vorm !== 'deur');
+  for (const k of WD.bewoners) {
+    const s = bwRust.get(k.id); if (!s || s.weg || s.ligt) continue;
+    const X = Math.floor(k.x), Y = Math.floor(k.y + 0.01), Z = Math.floor(k.z), v = blokOp(X, Y, Z);
+    if (v <= 0 || (v & 255) !== G.W) continue;
+    const [fx, fz] = G.WEZENS.stroming(blokOp, X, Y, Z), st = G.WEZENS.STROOM * dt;
+    const kan = (x, z) => !vastBlok(blokOp(Math.floor(x), Y, Math.floor(z))) && !vastBlok(blokOp(Math.floor(x), Y + 1, Math.floor(z)));
+    if (fx && kan(k.x + fx * (st + 0.3), k.z)) k.x += fx * st;
+    if (fz && kan(k.x, k.z + fz * (st + 0.3))) k.z += fz * st;
+    if (!vastBlok(blokOp(X, Y - 1, Z)) || k.y > Y + 0.001) k.y = Math.max(vastBlok(blokOp(X, Y - 1, Z)) ? Y : Y - 1, k.y - 3 * dt);
+    s.pad = null; s.wacht = Math.max(s.wacht, 0.5); // daarna een nieuwe route
+  }
   // niet door de speler heen: een beetje opzij
   for (const k of WD.bewoners) {
     const dx = k.x - sp.x, dz = k.z - sp.z, d = Math.hypot(dx, dz);

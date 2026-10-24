@@ -66,6 +66,23 @@ export function raakt(W, x, y, z, r, h) {
 }
 const isW = v => v >= 0 && (v & 255) === WATER;
 const inWater = (W, x, y, z) => isW(W.blok(Math.floor(x), Math.floor(y + 0.2), Math.floor(z)));
+// Welke kant stroomt het water op in blok X, Y, Z? [fx, fz], met lengte 1 in stromend water en klein in stilstaand water.
+// blok(x, y, z) geeft de blokwaarde. Gedeeld: spelers, dieren en griezels, en bewoners worden er allemaal door meegenomen.
+const WHOOGTE = [14, 12, 11, 9, 7, 5, 4, 2], BUREN4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+export function stroming(blok, X, Y, Z) {
+  const hoogte = (x, y, z) => { const v = blok(x, y, z); if (!isW(v)) return -1; return isW(blok(x, y + 1, z)) ? 1 : WHOOGTE[(v >> 8) & 7] / 16; };
+  const h = hoogte(X, Y, Z); if (h < 0) return [0, 0];
+  let fx = 0, fz = 0;
+  for (const [dx, dz] of BUREN4) {
+    const n = hoogte(X + dx, Y, Z + dz);
+    if (n >= 0) { fx += (h - n) * dx; fz += (h - n) * dz; }
+    else { const b = blok(X + dx, Y, Z + dz); if (b === 0 || (b > 0 && !VAST[b & 255])) { if (hoogte(X + dx, Y - 1, Z + dz) >= 0 || blok(X + dx, Y - 1, Z + dz) === 0) { fx += dx * 0.6; fz += dz * 0.6; } } }
+  }
+  const v = blok(X, Y, Z), lv = (v >> 8) & 7;
+  if (!lv && !((v >> 8) & 8)) return [fx * 0.2, fz * 0.2];
+  const l = Math.hypot(fx, fz); return l > 0.01 ? [fx / l, fz / l] : [0, 0];
+}
+export const STROOM = 2.4; // hoe hard stromend water een dier of bewoner meeneemt (blokken per seconde)
 // de grond onder een plek: hoe ver omlaag is het (0 = je staat erop), en is het water? (tot 4 diep)
 function grondOnder(W, x, y, z) {
   const X = Math.floor(x), Z = Math.floor(z);
@@ -172,7 +189,10 @@ function beweeg(w, S, dt, W) {
   }
   // de kant op kijken waar je heen gaat (zacht draaien)
   if (snel > 0 && (w.dx || w.dz)) { const doelYaw = Math.atan2(w.dx, w.dz); let d = doelYaw - w.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); w.yaw += d * Math.min(1, dt * 8); }
-  const tx = w.dx * snel, tz = w.dz * snel, k = Math.min(1, dt * (w.grond || S.zweeft || water ? 10 : 2));
+  let tx = w.dx * snel, tz = w.dz * snel;
+  // stromend water neemt je mee (wie zweeft niet)
+  if (water && !S.zweeft) { const [fx, fz] = stroming(W.blok, Math.floor(w.x), Math.floor(w.y + 0.2), Math.floor(w.z)); tx += fx * STROOM; tz += fz * STROOM; }
+  const k = Math.min(1, dt * (w.grond || S.zweeft || water ? 10 : 2));
   w.vx += (tx - w.vx) * k; w.vz += (tz - w.vz) * k;
   if (S.zweeft) {
     // zweven: zacht op en neer, en naar de hoogte van de speler die het zoekt
