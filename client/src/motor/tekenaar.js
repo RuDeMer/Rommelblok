@@ -189,17 +189,6 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       float a = mix(0.42, 0.86, clamp(d / 6.0, 0.0, 1.0));
       // een waterval is goed te zien: minder doorzichtig, en de strepen zijn wit schuim
       if (stroomt && vN != 2u && vN != 3u) { c = mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, val * 0.85); a = max(a, 0.8) + val * 0.15; }
-      // een schuin stromend bovenvlak, of stromend water boven op ander water (een trap of waterval): strepen in de
-      // stroomrichting, zoals bij vallend water, zodat het één stroom wordt in plaats van donkere vlakjes tussen de randen
-      uint steil = (vVl >> 4u) & 3u;
-      if (stroomt && vN == 2u && (steil > 0u || diep > 0u)) {
-        vec2 fd = vec2(cos(ang), sin(ang));
-        float langs = dot(wp, fd), dwars = dot(wp, vec2(-fd.y, fd.x));
-        float t1 = texture(uRuis, vec2(dwars * 0.55, langs * 0.09 - uTijd * 0.35)).r, t2 = texture(uRuis, vec2(dwars * 1.1 + 0.31, langs * 0.18 - uTijd * 0.6)).r;
-        float sv = smoothstep(0.5, 0.72, t1 * 0.6 + t2 * 0.5), k = max(float(steil) / 3.0, diep > 0u ? 0.75 : 0.0);
-        c = mix(c, mix(wk * vec3(0.62, 0.8, 0.95) * L, vec3(0.93, 0.97, 1.0) * L, sv * 0.85), k * 0.85);
-        a = mix(a, max(a, 0.8) + sv * 0.15, k);
-      }
       a = clamp(a + fr * 0.4, 0.0, 0.95);
       if (uOnderWater > 0.5) { c = mix(wk * L * 0.7, refl * 0.5, 0.3); a = 0.55; }
       float m = uOnderWater > 0.5 ? clamp(1.0 - exp(-length(vRel) * 0.075), 0.0, 1.0) : smoothstep(uMist.x, uMist.y, length(vRel.xz));

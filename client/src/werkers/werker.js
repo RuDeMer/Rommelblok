@@ -298,7 +298,6 @@ export function RB_WERELD(G, ctx) {
   class Buf { constructor() { this.a = new Uint32Array(1 << 14); this.n = 0; } leeg() { this.n = 0; } duw(a, b) { if (this.n + 2 > this.a.length) { const z = new Uint32Array(this.a.length * 2); z.set(this.a); this.a = z; } this.a[this.n++] = a; this.a[this.n++] = b; } }
   const LG = [new Buf(), new Buf(), new Buf(), new Buf()]; // vast, uitgesneden, water, ijs (doorzichtige blokken)
   const PS = 18, P = new Uint16Array(PS * PS * PS), PL = new Uint8Array(PS * PS * PS);
-  const PB = new Uint16Array(PS * PS); // de laag onder de rand van P (voor het water: ligt er water onder de buur?)
   const pi = (x, y, z) => ((y + 1) * PS + (z + 1)) * PS + (x + 1);
   const PO = [1, -1, PS * PS, -PS * PS, PS, -PS]; // stap in P per richting
   // assen per richting: U en V liggen in het vlak, U x V = normaal
@@ -309,13 +308,6 @@ export function RB_WERELD(G, ctx) {
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) buren9[(dz + 1) * 3 + dx + 1] = (dx || dz) ? haal(s.cx + dx, s.cz + dz) : s;
     const y0 = sy * 16;
     let leeg = true;
-    for (let z = -1; z <= 16; z++) {
-      const bz = z < 0 ? 0 : z > 15 ? 2 : 1, lz = z & 15, wy = y0 - 2;
-      for (let x = -1; x <= 16; x++) {
-        const c = buren9[bz * 3 + (x < 0 ? 0 : x > 15 ? 2 : 1)];
-        PB[(z + 1) * PS + (x + 1)] = wy < 0 ? B.bodemsteen : (!c || !c.d) ? B.steen : c.d[(wy << 8) | (lz << 4) | (x & 15)];
-      }
-    }
     for (let y = -1; y <= 16; y++) {
       const wy = y0 + y;
       for (let z = -1; z <= 16; z++) {
@@ -500,13 +492,8 @@ export function RB_WERELD(G, ctx) {
     for (let a = -1; a <= 0; a++) for (let bb = -1; bb <= 0; bb++) {
       const p = c + (ox + a) + (oz + bb) * PS, h = wHoogte(p);
       if (h === 16) return 16;
-      if (h >= 0) { som += h; n++; continue; }
-      if (VAST[P[p] & 255]) continue; // een muur telt niet mee
-      // Lucht of een plant trekt de hoek alleen omlaag aan een oever (met iets vasts eronder): daar loopt het water
-      // dun uit tot op de grond. Boven een trede (lager water of lucht eronder) blijft het oppervlak op hoogte,
-      // en loopt een zijkant naar beneden; anders wordt een trap een rij losse puntjes.
-      const o = p >= PS * PS ? P[p - PS * PS] : PB[p];
-      if (VAST[o & 255] && (o & 255) !== W) n++;
+      if (h >= 0) { som += h; n++; }
+      else if (!VAST[P[p] & 255]) n++; // lucht of een plant trekt de hoek omlaag, een muur telt niet mee
     }
     return n ? som / n : 14;
   }
@@ -526,11 +513,9 @@ export function RB_WERELD(G, ctx) {
     const ex = diep | (rdir << 4) | (stroomt << 7);
     const X = x * 16, Z = z * 16, Y = y * 16;
     if (!bovenW && !DICHT[P[c + PS * PS] & 255]) {
-      // bovenkant (richting +y: U = z, V = x); hoe schuin hij is (0 tot 3) gaat mee in vl, zodat een schuin, stromend
-      // stuk dezelfde strepen krijgt als vallend water
-      const steil = Math.max(h00, h01, h10, h11) - Math.min(h00, h01, h10, h11), vb = vl | ((steil >= 10 ? 3 : steil >= 6 ? 2 : steil >= 3 ? 1 : 0) << 4);
-      vert(L, X, Y + h00, Z, 2, 0, 3, zon, fak, vb, ex); vert(L, X, Y + h01, Z + 16, 2, 0, 3, zon, fak, vb, ex);
-      vert(L, X + 16, Y + h11, Z + 16, 2, 0, 3, zon, fak, vb, ex); vert(L, X + 16, Y + h10, Z, 2, 0, 3, zon, fak, vb, ex);
+      // bovenkant (richting +y: U = z, V = x)
+      vert(L, X, Y + h00, Z, 2, 0, 3, zon, fak, vl, ex); vert(L, X, Y + h01, Z + 16, 2, 0, 3, zon, fak, vl, ex);
+      vert(L, X + 16, Y + h11, Z + 16, 2, 0, 3, zon, fak, vl, ex); vert(L, X + 16, Y + h10, Z, 2, 0, 3, zon, fak, vl, ex);
     }
     // zijkanten
     // per zijkant: de hoogtes bovenaan (a en b), waar die hoeken liggen, en welke hoeken van het lagere vakje ernaast daar aansluiten
@@ -540,15 +525,16 @@ export function RB_WERELD(G, ctx) {
       const nb = P[c + PO[dir]], ni = nb & 255;
       if (ni === W || DICHT[ni] || ni === B.ijs) continue;
       const nz = PL[c + PO[dir]] >> 4, nf = PL[c + PO[dir]] & 15;
-      let exz = (stroomt || bv >> 8 ? 0x80 : 0) | diep;
+      // strepen alleen op vallend water (een waterval); de rand van een stromend laagje is gewoon water
+      const exz = ((bv >> 8) & 8 ? 0x80 : 0) | diep;
       if (dir === 3) { vert(L, X, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); vert(L, X, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); continue; }
       const [ha, hb, xa, za, xb, zb, oxa, oza, oxb, ozb] = zijH[dir];
-      if (!ha && !hb) continue; // aan een oever waar het water helemaal uitloopt
       // Gaat het water daarnaast een trede lager verder, dan loopt deze zijkant door tot dat lagere oppervlak:
-      // zo sluiten de treden op elkaar aan, als water dat over de rand stroomt (met de strepen van vallend water).
+      // zo sluiten de treden op elkaar aan, zonder kiertje waardoor je de rots ziet.
       let la = Y, lb = Y;
       const c2 = c + PO[dir] - PS * PS;
-      if ((P[c2] & 255) === W) { la = Y - 16 + hoekH(c2, oxa, oza); lb = Y - 16 + hoekH(c2, oxb, ozb); exz |= 0x80; }
+      if ((P[c2] & 255) === W) { la = Y - 16 + hoekH(c2, oxa, oza); lb = Y - 16 + hoekH(c2, oxb, ozb); }
+      if (ha < 1 && hb < 1 && la >= Y && lb >= Y) continue; // aan een oever waar het water helemaal uitloopt: niets te zien
       vert(L, X + xa, la, Z + za, dir, 0, 3, nz, nf, vl, exz); vert(L, X + xb, lb, Z + zb, dir, 0, 3, nz, nf, vl, exz);
       vert(L, X + xb, Y + hb, Z + zb, dir, 0, 3, nz, nf, vl, exz); vert(L, X + xa, Y + ha, Z + za, dir, 0, 3, nz, nf, vl, exz);
     }

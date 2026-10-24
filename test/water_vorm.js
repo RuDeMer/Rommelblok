@@ -2,8 +2,7 @@
 // Voor elke opstelling: water laten uitstromen, de watervlakken maken zoals de wereldbaas dat doet, en dan nakijken:
 // - elk waterblok naast lucht (of naast een plek waar het water lager verder gaat) heeft daar een zijkant,
 //   van zijn eigen oppervlak tot de bodem van het blok, of tot het oppervlak van het lagere water ernaast;
-// - de hoeken van buren liggen op dezelfde hoogte (het oppervlak is één doorlopend vlak);
-// - een hoek zakt alleen naar beneden aan een echte oever (naast droge grond), nooit boven een trede;
+// - de hoeken van buren liggen op dezelfde hoogte (het oppervlak is één doorlopend, schuin aflopend vlak);
 // - tussen twee waterblokken zit nooit een vlak (geen dubbele vlakken in het doorzichtige water).
 // node test/water_vorm.js [uitleg]   (met 'uitleg' ook een doorsnede van elke trap)
 const L = require('./laad'); const G = L.gedeeld(); const RB_WERELD = L.laad('werker.js', 'RB_WERELD');
@@ -70,7 +69,7 @@ function nakijken(naam, Wb, gebied) {
       zij.get(k).push({ laag, hoog, y: Math.ceil(Math.max(hoog[0], hoog[1]) / 16) - 1 }); // het vakje waar de zijkant bij hoort: daar ligt zijn bovenrand
     }
   }
-  const tel = { cellen: 0, oppervlak: 0, zijMist: 0, zijHoogte: 0, zijTeHoog: 0, sluitNiet: 0, waterWater: 0, dubbel: 0, hoekZakt: 0, hoekenNiet: 0, gordijn: 0 };
+  const tel = { cellen: 0, oppervlak: 0, zijMist: 0, zijHoogte: 0, sluitNiet: 0, waterWater: 0, dubbel: 0, hoekenNiet: 0, gordijn: 0 };
   const eerste = {}; const meld = (wat, t) => { tel[wat]++; if (!eerste[wat]) eerste[wat] = t; };
   // hoekhoogtes per rasterpunt per laag: alle bovenkanten die daar samenkomen moeten gelijk zijn
   const punt = new Map();
@@ -89,16 +88,6 @@ function nakijken(naam, Wb, gebied) {
     if (isW(Wb.get(x, y - 1, z)) && onder.has(sleutel(x, y, z))) meld('waterWater', 'onderkant op water ' + sleutel(x, y, z));
     if (!bovenW && !dekt(Wb.get(x, y + 1, z)) && !hoek) { meld('zijMist', 'geen bovenkant ' + sleutel(x, y, z)); continue; }
     if (hoek) tel.oppervlak++;
-    // een hoek zakt alleen omlaag als er naast droge grond (iets wat geen water en niet vast is, met iets vasts eronder) ligt
-    if (hoek) for (const hk of ['00', '10', '01', '11']) {
-      const px = x + +hk[0], pz = z + +hk[1]; let oever = false, minW = 99;
-      for (const [ax, az] of [[px - 1, pz - 1], [px, pz - 1], [px - 1, pz], [px, pz]]) {
-        const n = Wb.get(ax, y, az);
-        if (isW(n)) { minW = Math.min(minW, isW(Wb.get(ax, y + 1, az)) ? 16 : [14, 12, 11, 9, 7, 5, 4, 2][(n >> 8) & 7]); }
-        else if (!vast(n) && vast(Wb.get(ax, y - 1, az))) oever = true;
-      }
-      if (!oever && hoek[hk] < 16 && hoek[hk] < minW) meld('hoekZakt', sleutel(px, y, pz) + ' zakt naar ' + hoek[hk] + ' (water eromheen minstens ' + minW + ')');
-    }
     // de hoogtes van de rand aan elke kant (zestienden boven de bodem van het vakje)
     const rand = (r) => {
       if (bovenW) return [16, 16];
@@ -133,9 +122,9 @@ function nakijken(naam, Wb, gebied) {
       }
     }
   }
-  const goed = !tel.zijMist && !tel.zijHoogte && !tel.sluitNiet && !tel.waterWater && !tel.dubbel && !tel.hoekZakt && !tel.hoekenNiet;
+  const goed = !tel.zijMist && !tel.zijHoogte && !tel.sluitNiet && !tel.waterWater && !tel.dubbel && !tel.hoekenNiet;
   ok(goed && tel.oppervlak > 0, `${naam}: ${tel.cellen} waterblokken, ${tel.oppervlak} met een bovenkant, ${tel.gordijn} randen waar het water lager verder gaat; ` +
-    `zijkant mist ${tel.zijMist}, zijkant te kort ${tel.zijHoogte}, sluit niet aan op lager water ${tel.sluitNiet}, hoeken van buren niet gelijk ${tel.hoekenNiet}, hoek zakt naar nul ${tel.hoekZakt}, vlak tussen water ${tel.waterWater + tel.dubbel}`);
+    `zijkant mist ${tel.zijMist}, zijkant te kort ${tel.zijHoogte}, sluit niet aan op lager water ${tel.sluitNiet}, hoeken van buren niet gelijk ${tel.hoekenNiet}, vlak tussen water ${tel.waterWater + tel.dubbel}`);
   if (!goed) for (const [wat, t] of Object.entries(eerste)) console.log('      eerste ' + wat + ': ' + t);
   return tel;
 }
