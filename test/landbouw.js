@@ -57,8 +57,10 @@ const { open, wachtKlaar } = require('./pw');
     return uit;
   }, r.plek);
   // eten: vasthouden, zoals de rechtermuisknop of de bouwknop
-  await page.evaluate(() => { const R = window.__rommelblok; R.houd = true; R.gebruik(); });
-  // de testbrowser tekent maar een paar beeldjes per seconde: wachten tot het op is (hooguit 45 s)
+  // (de speltijd zelf vooruitzetten: 2 seconden, eten duurt er 1,3; dan hangt het niet af van hoeveel beeldjes de
+  // testbrowser tekent)
+  await page.evaluate(() => { const R = window.__rommelblok; R.houd = true; R.gebruik(); R.sim(120, 1 / 60, {}); });
+  // voor de zekerheid: wachten tot het op is (hooguit 45 s)
   await page.waitForFunction(() => { const R = window.__rommelblok; return !R.WD.inv.some(s => s && s.id === R.G.I.hutspot); }, null, { timeout: 45000 }).catch(() => {});
   const kom = await page.evaluate(() => { const R = window.__rommelblok; R.houd = false; return { kom: R.WD.inv.some(s => s && s.id === R.G.I.kom), honger: R.WD.speler.honger, hutspotOver: R.WD.inv.some(s => s && s.id === R.G.I.hutspot) }; });
   const r3 = await page.evaluate(async () => {
