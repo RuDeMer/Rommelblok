@@ -21,7 +21,7 @@ function blok(id, sleutel, nl, en, e) {
     geeft: e.geeft === undefined ? id : e.geeft, vervang: !!e.vervang, wasweg: !!e.wasweg,
     item: e.item === undefined ? true : e.item, stand: e.stand || null, plaatsOp: e.plaatsOp || null,
     overlay: !!e.overlay, rot: !!e.rot, as: !!e.as, gebruik: e.gebruik || null,
-    kleur: !!e.kleur, groep: e.groep || null, nietInMenu: !!e.nietInMenu,
+    kleur: !!e.kleur, groep: e.groep || null, nietInMenu: !!e.nietInMenu, klim: !!e.klim,
   };
   const t = e.tex || sleutel;
   const f = typeof t === 'string' ? { boven: t, onder: t, zij: t } : Object.assign({ boven: t.zij, onder: t.zij }, t);
@@ -118,7 +118,7 @@ blok(94, 'lantaarn', 'Lantaarn', 'Lantern', { vorm: 'lantaarn', laag: 1, hard: 1
 blok(95, 'lichtblok', 'Lichtblok', 'Light block', { hard: 0.5, licht: 15, geluid: 'glas', gloed: true });
 blok(96, 'deur', 'Houten deur', 'Wooden door', { vorm: 'deur', laag: 1, tex: { zij: 'deur_onder', extra: ['deur_boven'] }, hard: 3, gereed: 'bijl', geluid: 'hout', stand: 'deur', gebruik: 'deur' });
 blok(97, 'luik', 'Houten luik', 'Wooden hatch', { vorm: 'luik', laag: 1, hard: 3, gereed: 'bijl', geluid: 'hout', stand: 'luik', gebruik: 'luik' });
-blok(98, 'ladder', 'Ladder', 'Ladder', { vorm: 'ladder', laag: 1, hard: 0.4, gereed: 'bijl', geluid: 'hout', stand: 'muur', vast: false });
+blok(98, 'ladder', 'Ladder', 'Ladder', { vorm: 'ladder', laag: 1, hard: 0.4, gereed: 'bijl', geluid: 'hout', stand: 'muur', vast: false, klim: true });
 blok(99, 'hek', 'Houten hek', 'Wooden fence', { vorm: 'hek', laag: 0, tex: 'planken_eik', hard: 2, gereed: 'bijl', geluid: 'hout' });
 blok(100, 'bed', 'Bed', 'Bed', { vorm: 'bed', laag: 0, tex: { boven: 'bed_top', onder: 'planken_eik', zij: 'bed_zij', extra: ['bed_kop', 'bed_kop_zij'] }, hard: 0.3, geluid: 'stof', stand: 'bed', gebruik: 'bed' });
 // trappen en platen
@@ -176,7 +176,7 @@ blok(145, 'bloempot', 'Bloempot', 'Flower pot', { vorm: 'pot', laag: 1, hard: 0.
 blok(146, 'kaars', 'Kaars', 'Candle', { vorm: 'kaars', laag: 1, hard: 0, licht: 11, gloed: true, geluid: 'stof', wasweg: true, plaatsOp: 'vast', vast: false, groep: 'licht' });
 blok(147, 'tafel', 'Tafel', 'Table', { vorm: 'tafel', tex: 'planken_eik', hard: 2, gereed: 'bijl', geluid: 'hout', groep: 'deco' });
 blok(148, 'stoel', 'Stoel', 'Chair', { vorm: 'stoel', tex: 'planken_eik', hard: 2, gereed: 'bijl', geluid: 'hout', stand: 'richting', groep: 'deco' });
-blok(149, 'klimop', 'Klimop', 'Ivy', { vorm: 'ladder', laag: 1, hard: 0.2, gereed: 'zwaard', geluid: 'blad', stand: 'muur', vast: false, tint: 2, zwaai: true, wasweg: true, groep: 'natuur' });
+blok(149, 'klimop', 'Klimop', 'Ivy', { vorm: 'ladder', laag: 1, hard: 0.2, gereed: 'zwaard', geluid: 'blad', stand: 'muur', vast: false, tint: 2, zwaai: true, wasweg: true, groep: 'natuur', klim: true });
 blok(150, 'mos', 'Mostapijt', 'Moss carpet', { vorm: 'tapijt', hard: 0.1, geluid: 'blad', plaatsOp: 'vast', wasweg: true, groep: 'natuur' });
 plant(151, 'spinnenweb', 'Spinnenweb', 'Cobweb', { zwaai: false, hard: 1, gereed: 'zwaard', geluid: 'stof', geeft: 'linnendraad', plaatsOp: 'vrij', wasweg: false, groep: 'deco' });
 blok(152, 'glas_in_lood', 'Glas-in-lood', 'Stained glass window', { laag: 1, hard: 0.3, geluid: 'glas', geeft: 0, nietDicht: true, groep: 'deco' });

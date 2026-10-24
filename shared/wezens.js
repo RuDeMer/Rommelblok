@@ -51,7 +51,7 @@ const VOL = [[0, 0, 0, 1, 1, 1]];
 function botsBlok(W, X, Y, Z) {
   const v = W.blok(X, Y, Z);
   if (v < 0) return VOL; // nog niet geladen: vast
-  const id = v & 255; if (!id || !VAST[id]) return null;
+  const id = v & 255; if (!id || !(VAST[id] || id === B.waterlelie)) return null;
   if (BL[id].vorm === 'kubus') return VOL;
   const d = botsDozen(v, (dx, dy, dz) => { const n = W.blok(X + dx, Y + dy, Z + dz); return n < 0 ? 0 : n; });
   return d ? d.map(a => a.map(q => q / 16)) : null;
@@ -209,14 +209,16 @@ function beweeg(w, S, dt, W) {
     if (water) w.vy = Math.max(w.vy, -2);
     w.vy = Math.max(w.vy, -40);
   }
+  // een spinnenweb houdt je bijna vast (wie zweeft niet: spookjes en kwallen gaan er gewoon doorheen)
+  if (!S.zweeft && inWeb(W, w.x, w.y, w.z, r, h)) { const hv = Math.hypot(w.vx, w.vz); if (hv > 0.5) { w.vx *= 0.5 / hv; w.vz *= 0.5 / hv; } w.vy = Math.max(-1, Math.min(w.vy, 0.4)); }
   // per as bewegen en botsen, in stukjes van hooguit 0,3 blok (zo valt niets door een vloer heen, ook niet bij een groot tijdstapje);
   // tegen een blok aan op de grond: één blok opstappen als dat past
   const n = Math.max(1, Math.ceil(Math.max(Math.abs(w.vx), Math.abs(w.vy), Math.abs(w.vz)) * dt / 0.3)), opGrond = w.grond;
   let geraakt = false; w.grond = false;
   for (let i = 0; i < n; i++) {
     const mx = w.vx * dt / n, my = w.vy * dt / n, mz = w.vz * dt / n, stapOp = (opGrond || w.grond || water) && !S.zweeft;
-    if (mx) { if (!raakt(W, w.x + mx, w.y, w.z, r, h)) w.x += mx; else if (stapOp && !raakt(W, w.x + mx, w.y + 1.05, w.z, r, h) && !raakt(W, w.x, w.y + 1.05, w.z, r, h)) { w.y += 1.05; w.x += mx; } else { w.vx = 0; geraakt = true; } }
-    if (mz) { if (!raakt(W, w.x, w.y, w.z + mz, r, h)) w.z += mz; else if (stapOp && !raakt(W, w.x, w.y + 1.05, w.z + mz, r, h) && !raakt(W, w.x, w.y + 1.05, w.z, r, h)) { w.y += 1.05; w.z += mz; } else { w.vz = 0; geraakt = true; } }
+    if (mx) { if (!raakt(W, w.x + mx, w.y, w.z, r, h)) w.x += mx; else { const op = stapOp ? opstap(W, w, mx, 0, r, h) : 0; if (op) { w.y += op; w.x += mx; } else { w.vx = 0; geraakt = true; } } }
+    if (mz) { if (!raakt(W, w.x, w.y, w.z + mz, r, h)) w.z += mz; else { const op = stapOp ? opstap(W, w, 0, mz, r, h) : 0; if (op) { w.y += op; w.z += mz; } else { w.vz = 0; geraakt = true; } } }
     if (my) {
       if (!raakt(W, w.x, w.y + my, w.z, r, h)) w.y += my;
       else {
@@ -232,6 +234,20 @@ function beweeg(w, S, dt, W) {
   // konijnen huppen
   if (S.hupt && w.grond && snel > 0) w.vy = 4.5;
   const v = Math.hypot(w.vx, w.vz); w.fase += v * dt * 3.2;
+}
+
+// opstappen: de kleinste hoogte waarmee het past (een tapijtje van een pixel ook in een lage gang, een plaat, een heel blok); 0 als het niet kan
+const OPSTAP = [0.08, 0.55, 1.05];
+function opstap(W, w, mx, mz, r, h) {
+  for (const op of OPSTAP) if (!raakt(W, w.x + mx, w.y + op, w.z + mz, r, h) && !raakt(W, w.x, w.y + op, w.z, r, h)) return op;
+  return 0;
+}
+// zit het lijf in een spinnenweb?
+function inWeb(W, x, y, z, r, h) {
+  for (let Y = Math.floor(y); Y <= Math.floor(y + h - 0.001); Y++) for (let X = Math.floor(x - r); X <= Math.floor(x + r); X++) for (let Z = Math.floor(z - r); Z <= Math.floor(z + r); Z++) {
+    const v = W.blok(X, Y, Z); if (v > 0 && (v & 255) === B.spinnenweb) return true;
+  }
+  return false;
 }
 
 // ---------------- geraakt worden door een speler: geeft true als het wezen geen levens meer heeft

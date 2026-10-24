@@ -128,7 +128,10 @@ const POTPLANT = [0, B.tulp_rood, B.tulp_geel, B.tulp_oranje, B.tulp_roze, B.paa
   B.stekje_eik, B.stekje_berk, B.stekje_spar, B.stekje_esdoorn, B.stekje_baobab, B.stekje_wilg, B.stekje_kers, B.stekje_noten];
 // botsen: welke dozen houden je tegen (in zestienden)
 function botsDozen(v, buur) {
-  const id = v & 255, b = BL[id]; if (!b || !b.vast) return null;
+  const id = v & 255, b = BL[id]; if (!b) return null;
+  // een waterlelie is niet vast (water stroomt eronder door), maar je kunt er wel op staan
+  if (b.vorm === 'lelie') return [[1, 0, 1, 15, 1, 15]];
+  if (!b.vast) return null;
   switch (b.vorm) {
     case 'kubus': return [[0, 0, 0, 16, 16, 16]];
     case 'hek': {
