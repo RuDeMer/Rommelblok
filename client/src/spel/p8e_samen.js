@@ -279,19 +279,25 @@ function samenTeken(wezens, dt) {
     for (const q of o.buf) { if (q[0] <= nu) a = q; else { b = q; break; } b = q; }
     const span = b[0] - a[0], f = span > 0 ? klem((nu - a[0]) / span, 0, 1) : 1;
     const x = a[1] + (b[1] - a[1]) * f, y = a[2] + (b[2] - a[2]) * f, z = a[3] + (b[3] - a[3]) * f;
-    const yaw = hoekMix(a[4], b[4], f), pitch = a[5] + (b[5] - a[5]) * f, vlag = b[6], hand = b[7], anim = b[8];
+    const yaw0 = hoekMix(a[4], b[4], f), pitch0 = a[5] + (b[5] - a[5]) * f, vlag = b[6], hand = b[7], anim = b[8];
+    // het hoofd volgt waar die speler kijkt, vloeiend (nog een zachte veer bovenop het glijden tussen de berichten)
+    const k = 1 - Math.exp(-14 * Math.max(0, dt || 0));
+    if (o.kijkYaw === undefined || !dt) { o.kijkYaw = yaw0; o.kijkPitch = pitch0; } else { o.kijkYaw = hoekMix(o.kijkYaw, yaw0, k); o.kijkPitch += (pitch0 - o.kijkPitch) * k; }
+    const yaw = o.kijkYaw, pitch = o.kijkPitch;
     const v = span > 0 ? Math.hypot(b[1] - a[1], b[3] - a[3]) / (span / 1000) : 0;
     o.fase += Math.min(v, 12) * dt / ((vlag & 2) ? 0.9 : 1.6) * Math.PI;
     if ((anim & 31) !== (o.a & 31)) o.zwaaiT = 0;
     o.a = anim; o.zwaaiT = Math.min(1, o.zwaaiT + dt * 3.2);
     o.x = x; o.y = y; o.z = z;
     if (vlag & 128) continue; // flauwgevallen
-    const naam = popModel(o.pop); if (!naam) continue;
+    const naam = popModel(o.pop, popKnippert(o.sid || 2, performance.now() / 1000)); if (!naam) continue;
     const water = !!(vlag & 4);
-    const s = { v, fase: o.fase, grond: !!(vlag & 32), water, ladder: !!(vlag & 64), sluip: !!(vlag & 2), kar: !!(vlag & 8), hak: anim & 32 ? (performance.now() / 300) % 1 : -1, eet: anim & 64 ? performance.now() / 1000 : -1, zwaai: o.zwaaiT, pitch, t: performance.now() / 1000, vliegt: !!(vlag & 1) };
+    // het lijf draait pas mee als het hoofd ver opzij kijkt, of als die speler loopt
+    const kop = water || (vlag & 64) || (vlag & 8) ? (o.lijf = yaw, 0) : popLijf(o, yaw, v > 0.6, dt || 0);
+    const s = { v, fase: o.fase, grond: !!(vlag & 32), water, ladder: !!(vlag & 64), sluip: !!(vlag & 2), kar: !!(vlag & 8), hak: anim & 32 ? (performance.now() / 300) % 1 : -1, eet: anim & 64 ? performance.now() / 1000 : -1, zwaai: o.zwaaiT, pitch, kop, n: o.sid || 2, t: performance.now() / 1000, vliegt: !!(vlag & 1) };
     const { g, lichaam } = popHouding(s);
     const l = lichtOp(Math.floor(x), Math.floor(y + 1.2), Math.floor(z));
-    const w = { model: naam, x, y: y + (water ? 0.55 : 0), z, yaw: yaw + Math.PI, pitch: lichaam, delen: popDelenHouding(naam, g), licht: lichtKleur(l), schaal: POP_SCHAAL };
+    const w = { model: naam, x, y: y + (water ? 0.55 : 0), z, yaw: o.lijf + Math.PI, pitch: lichaam, delen: popDelenHouding(naam, g), licht: lichtKleur(l), schaal: POP_SCHAAL };
     if (hand && IT[hand]) { const it = IT[hand], bl = it.blok ? BL[it.blok] : null; w.vast = { id: hand, deel: 'handR', plek: POP_HANDPLEK, soort: it.gereed ? 'gereed' : bl && (bl.vorm === 'fakkel' || bl.vorm === 'kaars') ? 'rechtop' : bl ? 'blok' : 'klein' }; }
     wezens.push(w);
   }

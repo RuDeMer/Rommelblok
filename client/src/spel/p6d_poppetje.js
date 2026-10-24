@@ -16,12 +16,14 @@ function popKleuren(p) {
 }
 // waar de delen draaien (in zestienden; de voeten op y = 0, de voorkant naar +z)
 const POP_SPIL = { hoofd: [0, 19, 0], armL: [-5.3, 18.4, 0], armR: [5.3, 18.4, 0], beenL: [-1.8, 10, 0], beenR: [1.8, 10, 0], lijf: [0, 0, 0] };
+const POP_HUIDDONKER = 0.86; // neus en oogleden: net iets donkerder dan de huid
 const POP_SCHAAL = 0.96; // het poppetje is 30 zestienden hoog: zo is het net zo groot als de speler (1,8 blok)
 // de hand waar je iets in houdt (in zestienden, in het deel armR~hand)
 const POP_HANDPLEK = [5.3, 10.6, 0.6];
 // spiegelen van links naar rechts
 const spiegel = d => [-d[3], d[1], d[2], -d[0], d[4], d[5]];
-function popDelen(p) {
+// dicht: het model met gesloten ogen (oogleden over de ogen), om mee te knipperen
+function popDelen(p, dicht) {
   const T = G.TEXNR, D = G.DTEXNR, k = popKleuren(p), delen = [], groepen = [];
   const boven = popKeuze(p, 'boven'), onder = popKeuze(p, 'onder'), haar = popKeuze(p, 'haar'), acc = popKeuze(p, 'acc');
   const wit = hexKleur('#F2EFE6');
@@ -32,11 +34,14 @@ function popDelen(p) {
   };
   const beide = (naam, groep, tex, kleur, dozen) => { deel(naam + 'L', groep + 'L', tex, kleur, dozen); deel(naam + 'R', groep + 'R', tex, kleur, dozen.map(spiegel)); };
   // ---- schoenen en benen
-  beide('schoen', 'been', T.bw_stof, k.schoen, [[-3.6, 0, -1.8, -0.1, 2, 2.7]]);
+  beide('schoen', 'been', T.bw_stof, k.schoen, [[-3.6, 0.6, -1.8, -0.1, 2, 2.7]]);
+  // een zool, een neus aan de schoen en veters
+  beide('zool', 'been', T.bw_stof, donker(k.schoen, 0.45), [[-3.7, 0, -1.9, 0, 0.6, 2.85]]);
+  beide('veter', 'been', T.bw_stof, hexKleur('#F2EFE6'), [[-2.6, 1.6, 1.2, -1.1, 2.05, 2.75]]);
   const beenKleur = boven === 'overall' ? k.boven : boven === 'jurk' ? k.onder : k.onder;
   if (boven === 'overall' || boven === 'jurk' || onder === 'broek') beide('been', 'been', T.bw_stof, beenKleur, [[-3.4, 2, -1.6, -0.3, 10, 1.6]]);
-  else if (onder === 'kort') { beide('been', 'been', T.bw_stof, k.onder, [[-3.5, 6.5, -1.7, -0.2, 10, 1.7]]); beide('kuit', 'been', T.bw_huid, k.huid, [[-3.2, 2, -1.4, -0.5, 6.5, 1.4]]); }
-  else if (onder === 'rok') beide('been', 'been', T.bw_huid, k.huid, [[-3.2, 2, -1.4, -0.5, 10, 1.4]]);
+  else if (onder === 'kort') { beide('been', 'been', T.bw_stof, k.onder, [[-3.5, 6.5, -1.7, -0.2, 10, 1.7]]); beide('kuit', 'been', T.bw_huid, k.huid, [[-3.2, 3.2, -1.4, -0.5, 6.5, 1.4]]); beide('sok', 'been', T.bw_stof, hexKleur('#F2EFE6'), [[-3.3, 2, -1.5, -0.4, 3.2, 1.5]]); }
+  else if (onder === 'rok') { beide('been', 'been', T.bw_huid, k.huid, [[-3.2, 3.2, -1.4, -0.5, 10, 1.4]]); beide('sok', 'been', T.bw_stof, hexKleur('#F2EFE6'), [[-3.3, 2, -1.5, -0.4, 3.2, 1.5]]); }
   else { beide('been', 'been', T.bw_stof, k.onder, [[-3.5, 3, -1.7, -0.2, 10, 1.7]]); beide('boord', 'been', T.bw_stof, donker(k.onder, 0.78), [[-3.4, 2, -1.6, -0.3, 3, 1.6]]); }
   // ---- het lijf
   const shirt = boven === 'overall' ? wit : k.boven;
@@ -45,18 +50,29 @@ function popDelen(p) {
   if (boven === 'hoodie') { deel('capuchon', 'lijf', T.bw_stof, donker(k.boven, 0.9), [[-3.8, 16.5, -4.3, 3.8, 20.5, -2.2]]); deel('buidel', 'lijf', T.bw_stof, donker(k.boven, 0.8), [[-2.4, 11, 2.2, 2.4, 13.8, 2.5]]); }
   if (boven === 'overall') deel('overall', 'lijf', T.bw_stof, k.boven, [[-2.8, 10.5, 2.2, 2.8, 16.5, 2.5], [-2.8, 16.5, 2.2, -1.8, 19.1, 2.5], [1.8, 16.5, 2.2, 2.8, 19.1, 2.5], [-4.05, 10, -2.25, 4.05, 12, 2.25], [-2.8, 13, -2.5, -1.8, 19.1, -2.2], [1.8, 13, -2.5, 2.8, 19.1, -2.2]]);
   if (boven === 'jasje') { deel('hemd', 'lijf', T.bw_stof, wit, [[-1, 10.5, 2.2, 1, 19, 2.35]]); deel('revers', 'lijf', T.bw_stof, donker(k.boven, 0.75), [[-2.1, 15.5, 2.2, -1, 19, 2.45], [1, 15.5, 2.2, 2.1, 19, 2.45]]); }
+  // een riem met een gesp bij een broek of korte broek, een zoom onderaan een shirt, en knoopjes op een jasje
+  if (boven !== 'overall' && boven !== 'jurk' && (onder === 'broek' || onder === 'kort')) { deel('riem', 'lijf', T.bw_stof, hexKleur('#4A3426'), [[-4.08, 9.9, -2.28, 4.08, 10.9, 2.28]]); deel('gesp', 'lijf', T.bw_stof, hexKleur('#E9B949'), [[-0.75, 9.75, 2.28, 0.75, 11.05, 2.42]]); }
+  if (boven === 'tshirt' || boven === 'trui') deel('zoom', 'lijf', T.bw_stof, donker(k.boven, 0.85), [[-4.04, 10.9, -2.24, 4.04, 11.5, 2.24]]);
+  if (boven === 'jasje') deel('knoop', 'lijf', T.bw_stof, donker(k.boven, 0.55), [[-0.35, 12.2, 2.35, 0.35, 12.9, 2.5], [-0.35, 14.4, 2.35, 0.35, 15.1, 2.5]]);
+  if (boven === 'hoodie') deel('koord', 'lijf', T.bw_stof, hexKleur('#F2EFE6'), [[-1.6, 15.6, 2.2, -1.2, 18.6, 2.4], [1.2, 15.6, 2.2, 1.6, 18.6, 2.4]]);
   if (boven === 'jurk') deel('rok', 'lijf', T.bw_stof, k.boven, [[-4.7, 6, -2.9, 4.7, 10.5, 2.9]]);
   else if (onder === 'rok' && boven !== 'overall') deel('rok', 'lijf', T.bw_stof, k.onder, [[-4.6, 6, -2.8, 4.6, 10.5, 2.8]]);
   // ---- de armen: lange mouwen (trui, hoodie, jasje) of korte (t-shirt, overall met een hemd, jurk)
   const lang = POP.POP_LANGE_MOUW.has(boven), mouw = boven === 'overall' ? wit : k.boven;
   if (lang) beide('mouw', 'arm', T.bw_stof, mouw, [[-6.6, 11.5, -1.3, -4, 19, 1.3]]);
   else { beide('mouw', 'arm', T.bw_stof, mouw, [[-6.7, 15.5, -1.4, -3.9, 19, 1.4]]); beide('onderarm', 'arm', T.bw_huid, k.huid, [[-6.4, 11.5, -1.1, -4.2, 15.5, 1.1]]); }
-  beide('hand', 'arm', T.bw_huid, k.huid, [[-6.4, 10, -1.1, -4.2, 11.5, 1.1]]);
+  beide('hand', 'arm', T.bw_huid, k.huid, [[-6.4, 9.6, -1.1, -4.2, 11.5, 1.1]]);
+  beide('duim', 'arm', T.bw_huid, donker(k.huid, 0.95), [[-4.5, 10.2, 1.1, -3.9, 11.4, 1.7]]);
   // ---- het hoofd, de oren en het gezicht (losse laagjes vlak voor het hoofd)
   deel('hoofd', 'hoofd', T.bw_huid, k.huid, [[-5, 19, -4.5, 5, 29, 4.5], [-5.6, 22.5, -0.8, -5, 24.5, 0.8], [5, 22.5, -0.8, 5.6, 24.5, 0.8]]);
   const gezicht = [[-5, 19, 4.5, 5, 29, 4.51]];
   deel('ogen', 'hoofd', undefined, null, gezicht, D['pop_ogen_' + popKeuze(p, 'ogen')]);
   deel('mond', 'hoofd', undefined, null, gezicht.map(d => [d[0], d[1], d[2] + 0.01, d[3], d[4], d[5] + 0.01]), D['pop_mond_' + popKeuze(p, 'mond')]);
+  // een neusje, wenkbrauwen in de kleur van het haar, en bij het knipperen oogleden over de ogen
+  // (de ogen zitten op het gezicht op x -3 tot -1 en 1 tot 3, y 23 tot 25)
+  deel('neus', 'hoofd', T.bw_huid, donker(k.huid, POP_HUIDDONKER), [[-0.55, 22.2, 4.5, 0.55, 23.3, 5.05]]);
+  deel('wenkbrauw', 'hoofd', T.bw_haar, donker(k.haar, 0.85), [[-3.3, 25.6, 4.5, -0.8, 26.15, 4.66], [0.8, 25.6, 4.5, 3.3, 26.15, 4.66]]);
+  if (dicht) deel('ooglid', 'hoofd', T.bw_huid, donker(k.huid, POP_HUIDDONKER), [[-3.25, 22.8, 4.5, -0.75, 25.3, 4.62], [0.75, 22.8, 4.5, 3.25, 25.3, 4.62]]);
   const extra = popKeuze(p, 'extra');
   if (extra === 'bril') {
     // een brilletje van dunne staafjes vlak voor het gezicht (de ogen zie je erdoorheen), met pootjes naar je oren
@@ -100,14 +116,14 @@ function popDelen(p) {
 }
 // de modellen in de tekenaar: één per poppetje (ook straks die van andere spelers); oude worden opgeruimd
 const POP_GROEPEN = new Map(), POP_GEBRUIK = new Map();
-function popModel(p) {
-  const naam = 'pop:' + p.join(',');
+function popModel(p, dicht) {
+  const naam = 'pop:' + p.join(',') + (dicht ? ':dicht' : '');
   if (!R || !R.model) return null;
   if (!POP_GROEPEN.has(naam)) {
-    const { delen, groepen } = popDelen(p);
+    const { delen, groepen } = popDelen(p, dicht);
     R.model(naam, delen); POP_GROEPEN.set(naam, groepen);
-    // hooguit 16 tegelijk: de minst recent gebruikte gaat weg
-    if (POP_GROEPEN.size > 16) { let oudst = null, t = Infinity; for (const [n, g] of POP_GEBRUIK) if (g < t && n !== naam) { t = g; oudst = n; } if (oudst) { R.modelWeg(oudst); POP_GROEPEN.delete(oudst); POP_GEBRUIK.delete(oudst); } }
+    // hooguit 32 tegelijk (16 poppetjes, elk ook met gesloten ogen): de minst recent gebruikte gaat weg
+    if (POP_GROEPEN.size > 32) { let oudst = null, t = Infinity; for (const [n, g] of POP_GEBRUIK) if (g < t && n !== naam) { t = g; oudst = n; } if (oudst) { R.modelWeg(oudst); POP_GROEPEN.delete(oudst); POP_GEBRUIK.delete(oudst); } }
   }
   POP_GEBRUIK.set(naam, performance.now());
   return naam;
@@ -142,9 +158,24 @@ function popHouding(s) {
   if (s.eet >= 0) { g.armR[0] = -1.9 + Math.max(0, Math.sin(s.eet * 15)) * 0.15; g.armR[2] = 0.45; }
   else if (s.hak >= 0) { const b = Math.sin(s.hak * Math.PI); g.armR[0] = -2.2 + b * 1.6; g.armR[2] = 0.15; }
   else if (s.zwaai < 1) { const b = Math.sin(s.zwaai * Math.PI); g.armR[0] = Math.min(g.armR[0], -0.4 - b * 1.1); }
-  // het hoofd kijkt mee omhoog en omlaag (het lijf niet)
-  g.hoofd[0] += Math.max(-0.75, Math.min(0.75, -s.pitch)) - lichaam * 0.6;
+  // rustig ademen: de armen bewegen zachtjes mee, en het hoofd een heel klein beetje
+  if (!stil && s.t !== undefined && !s.water && !s.ladder && !s.kar) { const a = Math.sin(s.t * 1.7 + (s.n || 0)) * (1 - loop); g.armL[2] -= 0.04 + 0.025 * a; g.armR[2] += 0.04 + 0.025 * a; g.hoofd[0] += 0.015 * a; }
+  // het hoofd kijkt helemaal mee omhoog en omlaag, en opzij (kop: hoe ver het hoofd gedraaid is tegenover het lijf)
+  g.hoofd[0] += Math.max(-1.35, Math.min(1.35, -s.pitch)) - lichaam * 0.6;
+  if (s.kop) g.hoofd[1] += Math.max(-1.1, Math.min(1.1, s.kop));
   return { g, lichaam };
+}
+// knipperen: elke 3 tot 5,5 seconden heel even dicht (vast per poppetje, zodat ze niet allemaal tegelijk knipperen)
+function popKnippert(n, t) { if (minderBeweging) return false; const p = 3 + ((n * 0.6180339) % 1) * 2.5, f = ((t + n * 1.37) % p); return f < 0.13; }
+// Het lijf draait pas mee als het hoofd ver opzij kijkt (of als je loopt): o.lijf is de kant van het lijf (zoals yaw),
+// terug: hoe ver het hoofd tegenover het lijf gedraaid is. Alles zacht, met een veer.
+function popLijf(o, kijk, loopt, dt) {
+  const verschil = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+  if (o.lijf === undefined || !isFinite(o.lijf)) o.lijf = kijk;
+  const max = loopt ? 0.2 : 0.85, d = verschil(kijk, o.lijf), doel = d > max ? kijk - max : d < -max ? kijk + max : o.lijf;
+  o.lijf += verschil(doel, o.lijf) * (1 - Math.exp(-(loopt ? 9 : 7) * Math.max(0, dt)));
+  if (loopt) o.lijf += verschil(kijk, o.lijf) * (1 - Math.exp(-3 * Math.max(0, dt)));
+  return verschil(kijk, o.lijf);
 }
 function popDelenHouding(naam, g) {
   const uit = {}; for (const [d, groep] of POP_GROEPEN.get(naam) || []) uit[d] = g[groep]; return uit;
@@ -203,14 +234,18 @@ function maakCamera(bobX, bobY) {
 }
 // ---------------- jezelf tekenen (van achteren en van voren)
 let popZwaai = 1;
+const popEigen = { lijf: undefined, t: 0 };
 function popTeken(wezens, licht, hand) {
   if (!camBeeld() || !wereldKlaar) return;
-  const naam = popModel(opslag.pop); if (!naam) return;
+  const nu = performance.now() / 1000, dt = popEigen.t ? Math.min(0.1, nu - popEigen.t) : 0; popEigen.t = nu;
+  const naam = popModel(opslag.pop, popKnippert(1, nu)); if (!naam) return;
   const v = Math.hypot(sp.vx, sp.vz);
+  // in het water, op een ladder of in een karretje draait het lijf meteen mee
+  const kop = sp.inWater || sp.opLadder || rijdtIn ? (popEigen.lijf = sp.yaw, 0) : popLijf(popEigen, sp.yaw, v > 0.6, dt);
   const s = { v, fase: sp.schommelT, grond: sp.opGrond, water: sp.inWater && !sp.opGrond, ladder: sp.opLadder, sluip: sp.sluipt, kar: !!rijdtIn,
-    hak: hand.soort === 'hak' && hand.zwaai > 0 ? hand.zwaai : -1, eet: hand.eet, zwaai: hand.zwaai || 1, pitch: sp.pitch, t: performance.now() / 1000, vliegt: sp.vliegt };
+    hak: hand.soort === 'hak' && hand.zwaai > 0 ? hand.zwaai : -1, eet: hand.eet, zwaai: hand.zwaai || 1, pitch: sp.pitch, kop, t: nu, n: 1, vliegt: sp.vliegt };
   const { g, lichaam } = popHouding(s);
-  const w = { model: naam, x: sp.x, y: sp.y + (s.water ? 0.55 : 0), z: sp.z, yaw: sp.yaw + Math.PI, pitch: lichaam, delen: popDelenHouding(naam, g), licht, schaal: POP_SCHAAL };
+  const w = { model: naam, x: sp.x, y: sp.y + (s.water ? 0.55 : 0), z: sp.z, yaw: popEigen.lijf + Math.PI, pitch: lichaam, delen: popDelenHouding(naam, g), licht, schaal: POP_SCHAAL };
   if (hand.id) { const it = IT[hand.id], bl = it && it.blok ? BL[it.blok] : null; w.vast = { id: hand.id, deel: 'handR', plek: POP_HANDPLEK, soort: it && it.gereed ? 'gereed' : bl && (bl.vorm === 'fakkel' || bl.vorm === 'kaars') ? 'rechtop' : bl ? 'blok' : 'klein' }; }
   wezens.push(w);
 }

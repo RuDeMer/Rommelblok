@@ -20,6 +20,7 @@ N=3 loop "browser: samen spelen zonder spelserver (een nette melding, en alleen 
 N=3 loop "browser: samen spelen met twee spelers" node test/samen.js
 N=3 loop "browser: samen spelen met drie spelers (één op een telefoon)" node test/samen.js 3
 N=2 loop "browser: bewoners uit een oudere wereld krijgen eenmalig hun nieuwe naam" node test/namen_omzetten.js
+N=8 loop "browser: je poppetje kijkt helemaal omhoog, omlaag en opzij, het lijf draait later mee, en het knippert" node test/poppetje_kijk.js
 N=2 loop "browser: je poppetje en de drie camera's (computer)" node test/poppetje.js
 N=2 loop "browser: je poppetje en de drie camera's (telefoon, 360 punten breed)" node test/poppetje.js telefoon
 N=12 loop "dieren en griezels: vaste kuddetjes, hekken, water, randen, vallen, pijn, buit" node test/wezens.js

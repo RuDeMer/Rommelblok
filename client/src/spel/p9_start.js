@@ -117,7 +117,7 @@ window.__rommelblok = {
   get rijdtIn() { return rijdtIn; }, get doelKar() { return doelKar; }, KAR, karNieuw, karWeg, instappen, uitstappen, karTik, spoorBaan, spoorLeg, karrenUitStuk, karData,
   acties, ACTIES, KAART, BOUWW, tekenRegio, REGIO, openKaart, openLogboek, logboek, kaartLaden, kaartBewaren, kompasDoel, KM, LOGBOEK, aantalMijlpalen,
   // je poppetje en de camera
-  POP, get opslag() { return opslag; }, openPop, popZetVeld, verrasPop, popStudio, STUDIO: ST, popModel, popDelen, popHouding, popArm,
+  POP, get opslag() { return opslag; }, openPop, popZetVeld, verrasPop, popStudio, STUDIO: ST, popModel, popDelen, popHouding, popArm, popLijf, popKnippert, samenTeken,
   // dieren en griezels
   WZ, get griezels() { return griezels; }, get actief() { return actief; }, get doelWezen() { return doelWezen; }, wezenOpStraal,
   // alles wat als wezen getekend wordt (karretjes, bewoners, dieren, andere spelers en je poppetje), zoals in tekenExtra

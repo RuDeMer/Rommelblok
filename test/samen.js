@@ -180,6 +180,13 @@ const vrijePoort = () => new Promise(ok => { const s = net.createServer().listen
     if (i === 30 || i === 70) koppen.push(await R(A, kopVoor, await R(B, () => window.__rommelblok.sp.yaw)));
   }
   goed(koppen.every(k => k > 0.8), 'A ziet het poppetje van B met zijn gezicht naar voren lopen (' + koppen.map(k => typeof k === 'number' ? (k * 100).toFixed(0) + '%' : k).join(', ') + ')');
+  // B blijft staan en kijkt omhoog en een stukje opzij: A ziet het hoofd van B meedraaien, vloeiend, en het lijf blijft staan
+  await R(B, () => { const R = window.__rommelblok; R.kijk(R.sp.yaw + 0.6, 1.2); R.samenTik(0.1, R.camVorige); });
+  for (let i = 0; i < 12; i++) { await R(B, () => { const R = window.__rommelblok; R.sim(2, 0.05, {}); R.samenTik(0.1, R.camVorige); }); await B.page.waitForTimeout(100); }
+  await A.page.waitForTimeout(400);
+  const hoofdB = await R(A, () => { const R = window.__rommelblok; const stappen = []; for (let i = 0; i < 30; i++) { const l = []; R.samenTeken(l, 0.05); const e = l[0]; if (e && e.delen) stappen.push([e.delen.hoofd[0], e.delen.hoofd[1]]); } return stappen; });
+  const laatste = hoofdB[hoofdB.length - 1] || [0, 0], sprong = hoofdB.slice(1).reduce((m, h, i) => Math.max(m, Math.abs(h[0] - hoofdB[i][0]), Math.abs(h[1] - hoofdB[i][1])), 0);
+  goed(laatste[0] < -1.0 && Math.abs(laatste[1] - 0.6) < 0.15 && sprong < 0.35, 'A ziet het hoofd van B omhoog en opzij kijken, vloeiend (hoofd ' + laatste.map(v => v.toFixed(2)).join(', ') + ', grootste stap ' + sprong.toFixed(2) + ')');
   const gelopen = await R(B, p => { const R = window.__rommelblok; return Math.hypot(R.sp.x - p[0], R.sp.z - p[1]); }, loopVan);
   await B.page.waitForTimeout(500);
   goed(gelopen > 15 && await R(B, n => window.__ber.filter(m => m.t === 'plek').length === n, correcties), 'B loopt en rent ' + gelopen.toFixed(0) + ' blokken over het land: de server zet hem nergens terug');

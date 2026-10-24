@@ -104,7 +104,7 @@ function popStudio(dt, C0) {
   if (!stil && !ST.sleep && nu > ST.rustTot) ST.draai += dt * 0.45;
   ST.hup = Math.min(1, ST.hup + dt * 1.6);
   const hup = stil ? 0 : Math.sin(ST.hup * Math.PI) * 0.22;
-  const naam = popModel(opslag.pop);
+  const naam = popModel(opslag.pop, popKnippert(1, tijd));
   const wezens = [];
   if (naam) {
     const { g } = popHouding({ v: 0, fase: 0, grond: true, water: false, ladder: false, sluip: false, kar: false, hak: -1, eet: -1, zwaai: ST.hup < 1 ? ST.hup : 1, pitch: 0, t: tijd, vliegt: false });
