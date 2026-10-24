@@ -7,7 +7,7 @@ export function RB_MAKER(G, ctx) {
   let wereld = null, zaad = -1;
   function behandel(m, poort) {
     // de wereldbaas vertelt eerst welke wereld het is (met de stukken die het oude landschap houden)
-    if (m.t === 'wereld') { wereld = G.maakWereld(m.zaad, { gen: 3, oud: m.oud }); zaad = m.zaad; return; }
+    if (m.t === 'wereld') { wereld = G.maakWereld(m.zaad, { gen: 3, oud: m.oud, erts: m.erts, kolenOud: m.kolenOud }); zaad = m.zaad; return; }
     if (m.t !== 'maak') return;
     if (m.zaad !== zaad || !wereld) { wereld = G.maakWereld(m.zaad); zaad = m.zaad; }
     const s = wereld.maakStuk(m.cx, m.cz);
@@ -901,8 +901,24 @@ export function RB_WERELD(G, ctx) {
           oudNieuw = true;
         }
       }
-      wereld = G.maakWereld(zaad, { gen: 3, oud });
-      for (const mk of makers) mk.poort.postMessage({ t: 'wereld', zaad, oud });
+      // Meer steenkool dicht onder de grond (oktober 2026). Een eigen wereld van daarvoor: de stukken waar je al was (bewaard,
+      // op de kaart, of rond je plek, je startplek en je bed) houden voorgoed hun oude ertsen; die lijst wordt één keer
+      // vastgelegd, onder 'kolen|<wereld>'. Bij samen spelen (en op de server) zegt de wereld zelf welke ertsen: m.erts.
+      let kolenOud = null; const erts = wid ? 2 : m.erts === 1 ? 1 : 2;
+      if (db && wid) {
+        try { const r = await dbVraag(db.transaction('stukken', 'readonly').objectStore('stukken').get('kolen|' + wid)); if (r instanceof Int32Array) kolenOud = r; } catch (er) {}
+        if (!kolenOud && (m.erts || 1) < 2) {
+          const paren = new Set(opgeslagen);
+          const rond = (cx, cz, r) => { for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) if (dx * dx + dz * dz <= r * r) paren.add((cx + dx) + ',' + (cz + dz)); };
+          for (const p of [...opgeslagen]) { const [a, b] = p.split(','); rond(+a, +b, 2); }
+          for (const [x, z] of (m.plekken || [])) if (isFinite(x) && isFinite(z)) rond(Math.floor(x) >> 4, Math.floor(z) >> 4, 8);
+          try { const kk = await dbVraag(db.transaction('stukken', 'readonly').objectStore('stukken').getAllKeys(IDBKeyRange.bound('kaart|' + wid + '|', 'kaart|' + wid + '|￿'))); for (const k of kk) { const [, , a, b] = String(k).split('|'); paren.add(a + ',' + b); } } catch (er) {}
+          kolenOud = new Int32Array(paren.size * 2); let i = 0; for (const p of paren) { const [a, b] = p.split(','); kolenOud[i++] = +a; kolenOud[i++] = +b; }
+          try { const tx = db.transaction('stukken', 'readwrite'); tx.objectStore('stukken').put(kolenOud, 'kolen|' + wid); await new Promise(ok => { tx.oncomplete = tx.onerror = tx.onabort = ok; }); } catch (er) {}
+        }
+      }
+      wereld = G.maakWereld(zaad, { gen: 3, oud, erts, kolenOud });
+      for (const mk of makers) mk.poort.postMessage({ t: 'wereld', zaad, oud, erts, kolenOud });
       actief = true; clearTimeout(tikker); lus();
       post({ t: 'gestart', opgeslagen: opgeslagen.size, oud: oud ? oud.length / 2 : 0, oudNieuw });
     } else if (m.t === 'overlay') {
@@ -957,5 +973,5 @@ export function RB_WERELD(G, ctx) {
     }
   };
   // voor tests in Node
-  return { bladTik, vergaan, willekeurig, overlay, overlayVies, waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z) => { zaad = z; wereld = G.maakWereld(z); actief = true; }, meshStuk, rondBuren };
+  return { bladTik, vergaan, willekeurig, overlay, overlayVies, waterTeller: () => waterTeller, get, zet, stukken, haal, belicht, zonVul, meshSectie, LG, waterTik, plan, ontvang, vraag, tik, opties, setSpeler: (x, z, r) => { pcx = x >> 4; pcz = z >> 4; if (r) straal = r; nodigVoor = ''; }, start: (z, o) => { zaad = z; wereld = G.maakWereld(z, o); actief = true; }, meshStuk, rondBuren };
 }

@@ -62,7 +62,7 @@ function nieuweWereldGegevens(naam, zaadTekst, stand, moeilijk) {
     naam: (naam || '').trim().slice(0, 40) || t('Mijn wereld'), zaad, zaadTekst: tekst, stand: stand === 'bouwen' ? 'bouwen' : 'overleven',
     gemaakt: Date.now(), gespeeld: Date.now(), speeltijd: 0, tijd: 0.3, dag: 0,
     speler: { pos: [st.x, st.y, st.z], kijk: [Math.PI * 0.25, -0.15], vliegt: false, hp: 20, honger: 20, verzadiging: 5, adem: 10, uitputting: 0, start: [st.x, st.y, st.z], bed: null },
-    inv: beginRugzak(stand), kies: 0, rugzakken: [], dingen: {}, plaatje: null, grotten: 2, gen: 3,
+    inv: beginRugzak(stand), kies: 0, rugzakken: [], dingen: {}, plaatje: null, grotten: 2, gen: 3, erts: 2,
     moeilijk: G.WEZENS.MOEILIJK[moeilijk] ? moeilijk : 'makkelijk', dieren: [], dierVak: {},
   };
 }
@@ -183,7 +183,7 @@ $('rb-maak-vorm').addEventListener('submit', e => { e.preventDefault(); if (maak
 async function verwijder(id) {
   await dbKlaar; if (!db) return;
   const tx = db.transaction(['werelden', 'stukken'], 'readwrite');
-  tx.objectStore('werelden').delete(id); tx.objectStore('stukken').delete(await stukBereik(id)); tx.objectStore('stukken').delete(kaartBereik(id)); tx.objectStore('stukken').delete('oud|' + id);
+  tx.objectStore('werelden').delete(id); tx.objectStore('stukken').delete(await stukBereik(id)); tx.objectStore('stukken').delete(kaartBereik(id)); tx.objectStore('stukken').delete('oud|' + id); tx.objectStore('stukken').delete('kolen|' + id);
   await new Promise(ok => { tx.oncomplete = tx.onerror = tx.onabort = ok; });
   if (opslag.laatste === id) { opslag.laatste = null; bewaarInst(); }
 }
@@ -201,7 +201,9 @@ async function exporteer(w) {
   const kopie = Object.assign({}, w); delete kopie.id; delete kopie._sinds;
   // de stukken die het landschap van voor versie 3 houden (als die er zijn)
   let oud = null; try { const r = await idb(db.transaction('stukken').objectStore('stukken').get('oud|' + w.id)); if (r instanceof Int32Array) oud = Array.from(r); } catch (e) {}
-  const bestand = JSON.stringify(Object.assign({ formaat: 'rommelblok-wereld', versie: 1, wereld: kopie, stukken }, oud ? { oud } : {}));
+  // en de stukken die hun ertsen van voor oktober 2026 houden
+  let kolen = null; try { const r = await idb(db.transaction('stukken').objectStore('stukken').get('kolen|' + w.id)); if (r instanceof Int32Array) kolen = Array.from(r); } catch (e) {}
+  const bestand = JSON.stringify(Object.assign({ formaat: 'rommelblok-wereld', versie: 1, wereld: kopie, stukken }, oud ? { oud } : {}, kolen ? { kolen } : {}));
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bestand], { type: 'application/json' }));
   a.download = (w.naam || 'wereld').replace(/[^\p{L}\p{N} _-]/gu, '').trim().replace(/\s+/g, '-').slice(0, 40) + '.rommelblok';
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -242,7 +244,7 @@ function schoonWereld(w) {
     speler: { pos: s.pos.slice(), kijk: [getal(s.kijk[0], 0), klem(getal(s.kijk[1], 0), -1.55, 1.55)], vliegt: !!s.vliegt, hp: klem(getal(s.hp, 20), 1, 20), honger: klem(getal(s.honger, 20), 0, 20), verzadiging: klem(getal(s.verzadiging, 5), 0, 20), adem: 10, uitputting: 0, start: plek(s.start) || s.pos.slice(), bed: plek(s.bed) },
     inv: vakken(w.inv, 36), kies: klem(Math.floor(getal(w.kies, 0)), 0, 8),
     rugzakken: (Array.isArray(w.rugzakken) ? w.rugzakken : []).slice(0, 20).map(r => ({ x: getal(r.x, 0), y: getal(r.y, 64), z: getal(r.z, 0), inhoud: (Array.isArray(r.inhoud) ? r.inhoud : []).slice(0, 36).map(vak).filter(Boolean), dag: getal(r.dag, 0) })),
-    dingen, grotten: w.grotten === 2 ? 2 : 1, gen: w.gen === 3 ? 3 : 2, welkom: !!w.welkom,
+    dingen, grotten: w.grotten === 2 ? 2 : 1, gen: w.gen === 3 ? 3 : 2, erts: w.erts === 2 ? 2 : 1, welkom: !!w.welkom,
     markers: (Array.isArray(w.markers) ? w.markers : []).slice(0, MAX_MARKERINGEN).filter(m => m && [m.x, m.y, m.z].every(v => typeof v === 'number' && isFinite(v))).map(m => ({ x: m.x, y: m.y, z: m.z, naam: String(m.naam || '').slice(0, 24) || '?', kleur: Math.abs(Math.floor(getal(m.kleur, 0))) % 6 })),
     kompasDoel: Math.floor(getal(w.kompasDoel, -1)),
     karren: (Array.isArray(w.karren) ? w.karren : []).slice(0, 300).filter(k => k && Number.isInteger(k.id) && k.id > 0 && [k.bx, k.by, k.bz].every(Number.isInteger) && k.by >= 0 && k.by < 128).map(k => ({ id: k.id, bx: k.bx, by: k.by, bz: k.bz, van: Math.abs(Math.floor(getal(k.van, 0))) % 4, t: klem(getal(k.t, 0.5), 0, 1), v: klem(getal(k.v, 0), -11, 11) })),
@@ -290,11 +292,18 @@ async function importeer(tekst) {
     if (!Array.isArray(o.oud) || o.oud.length % 2 || o.oud.length > 800000 || !o.oud.every(v => Number.isInteger(v) && Math.abs(v) <= 2e6)) throw new Error('oud');
     oud = Int32Array.from(o.oud);
   }
+  // de stukken met de ertsen van voor oktober 2026 (ook paren gehele getallen)
+  let kolen = null;
+  if (o.kolen !== undefined) {
+    if (!Array.isArray(o.kolen) || o.kolen.length % 2 || o.kolen.length > 800000 || !o.kolen.every(v => Number.isInteger(v) && Math.abs(v) <= 2e6)) throw new Error('kolen');
+    kolen = Int32Array.from(o.kolen);
+  }
   await dbKlaar; if (!db) throw new Error('opslag');
   await new Promise((ok, nee) => {
     const tx = db.transaction(['werelden', 'stukken'], 'readwrite');
     tx.objectStore('werelden').put(w); const st = tx.objectStore('stukken'); for (const [k, r] of goed) st.put(r, k);
     if (oud) st.put(oud, 'oud|' + w.id);
+    if (kolen) st.put(kolen, 'kolen|' + w.id);
     tx.oncomplete = ok; tx.onerror = tx.onabort = () => nee(tx.error);
   });
   return w.naam;

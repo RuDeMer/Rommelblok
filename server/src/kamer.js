@@ -117,7 +117,7 @@ function erbij(m) {
   spelers.set(m.sid, s);
   stuur(s, {
     t: 'welkom', v: S.PROTOCOL, jij: s.sid,
-    wereld: { id: wereldId, naam: W.naam, zaad: W.zaad >>> 0, stand: W.stand, moeilijk: W.moeilijk, tijd, dag, bouwen: W.regels.bouwen, dicht: W.regels.dicht },
+    wereld: { id: wereldId, naam: W.naam, zaad: W.zaad >>> 0, stand: W.stand, moeilijk: W.moeilijk, tijd, dag, bouwen: W.regels.bouwen, dicht: W.regels.dicht, erts: W.regels.erts },
     eigenaar, plek: plek || null, start: START, data: s.data,
     nieuw: m.nieuw || null,
     spelers: [...spelers.values()].filter(o => o !== s).map(o => [o.sid, o.naam, o.pop, o.eigenaar ? 1 : 0]),
@@ -482,7 +482,7 @@ for (let i = 0; i < AANTAL_MAKERS; i++) {
   w.postMessage({ t: 'poort', poort: ch.port1 }, [ch.port1]);
   makers.push({ w, poort: ch.port2 });
 }
-await naarWb({ t: 'start', nr: 1, zaad: W.zaad >>> 0, wid: null, gen: 3, straal: inst.serverStraal, x: START[0], y: START[1], z: START[2], opties: { server: true }, centra: [], poorten: makers.map(m => m.poort) });
+await naarWb({ t: 'start', nr: 1, zaad: W.zaad >>> 0, wid: null, gen: 3, erts: W.regels.erts, straal: inst.serverStraal, x: START[0], y: START[1], z: START[2], opties: { server: true }, centra: [], poorten: makers.map(m => m.poort) });
 laad();
 klaar = true;
 tikker = setInterval(tik, 50);

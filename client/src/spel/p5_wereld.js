@@ -24,7 +24,9 @@ wb.onmessage = e => {
     case 'kaart': if (typeof kaartBinnen === 'function') kaartBinnen(m); break;
     case 'bouwwerken': if (typeof bouwwerkenBinnen === 'function') bouwwerkenBinnen(m.lijst); break;
     // de wereldbaas is begonnen; een wereld van voor versie 3 is nu omgezet (waar je al was, blijft het oude landschap)
-    case 'gestart': if (WD && (WD.gen || 2) < 3) { WD.gen = 3; if (m.oudNieuw && WD.welkom) setTimeout(() => melding(t('Nieuw in je wereld: dorpjes, rivieren door dalen en meer land. Waar je al geweest bent, blijft alles zoals het was.')), 4000); } break;
+    // en een wereld van voor oktober 2026 krijgt meer steenkool, alleen waar je nog niet was
+    case 'gestart': if (WD && !WD.samen && (WD.erts || 1) < 2) WD.erts = 2;
+      if (WD && (WD.gen || 2) < 3) { WD.gen = 3; if (m.oudNieuw && WD.welkom) setTimeout(() => melding(t('Nieuw in je wereld: dorpjes, rivieren door dalen en meer land. Waar je al geweest bent, blijft alles zoals het was.')), 4000); } break;
     default: if (m.id && wachten.has(m.id)) { const ok = wachten.get(m.id); wachten.delete(m.id); ok(m); }
   }
 };
@@ -51,7 +53,7 @@ function startWereld(gegevens, alsMenu) {
   const s = W0.speler;
   sp.x = s.pos[0]; sp.y = s.pos[1]; sp.z = s.pos[2]; sp.yaw = s.kijk[0]; sp.pitch = s.kijk[1]; sp.vx = sp.vy = sp.vz = 0; sp.vliegt = !!s.vliegt && W0.stand === 'bouwen'; sp.valStart = null;
   huidigeStraal = alsMenu ? Math.min(straalNu(), telefoon ? 3 : 6) : straalNu();
-  const m = { t: 'start', nr: ++wereldNr, zaad: W0.zaad, wid: W0.samen ? null : W0.id, gen: W0.gen || 2, plekken: [s.pos, s.start, s.bed].filter(Boolean).map(p => [p[0], p[2]]), straal: huidigeStraal, x: sp.x, y: sp.y, z: sp.z, opties: { snelleBladeren: KW.snelleBladeren, samen: !!W0.samen } };
+  const m = { t: 'start', nr: ++wereldNr, zaad: W0.zaad, wid: W0.samen ? null : W0.id, gen: W0.gen || 2, erts: W0.erts || 1, plekken: [s.pos, s.start, s.bed].filter(Boolean).map(p => [p[0], p[2]]), straal: huidigeStraal, x: sp.x, y: sp.y, z: sp.z, opties: { snelleBladeren: KW.snelleBladeren, samen: !!W0.samen } };
   if (!poortenGegeven) { m.poorten = makerPoorten; poortenGegeven = true; wb.postMessage(m, makerPoorten); }
   else wb.postMessage(m);
   wereldKlaar = false; spelBezig = !alsMenu; sinds = 0;
@@ -60,7 +62,7 @@ function startWereld(gegevens, alsMenu) {
 function startMenuWereld() {
   if (!R || menuWereld) return;
   const zaad = G.zaadVan('rommelhoekje'), st = G.maakWereld(zaad).startPlek();
-  startWereld({ id: 'menu', zaad, gen: 3, stand: 'bouwen', tijd: 0.31, dag: 3, speler: { pos: [st.x, st.y + 14, st.z], kijk: [0.8, -0.18], vliegt: true } }, true);
+  startWereld({ id: 'menu', zaad, gen: 3, erts: 2, stand: 'bouwen', tijd: 0.31, dag: 3, speler: { pos: [st.x, st.y + 14, st.z], kijk: [0.8, -0.18], vliegt: true } }, true);
 }
 function menuTik(dt, nu) {
   if (!menuWereld) return;

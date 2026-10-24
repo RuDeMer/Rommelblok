@@ -147,7 +147,7 @@ function speelSamen(ws, wk, info, houd) {
   const nieuw = {
     id: 'samen:' + w.id, samen: true, versie: 1, naam: smWereldNaam(w.naam), zaad: w.zaad >>> 0, zaadTekst: '', stand: w.stand === 'bouwen' ? 'bouwen' : 'overleven',
     gemaakt: Date.now(), gespeeld: Date.now(), speeltijd: d.speeltijd || 0, tijd: w.tijd, dag: w.dag,
-    speler: s, inv: d.inv || beginRugzak(w.stand), kies: d.kies || 0, rugzakken: d.rugzakken || [], dingen: {}, plaatje: 'samen', grotten: 2, gen: 3,
+    speler: s, inv: d.inv || beginRugzak(w.stand), kies: d.kies || 0, rugzakken: d.rugzakken || [], dingen: {}, plaatje: 'samen', grotten: 2, gen: 3, erts: w.erts === 2 ? 2 : 1,
     moeilijk: w.moeilijk, dieren: [], dierVak: {}, markers: d.markers || [], gevonden: d.gevonden || [], logboek: d.logboek, geland: !!d.geland || !!plek, welkom: !!d.welkom,
   };
   samenOnthoud(Object.assign({ i: w.id, c: samen.code, n: w.naam, s: nieuw.stand === 'bouwen' ? 'b' : 'o' }, samen.sleutel ? { k: samen.sleutel } : {}));

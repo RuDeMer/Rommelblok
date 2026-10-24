@@ -12,7 +12,8 @@ function ondergrond() {
   }
   return null;
 }
-function springGeluid() { klank('spring'); uitput(sp.rent ? 0.2 : 0.05); }
+// honger: een sprong kost wat (rennend springen iets meer), maar veel minder dan vroeger (0,2 en 0,05)
+function springGeluid() { klank('spring'); uitput(sp.rent ? 0.065 : 0.02); }
 
 // ---------------- richten: welk blok raakt de kijkstraal (ook vormen als trappen en fakkels precies)
 function straalDoos(o, d, x0, y0, z0, x1, y1, z1) {
@@ -497,7 +498,8 @@ function overleefTik(dt) {
   tikCactus -= dt;
   if (tikCactus <= 0) { for (const [dx, dz] of [[BR + 0.05, 0], [-BR - 0.05, 0], [0, BR + 0.05], [0, -BR - 0.05], [0, 0]]) { const b = blokOp(Math.floor(sp.x + dx), Math.floor(sp.y + (dx || dz ? 0.5 : -0.05)), Math.floor(sp.z + dz)); if ((b & 255) === B.cactus) { schade(1, 'cactus'); tikCactus = 0.6; break; } } }
   // honger en herstel
-  const hs = Math.hypot(sp.vx, sp.vz); if (sp.opGrond || sp.inWater) uitput(hs * dt * (sp.rent ? 0.1 : sp.inWater ? 0.015 : 0.01));
+  // honger per blok: wandelen kost niets, rennen 0,04 en zwemmen 0,01 (vroeger 0,01, 0,1 en 0,015: rennen naar boven uit een grot at je bijna leeg)
+  const hs = Math.hypot(sp.vx, sp.vz); if (sp.opGrond || sp.inWater) uitput(hs * dt * (sp.inWater ? 0.01 : sp.rent ? 0.04 : 0));
   tik1 += dt;
   if (tik1 > 2.5) {
     tik1 = 0;

@@ -61,7 +61,8 @@ export function openDb(pad) {
     meldingenOud: q('DELETE FROM meldingen WHERE tijd < ?'),
     weg: ['DELETE FROM stukken WHERE wereld = ?', 'DELETE FROM dingen WHERE wereld = ?', 'DELETE FROM spelers WHERE wereld = ?', 'DELETE FROM werelden WHERE id = ?'].map(q),
   };
-  const regels = r => { try { const o = JSON.parse(r.regels || '{}'); return { bouwen: o.bouwen === 'eigenaar' ? 'eigenaar' : 'iedereen', dicht: !!o.dicht, geweerd: Array.isArray(o.geweerd) ? o.geweerd.slice(0, 500) : [] }; } catch (e) { return { bouwen: 'iedereen', dicht: false, geweerd: [] }; } };
+  // erts: 2 voor werelden vanaf oktober 2026 (meer steenkool dicht onder de grond), 1 voor oudere (die blijven zoals ze waren)
+  const regels = r => { try { const o = JSON.parse(r.regels || '{}'); return { bouwen: o.bouwen === 'eigenaar' ? 'eigenaar' : 'iedereen', dicht: !!o.dicht, geweerd: Array.isArray(o.geweerd) ? o.geweerd.slice(0, 500) : [], erts: o.erts === 2 ? 2 : 1 }; } catch (e) { return { bouwen: 'iedereen', dicht: false, geweerd: [], erts: 1 }; } };
   const naam = r => { try { const n = JSON.parse(r.naam); return Array.isArray(n) ? n : [0, 0]; } catch (e) { return [0, 0]; } };
   const metRegels = r => (r ? Object.assign({}, r, { regels: regels(r), naam: naam(r) }) : null);
   return {
@@ -69,7 +70,7 @@ export function openDb(pad) {
     sluit() { try { db.close(); } catch (e) { /* al dicht */ } },
     nieuweWereld(w) {
       const nu = Date.now();
-      const r = S.wereldMaak.run(w.code, w.eigenaar, JSON.stringify(w.naam), w.zaad, w.stand, w.moeilijk, JSON.stringify({ bouwen: 'iedereen', dicht: false, geweerd: [] }), nu, nu);
+      const r = S.wereldMaak.run(w.code, w.eigenaar, JSON.stringify(w.naam), w.zaad, w.stand, w.moeilijk, JSON.stringify({ bouwen: 'iedereen', dicht: false, geweerd: [], erts: 2 }), nu, nu);
       return Number(r.lastInsertRowid);
     },
     wereldVanCode: code => metRegels(S.wereldCode.get(code)),

@@ -103,14 +103,16 @@ console.log('  erbij gekomen (stap 3, je poppetje; stap 4, dieren en griezels):'
 const gelijk = (a, b) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength));
 // blokken van een stuk: gelijk, op de bewuste veranderingen van oktober 2026 na:
 // - bladeren van bomen hebben stand 1 (zelfde soort blad, alleen het merkje 'van de natuur' erbij)
+// - meer steenkool: steen die steenkool werd, alleen in nieuwe stukken (met opt.erts 1 nergens: dat vergelijken we apart)
 const BLADID = new Set(NIEUW.BL.filter(b => b && b.sleutel.startsWith('blad_')).map(b => b.id !== undefined ? b.id : NIEUW.B[b.sleutel]));
-const BEWUST = { blad: 0 };
-function blokkenGelijk(a, b) {
+const BEWUST = { blad: 0, kolen: 0 };
+function blokkenGelijk(a, b, kolenMag = true) {
   if (gelijk(a, b)) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     const o = a[i], n = b[i]; if (o === n) continue;
     if (BLADID.has(n & 255) && (o & 255) === (n & 255) && (o >> 8) === 0 && (n >> 8) === 1) { BEWUST.blad++; continue; }
+    if (kolenMag && o === NIEUW.B.steen && n === NIEUW.B.erts_kolen) { BEWUST.kolen++; continue; }
     return false;
   }
   return true;
@@ -123,7 +125,7 @@ function vergelijk(zaad, opt, naam, plekken) {
   if (JSON.stringify(so) !== JSON.stringify(sn)) fout(naam, 'startplek', so, sn);
   for (const [cx, cz] of plekken(so)) {
     const a = wo.maakStuk(cx, cz), b = wn.maakStuk(cx, cz); stukken++;
-    if (!blokkenGelijk(a.d, b.d)) fout(naam, 'blokken', cx, cz);
+    if (!blokkenGelijk(a.d, b.d, !(opt && opt.erts === 1))) fout(naam, 'blokken', cx, cz);
     if (!gelijk(a.biomen, b.biomen)) fout(naam, 'streken', cx, cz);
     if (!gelijk(a.kleur, b.kleur)) fout(naam, 'kleuren', cx, cz);
   }
@@ -150,22 +152,26 @@ for (const zaad of ZAADJES) {
   vergelijk(zaad, { gen: 2 }, 'zaad ' + zaad + ' versie 2', so => rond(Math.max(2, n >> 1))(so).concat(ver.slice(0, 2)));
   const oud = []; for (let z = -2; z <= 2; z++) for (let x = -2; x <= 2; x++) oud.push(x, z);
   vergelijk(zaad, { gen: 3, oud: Int32Array.from(oud) }, 'zaad ' + zaad + ' oude wereld', () => rond(6)({ x: 8, z: 8 }));
+  // een gedeelde wereld van voor oktober 2026 (erts 1): alleen het merkje op bladeren is anders, geen enkele kolen erbij
+  if (zaad === 777 || zaad === 4242) vergelijk(zaad, { erts: 1 }, 'zaad ' + zaad + ' ertsen van vroeger', so => rond(3)(so).concat(ver.slice(0, 2)));
 }
 console.log('werelden:', stukken, 'stukken vergeleken in', ((Date.now() - t0) / 1000).toFixed(0), 's');
-console.log('  bewust anders (oktober 2026): ' + BEWUST.blad + ' bladeren van bomen met stand 1 (verder dezelfde blokken)');
+console.log('  bewust anders (oktober 2026): ' + BEWUST.blad + ' bladeren van bomen met stand 1, en ' + BEWUST.kolen + ' blokken steen die steenkool werden (verder dezelfde blokken)');
+if (!BEWUST.kolen) fout('geen enkele extra steenkool gevonden');
 if (!BEWUST.blad) fout('geen enkel blad met stand 1 gevonden');
 
 // ---------- 3. wereldbaas en texturen
 function wereldbaas(F, G, zaad) {
   const berichten = [], Wb = F(G, { postMessage: m => berichten.push(m) });
-  Wb.start(zaad); Wb.setSpeler(8, 8, 3); for (let i = 0; i < 500; i++) Wb.tik();
+  // de 3D-vormen vergelijken we met de ertsen van vroeger (de extra steenkool geeft andere vlakken)
+  Wb.start(zaad, { erts: 1 }); Wb.setSpeler(8, 8, 3); for (let i = 0; i < 500; i++) Wb.tik();
   const mesh = new Map(); for (const m of berichten) if (m.t === 'mesh') mesh.set(m.cx + ',' + m.cz, m);
   return { Wb, mesh, berichten };
 }
 for (const zaad of [777, 4242]) {
   const a = wereldbaas(OUD.RB_WERELD, GO, zaad), b = wereldbaas(RB_WERELD, NIEUW, zaad);
   let n = 0, v = 0;
-  for (const [k, s] of a.Wb.stukken) { const t = b.Wb.stukken.get(k); if (!t) { fout('wereldbaas: stuk ontbreekt', k); continue; } if (s.d && (!blokkenGelijk(s.d, t.d) || (s.l && !gelijk(s.l, t.l)))) fout('wereldbaas: blokken of licht', k); n++; }
+  for (const [k, s] of a.Wb.stukken) { const t = b.Wb.stukken.get(k); if (!t) { fout('wereldbaas: stuk ontbreekt', k); continue; } if (s.d && (!blokkenGelijk(s.d, t.d, false) || (s.l && !gelijk(s.l, t.l)))) fout('wereldbaas: blokken of licht', k); n++; }
   for (const [k, m] of a.mesh) { const m2 = b.mesh.get(k); if (!m2) { fout('vorm ontbreekt', k); continue; } for (let l = 0; l < m.lagen.length; l++) if (!m2.lagen[l] !== !m.lagen[l] || (m.lagen[l] && !gelijk(m.lagen[l], m2.lagen[l]))) fout('vorm', k, 'laag', l); v++; }
   console.log('wereldbaas zaadje ' + zaad + ':', n, 'stukken (blokken en licht) en', v, '3D-vormen gelijk');
 }

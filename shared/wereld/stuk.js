@@ -9,7 +9,7 @@ import { BI } from './biomen.js';
 // wm: de werkplaats van één wereld (zaadje, ruis en wat de eerdere delen gemaakt hebben)
 export function stuk(wm) {
   const {
-    kolom, rasterRuis, opt, MASKER, graafGrotten, kleuren, zaad, nDiep, lees, gM, nVlek, nBloem, wildGewas, aders,
+    kolom, rasterRuis, opt, MASKER, graafGrotten, kleuren, zaad, nDiep, lees, gM, nVlek, nBloem, wildGewas, aders, kolenErbij,
     nG3, boomgaard, BOOMKANS, boomVoor, zetBoom, bouwwerken, openBoven, bouwVrij, dorpBij,
   } = wm;
 
@@ -139,6 +139,8 @@ export function stuk(wm) {
       if ((bo === B.steen || bo === B.leisteen) && kans(zaad, X, y, Z) < 0.035) d[i] = B.druipsteen_hang;
       else if ((on === B.steen || on === B.leisteen)) { const r = kans(zaad, Z, y, X); if (r < 0.02) d[i] = B.druipsteen_staand; else if (y < 44 && r < 0.035 && nG3.r2(X / 20, Z / 20) > 0.25) d[i] = B.gloeizwam; }
     }
+    // extra steenkool in nieuwe stukken (na de druipsteen, zodat die op dezelfde plekken blijft)
+    kolenErbij(cx, cz, d, hoog);
     // bomen uit dit stuk en de buren, in een vaste volgorde
     const lijst = [];
     for (let bz = -1; bz <= 1; bz++) for (let bx = -1; bx <= 1; bx++) {
