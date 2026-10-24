@@ -5,7 +5,6 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   'use strict';
   const gl = canvas.getContext('webgl2', { antialias: !!opt.antialias, alpha: false, depth: true, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: !!opt.bewaarBeeld });
   if (!gl) return null;
-  const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
 
   // ---------------- shaders
   function maakProg(vs, fs, naam) {
@@ -315,7 +314,7 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
   // ---------------- texturen
   const N = T.N, MIPS = 5;
   // een stapel plaatjes van 16 x 16 met eigen kleinere versies: kleur gewogen naar dekking, zodat bladranden niet donker worden
-  function maakStapel(data, n, anisotroop) {
+  function maakStapel(data, n) {
     const tx = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, tx);
     gl.texStorage3D(gl.TEXTURE_2D_ARRAY, MIPS, gl.RGBA8, 16, 16, Math.max(1, n));
@@ -336,10 +335,11 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAX_LEVEL, MIPS - 1);
-    if (anisotroop && aniso && opt.aniso) gl.texParameterf(gl.TEXTURE_2D_ARRAY, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    // Geen anisotrope filtering van de grafische kaart: BLOK_FS doet dat zelf (scherp). Op Windows (Chrome via Direct3D)
+    // maakt die filtering ook het vergroten zacht in plaats van NEAREST, en dan worden de pixels van dichtbij wazig.
     return tx;
   }
-  const texArr = maakStapel(T.data, N, true), dingArr = maakStapel(T.ddata, T.ND || 0, false);
+  const texArr = maakStapel(T.data, N), dingArr = maakStapel(T.ddata, T.ND || 0);
   // kleuren van de streek: een rondlopende kaart van 512 x 512 blokken, drie lagen (gras, blad, water)
   const tintTex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D_ARRAY, tintTex);

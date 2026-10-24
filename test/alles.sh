@@ -36,6 +36,7 @@ N=13 loop "water" node test/water3.js
 N=7 loop "water op een trap: zijkanten, aansluitende hoeken, geen vlakken tussen water" node test/water_vorm.js
 N=4 loop "browser: water is van alle kanten te zien (de zijkant door een ruit, en een trap van onderen)" node test/water_zijkant.js
 N=3 loop "stromend water neemt dieren en griezels mee (wie zweeft niet)" node test/stroming.js
+N=4 loop "browser: scherp van dichtbij op de stand Hoog (geen anisotrope filtering van de grafische kaart)" node test/scherpte.js
 N=14 loop "bouwwerken: hoe vaak, vast, zonder naden" node test/bouwwerken.js
 N=12 loop "dorpjes: hoe vaak, vast, zonder naden, deuren en bedden bereikbaar" node test/dorpen.js
 N=1 loop "ruilen: elke ruil eerlijk (iets duurder dan wat je krijgt)" node test/ruilen.js
