@@ -352,8 +352,9 @@ export function RB_WERELD(G, ctx) {
     const kl = b.kleur ? Math.min(11, st & 15) + 1 : 0;
     return laag | (vl << 8) | (kl << 14);
   }
+  let meshNu = null; // het stuk waar meshSectie nu vormen voor maakt
   function meshSectie(s, sy) {
-    LG[0].leeg(); LG[1].leeg(); LG[2].leeg(); LG[3].leeg();
+    LG[0].leeg(); LG[1].leeg(); LG[2].leeg(); LG[3].leeg(); meshNu = s;
     if (vulPad(s, sy)) return;
     const Y0 = sy * 16;
     // ---------- kubussen, per richting en per plak, samengevoegd
@@ -518,15 +519,26 @@ export function RB_WERELD(G, ctx) {
       vert(L, X + 16, Y + h11, Z + 16, 2, 0, 3, zon, fak, vl, ex); vert(L, X + 16, Y + h10, Z, 2, 0, 3, zon, fak, vl, ex);
     }
     // zijkanten
+    const valtW = v => v > 0 && (v & 255) === W && ((v >> 8) & 8);
+    let waterval = false;
+    if (valtW(bv)) {
+      // hoeveel blokken vallend water staan er boven elkaar (tot drie)? Uit de wereld zelf, zodat het op de grens van twee secties hetzelfde is.
+      const wx = meshNu.cx * 16 + x, wz = meshNu.cz * 16 + z; let n = 1;
+      for (let t = 1; t <= 2 && n < 3 && valtW(get(wx, y + t, wz)); t++) n++;
+      for (let t = 1; t <= 2 && n < 3 && valtW(get(wx, y - t, wz)); t++) n++;
+      waterval = n >= 3;
+    }
     // per zijkant: de hoogtes bovenaan (a en b), waar die hoeken liggen, en welke hoeken van het lagere vakje ernaast daar aansluiten
     const zijH = [[h10, h11, 16, 0, 16, 16, 0, 0, 0, 1], [h01, h00, 0, 16, 0, 0, 1, 1, 1, 0], null, null, [h11, h01, 16, 16, 0, 16, 1, 0, 0, 0], [h00, h10, 0, 0, 16, 0, 0, 1, 1, 1]];
     for (let dir = 0; dir < 6; dir++) {
       if (dir === 2) continue;
       const nb = P[c + PO[dir]], ni = nb & 255;
       if (ni === W || DICHT[ni] || ni === B.ijs) continue;
-      const nz = PL[c + PO[dir]] >> 4, nf = PL[c + PO[dir]] & 15;
-      // strepen alleen op vallend water (een waterval); de rand van een stromend laagje is gewoon water
-      const exz = ((bv >> 8) & 8 ? 0x80 : 0) | diep;
+      // strepen alleen op een echte waterval (minstens drie blokken vallend water boven elkaar), met het licht van ernaast;
+      // de rand van een stromend laagje, en water dat maar één treetje af valt, is hetzelfde water als het oppervlak
+      // erboven, met hetzelfde licht: zo is een trap één egale laag
+      const valt = waterval, nz = valt ? PL[c + PO[dir]] >> 4 : zon, nf = valt ? PL[c + PO[dir]] & 15 : fak;
+      const exz = (valt ? 0x80 : 0) | diep;
       if (dir === 3) { vert(L, X, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z, 3, 0, 3, nz, nf, vl, exz); vert(L, X + 16, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); vert(L, X, Y, Z + 16, 3, 0, 3, nz, nf, vl, exz); continue; }
       const [ha, hb, xa, za, xb, zb, oxa, oza, oxb, ozb] = zijH[dir];
       // Gaat het water daarnaast een trede lager verder, dan loopt deze zijkant door tot dat lagere oppervlak:

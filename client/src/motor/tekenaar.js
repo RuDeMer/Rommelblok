@@ -156,18 +156,21 @@ export function RB_TEKENAAR(G, canvas, T, opt) {
       float ang = float(rdir) * 0.785398;
       vec2 sd = stroomt ? vec2(cos(ang), sin(ang)) * 1.4 : vec2(0.18, 0.11);
       vec3 N; float val = 0.0;
-      if (vN == 2u) {
+      // De zijkant van een stromend laagje (geen waterval) is hetzelfde water als het oppervlak erboven: dezelfde golfjes,
+      // dezelfde reflectie en dezelfde doorzichtigheid, zodat het van boven en van opzij één egale laag is.
+      bool alsBoven = vN == 2u || (vN != 3u && !stroomt);
+      if (alsBoven) {
         vec2 a = wp * 0.11 + uRuisOfs - sd * uTijd * 0.11, b = wp * 0.23 + uRuisOfs * 1.7 + vec2(0.37, 0.71) - sd.yx * uTijd * 0.17;
         float h0 = texture(uRuis, a).r + texture(uRuis, b).r * 0.5;
         float hx = texture(uRuis, a + vec2(0.02, 0.0)).r + texture(uRuis, b + vec2(0.02, 0.0)).r * 0.5;
         float hz = texture(uRuis, a + vec2(0.0, 0.02)).r + texture(uRuis, b + vec2(0.0, 0.02)).r * 0.5;
         N = normalize(vec3((h0 - hx) * 2.2, 1.0, (h0 - hz) * 2.2));
       } else {
-        // zijkanten (en de onderkant): de richting van het vlak, een beetje verstoord
+        // vallend water en de onderkant: de richting van het vlak, een beetje verstoord
         vec3 n0 = vN == 0u ? vec3(1.0, 0.0, 0.0) : vN == 1u ? vec3(-1.0, 0.0, 0.0) : vN == 4u ? vec3(0.0, 0.0, 1.0) : vN == 5u ? vec3(0.0, 0.0, -1.0) : vec3(0.0, -1.0, 0.0);
         float u = (vN == 0u || vN == 1u) ? wp.y : wp.x;
         if (stroomt && vN != 3u) {
-          // vallend of stromend water: strepen die naar beneden vallen (twee lagen ruis, lang en smal), met wit schuim
+          // vallend water: strepen die naar beneden vallen (twee lagen ruis, lang en smal), met wit schuim
           float y = vLp.y;
           float s1 = texture(uRuis, vec2(u * 0.55, y * 0.045 + uTijd * 0.2)).r, s2 = texture(uRuis, vec2(u * 1.1 + 0.31, y * 0.09 + uTijd * 0.46)).r;
           val = smoothstep(0.5, 0.72, s1 * 0.6 + s2 * 0.5);
